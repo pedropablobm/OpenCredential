@@ -1,0 +1,8 @@
+C:\Github\pgina-mysql8\pGina\src\bin\log4net.config
+C:\Github\pgina-mysql8\pGina\src\bin\pGina.Core.dll
+C:\Github\pgina-mysql8\pGina\src\bin\pGina.Core.pdb
+C:\Github\pgina-mysql8\pGina\src\Core\obj\Debug\Core.csproj.AssemblyReference.cache
+C:\Github\pgina-mysql8\pGina\src\Core\obj\Debug\Core.csproj.CoreCompileInputs.cache
+C:\Github\pgina-mysql8\pGina\src\Core\obj\Debug\Core.csproj.Up2Date
+C:\Github\pgina-mysql8\pGina\src\Core\obj\Debug\pGina.Core.dll
+C:\Github\pgina-mysql8\pGina\src\Core\obj\Debug\pGina.Core.pdb
