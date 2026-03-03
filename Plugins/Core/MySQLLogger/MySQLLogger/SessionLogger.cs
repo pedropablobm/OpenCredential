@@ -1,4 +1,30 @@
-﻿using System;
+/*
+        Copyright (c) 2011, pGina Team
+        All rights reserved.
+
+        Redistribution and use in source and binary forms, with or without
+        modification, are permitted provided that the following conditions are met:
+                * Redistributions of source code must retain the above copyright
+                  notice, this list of conditions and the following disclaimer.
+                * Redistributions in binary form must reproduce the above copyright
+                  notice, this list of conditions and the following disclaimer in the
+                  documentation and/or other materials provided with the distribution.
+                * Neither the name of the pGina Team nor the names of its contributors 
+                  may be used to endorse or promote products derived from this software without 
+                  specific prior written permission.
+
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+        ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+        WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+        DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+        (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+        LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+        ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+        (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+        SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,11 +32,8 @@ using System.Net;
 using System.ServiceProcess;
 
 using log4net;
-
-using MySql.Data.MySqlClient;
-
+using MySqlConnector;
 using pGina.Shared.Types;
-
 
 namespace pGina.Plugin.MySqlLogger
 {
@@ -19,9 +42,8 @@ namespace pGina.Plugin.MySqlLogger
         private ILog m_logger = LogManager.GetLogger("MySqlLoggerPlugin");
         private MySqlConnection m_conn;
 
-        public SessionLogger(){ }
+        public SessionLogger() { }
 
-        //Logs the session if it's a LogOn or LogOff event.
         public bool Log(SessionChangeDescription changeDescription, SessionProperties properties)
         {
             if (m_conn == null)
@@ -31,179 +53,129 @@ namespace pGina.Plugin.MySqlLogger
             if (properties != null)
             {
                 UserInformation ui = properties.GetTrackedSingle<UserInformation>();
-                if ((bool)Settings.Store.UseModifiedName)
-                    username = ui.Username;
-                else
-                    username = ui.OriginalUsername;
+                username = (bool)Settings.Store.UseModifiedName ? ui.Username : ui.OriginalUsername;
             }
 
-            //Logon Event
             if (changeDescription.Reason == SessionChangeReason.SessionLogon)
             {
-                if(m_conn.State != System.Data.ConnectionState.Open)
-                    m_conn.Open();
+                if (m_conn.State != System.Data.ConnectionState.Open) m_conn.Open();
 
                 string table = Settings.Store.SessionTable;
-                
-                //Update the existing entry for this machine/ip if it exists.
-                string updatesql = string.Format("UPDATE {0} SET logoutstamp=NOW() " +
-                    "WHERE logoutstamp=0 and machine=@machine and ipaddress=@ipaddress", table);
-                
-                MySqlCommand cmd = new MySqlCommand(updatesql, m_conn);
-                cmd.Prepare();
-                cmd.Parameters.AddWithValue("@machine", Environment.MachineName);
-                cmd.Parameters.AddWithValue("@ipaddress", getIPAddress());
-                cmd.ExecuteNonQuery();
-                
-                //Insert new entry for this logon event
-                string insertsql = string.Format("INSERT INTO {0} (dbid, loginstamp, logoutstamp, username,machine,ipaddress) " +
-                    "VALUES (NULL, NOW(), 0, @username, @machine, @ipaddress)", table);
-                cmd = new MySqlCommand(insertsql, m_conn);
-                cmd.Prepare();
-                cmd.Parameters.AddWithValue("@username", username);
-                cmd.Parameters.AddWithValue("@machine", Environment.MachineName);
-                cmd.Parameters.AddWithValue("ipaddress", getIPAddress());
-                cmd.ExecuteNonQuery();
+                string updatesql = string.Format("UPDATE `{0}` SET logoutstamp=NOW() WHERE logoutstamp=0 AND machine=@machine AND ipaddress=@ipaddress", table);
 
-                m_logger.DebugFormat("Logged LogOn event for {0} at {1}", username, getIPAddress());
+                using (var cmd = new MySqlCommand(updatesql, m_conn))
+                {
+                    cmd.Parameters.AddWithValue("@machine", Environment.MachineName);
+                    cmd.Parameters.AddWithValue("@ipaddress", getIPAddress());
+                    cmd.ExecuteNonQuery();
+                }
 
+                string insertsql = string.Format("INSERT INTO `{0}` (dbid, loginstamp, logoutstamp, username, machine, ipaddress) VALUES (NULL, NOW(), 0, @username, @machine, @ipaddress)", table);
+                using (var cmd = new MySqlCommand(insertsql, m_conn))
+                {
+                    cmd.Parameters.AddWithValue("@username", username);
+                    cmd.Parameters.AddWithValue("@machine", Environment.MachineName);
+                    cmd.Parameters.AddWithValue("@ipaddress", getIPAddress());
+                    cmd.ExecuteNonQuery();
+                }
+
+                m_logger.DebugFormat("Logged LogOn event for {0}", username);
             }
-
-            //LogOff Event
             else if (changeDescription.Reason == SessionChangeReason.SessionLogoff)
             {
-                if (m_conn.State != System.Data.ConnectionState.Open)
-                    m_conn.Open();
+                if (m_conn.State != System.Data.ConnectionState.Open) m_conn.Open();
 
                 string table = Settings.Store.SessionTable;
+                string updatesql = string.Format("UPDATE `{0}` SET logoutstamp=NOW() WHERE logoutstamp=0 AND username=@username AND machine=@machine AND ipaddress=@ipaddress", table);
 
-                string updatesql = string.Format("UPDATE {0} SET logoutstamp=NOW() "+
-                    "WHERE logoutstamp=0 AND username=@username AND machine=@machine "+
-                        "AND ipaddress=@ipaddress", table);
+                using (var cmd = new MySqlCommand(updatesql, m_conn))
+                {
+                    cmd.Parameters.AddWithValue("@username", username);
+                    cmd.Parameters.AddWithValue("@machine", Environment.MachineName);
+                    cmd.Parameters.AddWithValue("@ipaddress", getIPAddress());
+                    cmd.ExecuteNonQuery();
+                }
 
-                MySqlCommand cmd = new MySqlCommand(updatesql, m_conn);
-                cmd.Prepare();
-                cmd.Parameters.AddWithValue("@username", username);
-                cmd.Parameters.AddWithValue("@machine", Environment.MachineName);
-                cmd.Parameters.AddWithValue("@ipaddress", getIPAddress());
-                cmd.ExecuteNonQuery();
-
-                m_logger.DebugFormat("Logged LogOff event for {0} at {1}", username, getIPAddress());
+                m_logger.DebugFormat("Logged LogOff event for {0}", username);
             }
 
             return true;
-
         }
 
-        //Tests the table based on the registry data. Returns a string indicating the table status.
         public string TestTable()
         {
-            if (m_conn == null)
-                throw new InvalidOperationException("No MySQL Connection present.");
+            if (m_conn == null) throw new InvalidOperationException("No MySQL Connection present.");
 
             try
-            {   //Open the connection if it's not presently open
-                if (m_conn.State != System.Data.ConnectionState.Open)
-                    m_conn.Open();
+            {
+                if (m_conn.State != System.Data.ConnectionState.Open) m_conn.Open();
 
                 string table = Settings.Store.SessionTable;
-                MySqlCommand cmd = new MySqlCommand("SHOW TABLES", m_conn);
-                
                 bool tableExists = false;
-                MySqlDataReader rdr = cmd.ExecuteReader();
-                while (rdr.Read())
+
+                using (var cmd = new MySqlCommand("SHOW TABLES", m_conn))
+                using (var rdr = cmd.ExecuteReader())
                 {
-                    if (Convert.ToString(rdr[0]) == table)
-                        tableExists = true;
+                    while (rdr.Read())
+                        if (Convert.ToString(rdr[0]) == table) tableExists = true;
                 }
-                rdr.Close();
-                
+
                 if (!tableExists)
-                    return "Connection was successful, but no table exists.  Click \"Create Table\" to create the required table.";
+                    return "Connection successful, but table does not exist. Click 'Create Table'.";
 
-                //Table exists, verify columns
-                string[] columns = { "dbid", "loginstamp", "logoutstamp", "username", "machine", "ipaddress"  };
-                cmd = new MySqlCommand("DESCRIBE " + table, m_conn);
-                rdr = cmd.ExecuteReader();
-                int colCt = 0;
-                
-                //Check each column name and match it against the list of columns, keep count of how many match
-                while (rdr.Read())
+                string[] columns = { "dbid", "loginstamp", "logoutstamp", "username", "machine", "ipaddress" };
+                using (var cmd = new MySqlCommand("DESCRIBE `" + table + "`", m_conn))
+                using (var rdr = cmd.ExecuteReader())
                 {
-                    string colName = Convert.ToString(rdr[0]);
-                    if (!columns.Contains(colName))
+                    int colCt = 0;
+                    while (rdr.Read())
                     {
-                        rdr.Close();
-                        return "Table exists, but has invalid columns.";
+                        if (!columns.Contains(Convert.ToString(rdr[0])))
+                            return "Table exists but has invalid columns.";
+                        colCt++;
                     }
-                    colCt++;
+                    return colCt == columns.Length ? "Table exists and is correct." : "Table has incorrect columns.";
                 }
-                rdr.Close();
-
-                //Check if each column was present
-                if (colCt == columns.Length)
-                    return "Table exists and is setup correctly.";
-                else
-                    return "Table exists, but appears to have incorrect columns.";
-                
             }
             catch (MySqlException ex)
             {
-                return String.Format("Error: {0}", ex.Message);
+                return string.Format("Error: {0}", ex.Message);
             }
         }
 
-        //Creates the table based on the registry data. Returns a string indicating the table status.
         public string CreateTable()
         {
-            if (m_conn == null)
-                throw new InvalidOperationException("No MySQL Connection present.");
+            if (m_conn == null) throw new InvalidOperationException("No MySQL Connection present.");
 
             try
             {
-                if (m_conn.State != System.Data.ConnectionState.Open)
-                    m_conn.Open();
+                if (m_conn.State != System.Data.ConnectionState.Open) m_conn.Open();
 
                 string table = Settings.Store.SessionTable;
                 string sql = string.Format(
-                    "CREATE TABLE {0} (" +
-                    " dbid BIGINT NOT NULL AUTO_INCREMENT ," +
-                    " loginstamp DATETIME NOT NULL, " +
-                    " logoutstamp DATETIME NOT NULL, " +
-                    " username TEXT NOT NULL, " +
-                    " machine TEXT NOT NULL, " +
-                    " ipaddress TEXT NOT NULL, " +
-                    " INDEX (dbid))", table);
+                    "CREATE TABLE `{0}` (dbid BIGINT NOT NULL AUTO_INCREMENT, loginstamp DATETIME NOT NULL, " +
+                    "logoutstamp DATETIME NOT NULL, username TEXT NOT NULL, machine TEXT NOT NULL, " +
+                    "ipaddress TEXT NOT NULL, INDEX (dbid)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", table);
 
-                MySqlCommand cmd = new MySqlCommand(sql, m_conn);
-                cmd.ExecuteNonQuery();
-                
+                using (var cmd = new MySqlCommand(sql, m_conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
                 return "Table created.";
             }
             catch (MySqlException ex)
             {
-                return String.Format("Error: {0}", ex.Message);
+                return string.Format("Error: {0}", ex.Message);
             }
         }
 
-        //Provides the MySQL connection to use
-        public void SetConnection(MySqlConnection m_conn)
+        public void SetConnection(MySqlConnection conn) { this.m_conn = conn; }
+
+        private string getIPAddress()
         {
-            this.m_conn = m_conn;
-        }
-
-        //Returns the IPv4 address of the current machine
-        private string getIPAddress(){
-            IPAddress[] ipList = Dns.GetHostAddresses("");
-            
-            // Grab the first IPv4 address in the list
-            foreach (IPAddress addr in ipList)
-            {
+            foreach (IPAddress addr in Dns.GetHostAddresses(""))
                 if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                {
                     return addr.ToString();
-                }
-            }
             return "-INVALID IP ADDRESS-";
         }
     }
