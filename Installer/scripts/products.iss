@@ -236,7 +236,7 @@ var pf: string;
 begin
 	Result := true;
 
-    if (CurPageID = wpWelcome) and (not IsAdminLoggedOn()) and Result then begin
+    if (CurPageID = wpWelcome) and (not IsAdmin()) and Result then begin
    
         if (Wizardform.PrevAppDir <> '') then begin
             pf := ExpandConstant('{pf}');
@@ -279,7 +279,7 @@ end;
 
 function IsIA64: Boolean;
 begin
-	Result := Is64BitInstallMode and (ProcessorArchitecture = paIA64);
+	Result := Is64BitInstallMode and (ProcessorArchitecture = paX64);
 end;
 
 function GetURL(x86, x64, ia64: String): String;

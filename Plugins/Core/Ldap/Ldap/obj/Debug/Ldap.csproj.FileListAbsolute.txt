@@ -1,0 +1,10 @@
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.Ldap.dll
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.Ldap.pdb
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Ldap\obj\Debug\Ldap.csproj.AssemblyReference.cache
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Ldap\obj\Debug\pGina.Plugin.Ldap.Configuration.resources
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Ldap\obj\Debug\pGina.Plugin.Ldap.Properties.Resources.resources
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Ldap\obj\Debug\Ldap.csproj.GenerateResource.cache
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Ldap\obj\Debug\Ldap.csproj.CoreCompileInputs.cache
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Ldap\obj\Debug\Ldap.csproj.Up2Date
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Ldap\obj\Debug\pGina.Plugin.Ldap.dll
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Ldap\obj\Debug\pGina.Plugin.Ldap.pdb

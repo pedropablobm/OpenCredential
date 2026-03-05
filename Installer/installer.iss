@@ -1,22 +1,22 @@
 #define MyAppName "pGina"
-#define MyAppVersion "3.2.1.0"
-#define MyAppPublisher "pGina Team"
+#define MyAppVersion "4.0.0.0"
+#define MyAppPublisher "Fork pGina Team"
 #define MyAppURL "http://www.pgina.org/"
 #define MyAppExeName "pGina.Configuration.exe"
 #define MyAppSetupName 'pGina'
 #define SetupScriptVersion '0'
 
 
-; Use some useful packaging stuff from: http://tonaday.blogspot.com/2010/12/innosetup.html
-// dotnet_Passive enabled shows the .NET/VC2012 installation progress, as it can take quite some time
+; Use some useful packaging stuff from: http://toneday.blogspot.com/2010/12/innosetup.html
+; dotnet_Passive enabled shows the .NET/VC2012 installation progress, as it can take quite some time
 #define dotnet_Passive
 #define use_dotnetfx40
 #define use_vc2012
 
-// Enable the required define(s) below if a local event function (prepended with Local) is used
-//#define haveLocalPrepareToInstall
-//#define haveLocalNeedRestart
-//#define haveLocalNextButtonClick
+; Enable the required define(s) below if a local event function (prepended with Local) is used
+;#define haveLocalPrepareToInstall
+;#define haveLocalNeedRestart
+;#define haveLocalNextButtonClick
 
 
 [Setup]
@@ -31,7 +31,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={pf}\{#MyAppName}
+DefaultDirName={commonpf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=true
 LicenseFile=..\LICENSE
@@ -39,18 +39,46 @@ OutputBaseFilename=pGinaSetup-{#MyAppVersion}
 SetupIconFile=..\pGina\src\Configuration\Resources\pginaicon_redcircle.ico
 Compression=lzma/Max
 SolidCompression=true
-AppCopyright=pGina Team
+AppCopyright=Fork pGina Team
 ExtraDiskSpaceRequired=6
 DisableDirPage=auto
 AlwaysShowDirOnReadyPage=yes
 AlwaysShowGroupOnReadyPage=yes
 DisableProgramGroupPage=auto
 
-ArchitecturesInstallIn64BitMode=x64 ia64
+ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
 ;Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[Registry]
+; Eliminar claves de registro al desinstalar
+Root: HKLM; Subkey: "SOFTWARE\pGina"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "SOFTWARE\pGina"; Flags: uninsdeletekey
+; También limpiar claves de versiones anteriores si existen
+Root: HKLM; Subkey: "SOFTWARE\pGina3"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "SOFTWARE\pGina3"; Flags: uninsdeletekey
+
+[InstallDelete]
+; Eliminar configuraciones previas al instalar (instalación limpia)
+Type: filesandordirs; Name: "{commonappdata}\pGina"
+Type: filesandordirs; Name: "{commonappdata}\pGina3"
+Type: filesandordirs; Name: "{userappdata}\pGina"
+Type: filesandordirs; Name: "{userappdata}\pGina3"
+Type: filesandordirs; Name: "{localappdata}\pGina"
+Type: filesandordirs; Name: "{localappdata}\pGina3"
+
+[UninstallDelete]
+; Eliminar configuraciones al desinstalar
+Type: filesandordirs; Name: "{commonappdata}\pGina"
+Type: filesandordirs; Name: "{commonappdata}\pGina3"
+Type: filesandordirs; Name: "{userappdata}\pGina"
+Type: filesandordirs; Name: "{userappdata}\pGina3"
+Type: filesandordirs; Name: "{localappdata}\pGina"
+Type: filesandordirs; Name: "{localappdata}\pGina3"
+; Eliminar carpeta de instalación completamente
+Type: filesandordirs; Name: "{app}"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
@@ -62,10 +90,9 @@ Source: "..\pGina\src\bin\*.dll"; DestDir: "{app}"; Flags: ignoreversion recurse
 Source: "..\pGina\src\bin\*.xml"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\pGina\src\bin\*.config"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Plugins\Core\bin\*.dll"; DestDir: "{app}\Plugins\Core"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\Plugins\Contrib\bin\*.dll"; DestDir: "{app}\Plugins\Contrib"; Flags: ignoreversion recursesubdirs createallsubdirs
-;Source: "..\Plugins\bin\*.xml"; DestDir: "{app}\Plugins"; Flags: ignoreversion recursesubdirs createallsubdirs
-;Source: "..\Plugins\bin\*.config"; DestDir: "{app}\Plugins"; Flags: ignoreversion recursesubdirs createallsubdirs
-; NOTE: Don't use "Flags: ignoreversion" on any shared system files
+Source: "..\Plugins\Core\bin\*.xml"; DestDir: "{app}\Plugins\Core"; Flags: ignoreversion recursesubdirs createallsubdirs
+;Source: "..\Plugins\Contrib\bin\*.dll"; DestDir: "{app}\Plugins\Contrib"; Flags: ignoreversion recursesubdirs createallsubdirs
+
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -76,7 +103,7 @@ Filename: "{app}\pGina.InstallUtil.exe"; Parameters: "post-install"; StatusMsg: 
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, "&", "&&")}}"; Flags: nowait postinstall skipifsilent runascurrentuser
 
 [UninstallRun]
-Filename: "{app}\pGina.InstallUtil.exe"; Parameters: "post-uninstall"; StatusMsg: "Removing service and CP/GINA..."; WorkingDir: "{app}"; Flags: runhidden
+Filename: "{app}\pGina.InstallUtil.exe"; Parameters: "post-uninstall"; StatusMsg: "Removing service and CP/GINA..."; WorkingDir: "{app}"; Flags: runhidden; RunOnceId: "UninstallService"
 
 ; More custom stuff from [] for ensuring user gets everything needed
 #include "scripts\products.iss"
@@ -104,38 +131,38 @@ winxpsp3_title=Windows XP Service Pack 3
 [Code]
 function InitializeSetup(): Boolean;
 begin
-	//init windows version
-	initwinversion();
-	
-	//check if dotnetfx20 can be installed on this OS
-	//if not minwinspversion(5, 0, 3) then begin
-	//	MsgBox(FmtMessage(CustomMessage('depinstall_missing'), [CustomMessage('win2000sp3_title')]), mbError, MB_OK);
-	//	exit;
-	//end;
-	if not minwinspversion(5, 1, 3) then begin
-		MsgBox(FmtMessage(CustomMessage('depinstall_missing'), [CustomMessage('winxpsp3_title')]), mbError, MB_OK);
-		exit;
-	end;
-	
-	// If no .NET 4.0 framework found, install the full thing
+    //init windows version
+    initwinversion();
+    
+    //check if dotnetfx20 can be installed on this OS
+    //if not minwinspversion(5, 0, 3) then begin
+    //	MsgBox(FmtMessage(CustomMessage('depinstall_missing'), [CustomMessage('win2000sp3_title')]), mbError, MB_OK);
+    //	exit;
+    //end;
+    if not minwinspversion(5, 1, 3) then begin
+        MsgBox(FmtMessage(CustomMessage('depinstall_missing'), [CustomMessage('winxpsp3_title')]), mbError, MB_OK);
+        exit;
+    end;
+    
+    // If no .NET 4.0 framework found, install the full thing
 #ifdef use_dotnetfx40
-	dotnetfx40full(false);
+    dotnetfx40full(false);
 #endif
 
-	// Visual C++ 2012 Redistributable
+    // Visual C++ 2012 Redistributable
 #ifdef use_vc2012
-	vc2012();
+    vc2012();
 #endif
-	
-	Result := true;
+    
+    Result := true;
 end;
 
 procedure DoPreInstall();
 begin
   // If our service is already installed, stop it!
   if IsServiceInstalled('pGina') = true then begin
-		StopService('pGina');		
-	end
+        StopService('pGina');		
+    end
 end;
 
 procedure DoPostInstall();

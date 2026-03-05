@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyCompany("pGina Team")]
+[assembly: AssemblyCompany("Fork pGina Team")]
 [assembly: AssemblyProduct("pGina")]
-[assembly: AssemblyCopyright("Copyright © pGina Team 2014")]
+[assembly: AssemblyCopyright("Copyright © pGina Team 2026")]
 [assembly: AssemblyTrademark("")]
 
 // Version information for an assembly consists of the following four values:

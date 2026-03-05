@@ -1,0 +1,16 @@
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\bin\pGina.Plugin.Ldap.Test.exe.config
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\bin\pGina.Plugin.Ldap.Test.exe
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\bin\pGina.Plugin.Ldap.Test.pdb
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\bin\Abstractions.dll
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\bin\pGina.Plugin.Ldap.dll
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\bin\pGina.Shared.dll
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\bin\log4net.dll
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\bin\BouncyCastle.Cryptography.dll
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\bin\pGina.Plugin.Ldap.pdb
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\bin\log4net.pdb
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\bin\BouncyCastle.Cryptography.xml
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\obj\Debug\Tests.csproj.AssemblyReference.cache
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\obj\Debug\Tests.csproj.CoreCompileInputs.cache
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\obj\Debug\Tests.csproj.Up2Date
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\obj\Debug\pGina.Plugin.Ldap.Test.exe
+C:\Github\pgina-mysql8\Plugins\Core\Ldap\Tests\obj\Debug\pGina.Plugin.Ldap.Test.pdb

@@ -1,0 +1,12 @@
+C:\Github\pgina-mysql8\Plugins\Core\MySQLAuth\MySQLAuth\obj\Debug\MySQLAuth.csproj.AssemblyReference.cache
+C:\Github\pgina-mysql8\Plugins\Core\MySQLAuth\MySQLAuth\obj\Debug\pGina.Plugin.MySQLAuth.Configuration.resources
+C:\Github\pgina-mysql8\Plugins\Core\MySQLAuth\MySQLAuth\obj\Debug\pGina.Plugin.MySQLAuth.Properties.Resources.resources
+C:\Github\pgina-mysql8\Plugins\Core\MySQLAuth\MySQLAuth\obj\Debug\pGina.Plugin.MySQLAuth.TextBoxInfoDialog.resources
+C:\Github\pgina-mysql8\Plugins\Core\MySQLAuth\MySQLAuth\obj\Debug\MySQLAuth.csproj.GenerateResource.cache
+C:\Github\pgina-mysql8\Plugins\Core\MySQLAuth\MySQLAuth\obj\Debug\MySQLAuth.csproj.CoreCompileInputs.cache
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.MySQLAuth.dll.config
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.MySQLAuth.dll
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.MySQLAuth.pdb
+C:\Github\pgina-mysql8\Plugins\Core\MySQLAuth\MySQLAuth\obj\Debug\MySQLAuth.csproj.Up2Date
+C:\Github\pgina-mysql8\Plugins\Core\MySQLAuth\MySQLAuth\obj\Debug\pGina.Plugin.MySQLAuth.dll
+C:\Github\pgina-mysql8\Plugins\Core\MySQLAuth\MySQLAuth\obj\Debug\pGina.Plugin.MySQLAuth.pdb

@@ -1,0 +1,6 @@
+C:\Github\pgina-mysql8\pGina\src\bin\Abstractions.dll
+C:\Github\pgina-mysql8\pGina\src\bin\Abstractions.pdb
+C:\Github\pgina-mysql8\pGina\src\Abstractions\obj\Debug\Abstractions.csproj.AssemblyReference.cache
+C:\Github\pgina-mysql8\pGina\src\Abstractions\obj\Debug\Abstractions.csproj.CoreCompileInputs.cache
+C:\Github\pgina-mysql8\pGina\src\Abstractions\obj\Debug\Abstractions.dll
+C:\Github\pgina-mysql8\pGina\src\Abstractions\obj\Debug\Abstractions.pdb

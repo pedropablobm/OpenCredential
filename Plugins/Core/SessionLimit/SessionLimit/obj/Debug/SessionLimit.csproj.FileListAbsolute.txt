@@ -1,0 +1,9 @@
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.SessionLimit.dll
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.SessionLimit.pdb
+C:\Github\pgina-mysql8\Plugins\Core\SessionLimit\SessionLimit\obj\Debug\SessionLimit.csproj.AssemblyReference.cache
+C:\Github\pgina-mysql8\Plugins\Core\SessionLimit\SessionLimit\obj\Debug\pGina.Plugin.SessionLimit.Configuration.resources
+C:\Github\pgina-mysql8\Plugins\Core\SessionLimit\SessionLimit\obj\Debug\SessionLimit.csproj.GenerateResource.cache
+C:\Github\pgina-mysql8\Plugins\Core\SessionLimit\SessionLimit\obj\Debug\SessionLimit.csproj.CoreCompileInputs.cache
+C:\Github\pgina-mysql8\Plugins\Core\SessionLimit\SessionLimit\obj\Debug\SessionL.22B05C3C.Up2Date
+C:\Github\pgina-mysql8\Plugins\Core\SessionLimit\SessionLimit\obj\Debug\pGina.Plugin.SessionLimit.dll
+C:\Github\pgina-mysql8\Plugins\Core\SessionLimit\SessionLimit\obj\Debug\pGina.Plugin.SessionLimit.pdb

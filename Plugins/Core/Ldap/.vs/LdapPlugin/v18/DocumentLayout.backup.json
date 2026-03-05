@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\Ldap\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{01377220-0645-411E-BB1B-C5F4BA21D731}|Ldap\\Ldap.csproj|c:\\github\\pgina-mysql8\\plugins\\core\\ldap\\ldap\\properties\\assemblyinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{01377220-0645-411E-BB1B-C5F4BA21D731}|Ldap\\Ldap.csproj|solutionrelative:ldap\\properties\\assemblyinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AssemblyInfo.cs",
+              "DocumentMoniker": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\Ldap\\Ldap\\Properties\\AssemblyInfo.cs",
+              "RelativeDocumentMoniker": "Ldap\\Properties\\AssemblyInfo.cs",
+              "ToolTip": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\Ldap\\Ldap\\Properties\\AssemblyInfo.cs",
+              "RelativeToolTip": "Ldap\\Properties\\AssemblyInfo.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACMAAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T20:46:30.272Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

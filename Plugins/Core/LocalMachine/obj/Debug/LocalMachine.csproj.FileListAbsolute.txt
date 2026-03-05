@@ -1,0 +1,9 @@
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.LocalMachine.dll
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.LocalMachine.pdb
+C:\Github\pgina-mysql8\Plugins\Core\LocalMachine\obj\Debug\LocalMachine.csproj.AssemblyReference.cache
+C:\Github\pgina-mysql8\Plugins\Core\LocalMachine\obj\Debug\pGina.Plugin.LocalMachine.Configuration.resources
+C:\Github\pgina-mysql8\Plugins\Core\LocalMachine\obj\Debug\LocalMachine.csproj.GenerateResource.cache
+C:\Github\pgina-mysql8\Plugins\Core\LocalMachine\obj\Debug\LocalMachine.csproj.CoreCompileInputs.cache
+C:\Github\pgina-mysql8\Plugins\Core\LocalMachine\obj\Debug\LocalMac.72FD1BDE.Up2Date
+C:\Github\pgina-mysql8\Plugins\Core\LocalMachine\obj\Debug\pGina.Plugin.LocalMachine.dll
+C:\Github\pgina-mysql8\Plugins\Core\LocalMachine\obj\Debug\pGina.Plugin.LocalMachine.pdb

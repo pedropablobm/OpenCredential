@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 
 namespace pGina.Plugin.MySqlLogger
 {
@@ -11,10 +11,10 @@ namespace pGina.Plugin.MySqlLogger
     {
         //Logs the specified event/properties
         bool Log(System.ServiceProcess.SessionChangeDescription changeDescription, pGina.Shared.Types.SessionProperties properties);
-        
+
         //Tests to make sure the table exists, and contains the right columns, returns a string indicating the table status.
         string TestTable();
-        
+
         //Attempts to create the neccesary table for the logging mode, and returns a string indicating it's success/failure
         string CreateTable();
 
@@ -40,20 +40,21 @@ namespace pGina.Plugin.MySqlLogger
 
             ILoggerMode logger = null;
             if (mode == LoggerMode.EVENT)
-                logger = new EventLoggerMode();
+                logger = new EventLogger();
             else if (mode == LoggerMode.SESSION)
                 logger = new SessionLogger();
             else
                 throw new ArgumentException("Invalid LoggerMode");
-            
+
             logger.SetConnection(m_conn);
             return logger;
 
-            
+
         }
 
-        public static void closeConnection(){
-            if(m_conn != null)
+        public static void closeConnection()
+        {
+            if (m_conn != null)
                 m_conn.Close();
             m_conn = null;
         }
@@ -76,9 +77,8 @@ namespace pGina.Plugin.MySqlLogger
             bldr.UserID = Settings.Store.User;
             bldr.Database = Settings.Store.Database;
             bldr.Password = Settings.Store.GetEncryptedSetting("Password");
-            //m_logger.DebugFormat("Connecting to {0}:{1} as {2}, database: {3}",
-            //    bldr.Server, bldr.Port, bldr.UserID, bldr.Database);
-            return bldr.GetConnectionString(true);
+
+            return bldr.ConnectionString;
         }
     }
 }

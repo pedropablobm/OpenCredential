@@ -1,0 +1,10 @@
+C:\Github\pgina-mysql8\Plugins\Core\MySQLLogger\MySQLLogger\obj\Debug\MySQLLogger.csproj.AssemblyReference.cache
+C:\Github\pgina-mysql8\Plugins\Core\MySQLLogger\MySQLLogger\obj\Debug\pGina.Plugin.MySqlLogger.Configuration.resources
+C:\Github\pgina-mysql8\Plugins\Core\MySQLLogger\MySQLLogger\obj\Debug\MySQLLogger.csproj.GenerateResource.cache
+C:\Github\pgina-mysql8\Plugins\Core\MySQLLogger\MySQLLogger\obj\Debug\MySQLLogger.csproj.CoreCompileInputs.cache
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.MySqlLogger.dll.config
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.MySqlLogger.dll
+C:\Github\pgina-mysql8\Plugins\Core\bin\pGina.Plugin.MySqlLogger.pdb
+C:\Github\pgina-mysql8\Plugins\Core\MySQLLogger\MySQLLogger\obj\Debug\MySQLLog.F00439BE.Up2Date
+C:\Github\pgina-mysql8\Plugins\Core\MySQLLogger\MySQLLogger\obj\Debug\pGina.Plugin.MySqlLogger.dll
+C:\Github\pgina-mysql8\Plugins\Core\MySQLLogger\MySQLLogger\obj\Debug\pGina.Plugin.MySqlLogger.pdb

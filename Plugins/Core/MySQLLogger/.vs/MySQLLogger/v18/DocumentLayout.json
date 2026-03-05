@@ -1,0 +1,85 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{2661941F-CF01-46E8-BE4C-CC48C45C985C}|MySQLLogger\\MySQLLogger.csproj|c:\\github\\pgina-mysql8\\plugins\\core\\mysqllogger\\mysqllogger\\properties\\assemblyinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2661941F-CF01-46E8-BE4C-CC48C45C985C}|MySQLLogger\\MySQLLogger.csproj|solutionrelative:mysqllogger\\properties\\assemblyinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2661941F-CF01-46E8-BE4C-CC48C45C985C}|MySQLLogger\\MySQLLogger.csproj|C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\mysqllogger\\iloggermode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2661941F-CF01-46E8-BE4C-CC48C45C985C}|MySQLLogger\\MySQLLogger.csproj|solutionrelative:mysqllogger\\iloggermode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2661941F-CF01-46E8-BE4C-CC48C45C985C}|MySQLLogger\\MySQLLogger.csproj|C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\mysqllogger\\sessionlogger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2661941F-CF01-46E8-BE4C-CC48C45C985C}|MySQLLogger\\MySQLLogger.csproj|solutionrelative:mysqllogger\\sessionlogger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2661941F-CF01-46E8-BE4C-CC48C45C985C}|MySQLLogger\\MySQLLogger.csproj|C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\mysqllogger\\eventlogger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2661941F-CF01-46E8-BE4C-CC48C45C985C}|MySQLLogger\\MySQLLogger.csproj|solutionrelative:mysqllogger\\eventlogger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AssemblyInfo.cs",
+              "DocumentMoniker": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\MySQLLogger\\Properties\\AssemblyInfo.cs",
+              "RelativeDocumentMoniker": "MySQLLogger\\Properties\\AssemblyInfo.cs",
+              "ToolTip": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\MySQLLogger\\Properties\\AssemblyInfo.cs",
+              "RelativeToolTip": "MySQLLogger\\Properties\\AssemblyInfo.cs",
+              "ViewState": "AgIAABgAAAAAAAAAAAAAAAwAAAA5AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T20:31:28.357Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "SessionLogger.cs",
+              "DocumentMoniker": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\MySQLLogger\\SessionLogger.cs",
+              "RelativeDocumentMoniker": "MySQLLogger\\SessionLogger.cs",
+              "ToolTip": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\MySQLLogger\\SessionLogger.cs",
+              "RelativeToolTip": "MySQLLogger\\SessionLogger.cs",
+              "ViewState": "AgIAAKAAAAAAAAAAAAAQwLYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T16:22:43.415Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "EventLogger.cs",
+              "DocumentMoniker": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\MySQLLogger\\EventLogger.cs",
+              "RelativeDocumentMoniker": "MySQLLogger\\EventLogger.cs",
+              "ToolTip": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\MySQLLogger\\EventLogger.cs",
+              "RelativeToolTip": "MySQLLogger\\EventLogger.cs",
+              "ViewState": "AgIAANcAAAAAAAAAAAAxwOwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T16:22:26.285Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ILoggerMode.cs",
+              "DocumentMoniker": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\MySQLLogger\\ILoggerMode.cs",
+              "RelativeDocumentMoniker": "MySQLLogger\\ILoggerMode.cs",
+              "ToolTip": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\MySQLLogger\\MySQLLogger\\ILoggerMode.cs",
+              "RelativeToolTip": "MySQLLogger\\ILoggerMode.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAFEAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-05T16:21:51.268Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
