@@ -1,5 +1,5 @@
 #define MyAppName "pGina"
-#define MyAppVersion "4.0.0.0"
+#define MyAppVersion "3.3.0.0"
 #define MyAppPublisher "Fork pGina Team"
 #define MyAppURL "http://www.pgina.org/"
 #define MyAppExeName "pGina.Configuration.exe"
@@ -8,15 +8,15 @@
 
 
 ; Use some useful packaging stuff from: http://toneday.blogspot.com/2010/12/innosetup.html
-; dotnet_Passive enabled shows the .NET/VC2012 installation progress, as it can take quite some time
+// dotnet_Passive enabled shows the .NET/VC2012 installation progress, as it can take quite some time
 #define dotnet_Passive
 #define use_dotnetfx40
-#define use_vc2013
+#define use_vc2012
 
-; Enable the required define(s) below if a local event function (prepended with Local) is used
-;#define haveLocalPrepareToInstall
-;#define haveLocalNeedRestart
-;#define haveLocalNextButtonClick
+// Enable the required define(s) below if a local event function (prepended with Local) is used
+//#define haveLocalPrepareToInstall
+//#define haveLocalNeedRestart
+//#define haveLocalNextButtonClick
 
 
 [Setup]
@@ -52,34 +52,6 @@ ArchitecturesInstallIn64BitMode=x64compatible
 Name: "en"; MessagesFile: "compiler:Default.isl"
 ;Name: "english"; MessagesFile: "compiler:Default.isl"
 
-[Registry]
-; Eliminar claves de registro al desinstalar
-Root: HKLM; Subkey: "SOFTWARE\pGina"; Flags: uninsdeletekey
-Root: HKCU; Subkey: "SOFTWARE\pGina"; Flags: uninsdeletekey
-; También limpiar claves de versiones anteriores si existen
-Root: HKLM; Subkey: "SOFTWARE\pGina3"; Flags: uninsdeletekey
-Root: HKCU; Subkey: "SOFTWARE\pGina3"; Flags: uninsdeletekey
-
-[InstallDelete]
-; Eliminar configuraciones previas al instalar (instalación limpia)
-Type: filesandordirs; Name: "{commonappdata}\pGina"
-Type: filesandordirs; Name: "{commonappdata}\pGina3"
-Type: filesandordirs; Name: "{userappdata}\pGina"
-Type: filesandordirs; Name: "{userappdata}\pGina3"
-Type: filesandordirs; Name: "{localappdata}\pGina"
-Type: filesandordirs; Name: "{localappdata}\pGina3"
-
-[UninstallDelete]
-; Eliminar configuraciones al desinstalar
-Type: filesandordirs; Name: "{commonappdata}\pGina"
-Type: filesandordirs; Name: "{commonappdata}\pGina3"
-Type: filesandordirs; Name: "{userappdata}\pGina"
-Type: filesandordirs; Name: "{userappdata}\pGina3"
-Type: filesandordirs; Name: "{localappdata}\pGina"
-Type: filesandordirs; Name: "{localappdata}\pGina3"
-; Eliminar carpeta de instalación completamente
-Type: filesandordirs; Name: "{app}"
-
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
@@ -90,9 +62,10 @@ Source: "..\pGina\src\bin\*.dll"; DestDir: "{app}"; Flags: ignoreversion recurse
 Source: "..\pGina\src\bin\*.xml"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\pGina\src\bin\*.config"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Plugins\Core\bin\*.dll"; DestDir: "{app}\Plugins\Core"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\Plugins\Core\bin\*.xml"; DestDir: "{app}\Plugins\Core"; Flags: ignoreversion recursesubdirs createallsubdirs
 ;Source: "..\Plugins\Contrib\bin\*.dll"; DestDir: "{app}\Plugins\Contrib"; Flags: ignoreversion recursesubdirs createallsubdirs
-
+;Source: "..\Plugins\bin\*.xml"; DestDir: "{app}\Plugins"; Flags: ignoreversion recursesubdirs createallsubdirs
+;Source: "..\Plugins\bin\*.config"; DestDir: "{app}\Plugins"; Flags: ignoreversion recursesubdirs createallsubdirs
+; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
