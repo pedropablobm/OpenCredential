@@ -40,14 +40,14 @@ namespace pGina
 {
 	namespace CredProv
 	{		
-		// Where to get text for a text field/label
-		typedef enum PGINA_FIELD_DATA_SOURCE
-		{
-			SOURCE_NONE,		// Use the built in text
-			SOURCE_DYNAMIC,     // Call the service
-			SOURCE_CALLBACK,    // Call a function
-			SOURCE_STATUS,		// Service status text
-		};
+			// Where to get text for a text field/label
+			enum PGINA_FIELD_DATA_SOURCE
+			{
+				SOURCE_NONE,		// Use the built in text
+				SOURCE_DYNAMIC,     // Call the service
+				SOURCE_CALLBACK,    // Call a function
+				SOURCE_STATUS,		// Service status text
+			};
 
 		typedef std::wstring (*LABEL_TEXT_CALLBACK_FUNC)(LPWSTR fieldName, int fieldId);
 

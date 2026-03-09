@@ -33,13 +33,13 @@ namespace pGina
 {
 	namespace Messaging
 	{
-		typedef enum PropertyType
+		enum PropertyType
 		{
 			Byte            = 0x00,
-            Integer         = 0x01,
-            Boolean         = 0x02,
-            String          = 0x03,
-            EmptyString     = 0x04,
+		    Integer         = 0x01,
+		    Boolean         = 0x02,
+		    String          = 0x03,
+		    EmptyString     = 0x04,
 		};
 
 		class PropertyBase

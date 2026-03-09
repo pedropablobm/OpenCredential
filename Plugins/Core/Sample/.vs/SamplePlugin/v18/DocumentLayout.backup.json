@@ -3,11 +3,11 @@
   "WorkspaceRootPath": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\Sample\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{40AA44E3-9A7F-4166-AEDF-D817C2A0854B}|Sample.csproj|C:\\Github\\pgina-mysql8\\Plugins\\Core\\Sample\\properties\\assemblyinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{40AA44E3-9A7F-4166-AEDF-D817C2A0854B}|Sample.csproj|c:\\github\\pgina-mysql8\\plugins\\core\\sample\\properties\\assemblyinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{40AA44E3-9A7F-4166-AEDF-D817C2A0854B}|Sample.csproj|solutionrelative:properties\\assemblyinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{40AA44E3-9A7F-4166-AEDF-D817C2A0854B}|Sample.csproj|c:\\github\\pgina-mysql8\\plugins\\core\\sample\\pluginimpl.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{40AA44E3-9A7F-4166-AEDF-D817C2A0854B}|Sample.csproj|C:\\Github\\pgina-mysql8\\Plugins\\Core\\Sample\\pluginimpl.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{40AA44E3-9A7F-4166-AEDF-D817C2A0854B}|Sample.csproj|solutionrelative:pluginimpl.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
@@ -34,8 +34,7 @@
               "RelativeToolTip": "PluginImpl.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAHsAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-05T20:36:15.217Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-05T20:36:15.217Z"
             },
             {
               "$type": "Document",

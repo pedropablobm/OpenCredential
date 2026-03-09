@@ -11,7 +11,7 @@
 ; dotnet_Passive enabled shows the .NET/VC2012 installation progress, as it can take quite some time
 #define dotnet_Passive
 #define use_dotnetfx40
-#define use_vc2012
+#define use_vc2013
 
 ; Enable the required define(s) below if a local event function (prepended with Local) is used
 ;#define haveLocalPrepareToInstall
@@ -116,7 +116,7 @@ Filename: "{app}\pGina.InstallUtil.exe"; Parameters: "post-uninstall"; StatusMsg
 #include "scripts\products\dotnetfx40full.iss"
 #endif
 #ifdef use_vc2012
-#include "scripts\products\vc2012.iss"
+#include "scripts\products\vc2013.iss"
 #endif
 
 #include "scripts\services.iss"

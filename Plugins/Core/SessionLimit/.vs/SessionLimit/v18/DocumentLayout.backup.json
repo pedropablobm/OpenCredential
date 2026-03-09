@@ -3,11 +3,11 @@
   "WorkspaceRootPath": "C:\\Github\\pgina-mysql8\\Plugins\\Core\\SessionLimit\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{76C3E8B4-FE3E-40E2-8075-7173D19A2262}|SessionLimit\\SessionLimit.csproj|C:\\Github\\pgina-mysql8\\Plugins\\Core\\SessionLimit\\sessionlimit\\properties\\assemblyinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{76C3E8B4-FE3E-40E2-8075-7173D19A2262}|SessionLimit\\SessionLimit.csproj|c:\\github\\pgina-mysql8\\plugins\\core\\sessionlimit\\sessionlimit\\properties\\assemblyinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{76C3E8B4-FE3E-40E2-8075-7173D19A2262}|SessionLimit\\SessionLimit.csproj|solutionrelative:sessionlimit\\properties\\assemblyinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{76C3E8B4-FE3E-40E2-8075-7173D19A2262}|SessionLimit\\SessionLimit.csproj|c:\\github\\pgina-mysql8\\plugins\\core\\sessionlimit\\sessionlimit\\settings.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{76C3E8B4-FE3E-40E2-8075-7173D19A2262}|SessionLimit\\SessionLimit.csproj|C:\\Github\\pgina-mysql8\\Plugins\\Core\\SessionLimit\\sessionlimit\\settings.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{76C3E8B4-FE3E-40E2-8075-7173D19A2262}|SessionLimit\\SessionLimit.csproj|solutionrelative:sessionlimit\\settings.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
@@ -42,8 +42,7 @@
               "RelativeToolTip": "SessionLimit\\Settings.cs",
               "ViewState": "AgIAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-05T20:39:03.933Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-05T20:39:03.933Z"
             },
             {
               "$type": "Document",

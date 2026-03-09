@@ -1,7 +1,20 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Github\\pgina-mysql8\\pGina\\src\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F2DA37EE-A147-4A33-9CFC-4E72649259F0}|CredentialProvider\\CredentialProvider.vcxproj|C:\\Github\\pgina-mysql8\\pGina\\src\\CredentialProvider\\TileUiTypes.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{F2DA37EE-A147-4A33-9CFC-4E72649259F0}|CredentialProvider\\CredentialProvider.vcxproj|solutionrelative:CredentialProvider\\TileUiTypes.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{67E7117F-1F42-4B2C-B2F9-7457C04F1240}|Lib\\Lib.vcxproj|C:\\Github\\pgina-mysql8\\pGina\\src\\Lib\\MessageProperty.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{67E7117F-1F42-4B2C-B2F9-7457C04F1240}|Lib\\Lib.vcxproj|solutionrelative:Lib\\MessageProperty.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{67E7117F-1F42-4B2C-B2F9-7457C04F1240}|Lib\\Lib.vcxproj|C:\\Github\\pgina-mysql8\\pGina\\src\\Lib\\pGinaMessages.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{67E7117F-1F42-4B2C-B2F9-7457C04F1240}|Lib\\Lib.vcxproj|solutionrelative:Lib\\pGinaMessages.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,11 +22,46 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 2,
           "Children": [
             {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "pGinaMessages.h",
+              "DocumentMoniker": "C:\\Github\\pgina-mysql8\\pGina\\src\\Lib\\pGinaMessages.h",
+              "RelativeDocumentMoniker": "Lib\\pGinaMessages.h",
+              "ToolTip": "C:\\Github\\pgina-mysql8\\pGina\\src\\Lib\\pGinaMessages.h",
+              "RelativeToolTip": "Lib\\pGinaMessages.h",
+              "ViewState": "AgIAADYAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-03-09T19:13:56.568Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MessageProperty.h",
+              "DocumentMoniker": "C:\\Github\\pgina-mysql8\\pGina\\src\\Lib\\MessageProperty.h",
+              "RelativeDocumentMoniker": "Lib\\MessageProperty.h",
+              "ToolTip": "C:\\Github\\pgina-mysql8\\pGina\\src\\Lib\\MessageProperty.h",
+              "RelativeToolTip": "Lib\\MessageProperty.h",
+              "ViewState": "AgIAACkAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-03-09T19:13:40.044Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "TileUiTypes.h",
+              "DocumentMoniker": "C:\\Github\\pgina-mysql8\\pGina\\src\\CredentialProvider\\TileUiTypes.h",
+              "RelativeDocumentMoniker": "CredentialProvider\\TileUiTypes.h",
+              "ToolTip": "C:\\Github\\pgina-mysql8\\pGina\\src\\CredentialProvider\\TileUiTypes.h",
+              "RelativeToolTip": "CredentialProvider\\TileUiTypes.h",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-03-09T19:13:33.711Z",
+              "EditorCaption": ""
             }
           ]
         }
