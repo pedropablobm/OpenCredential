@@ -70,5 +70,10 @@ namespace pGina.Plugin.MySqlLogger
             m_settings.SetDefault("UseModifiedName", false);
         }
 
+        public static uint GetPort()
+        {
+            return Convert.ToUInt32(m_settings.Port);
+        }
+
     }
 }

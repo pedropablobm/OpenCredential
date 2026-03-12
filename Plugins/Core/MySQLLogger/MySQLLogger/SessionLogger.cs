@@ -61,7 +61,7 @@ namespace pGina.Plugin.MySqlLogger
                 if (m_conn.State != System.Data.ConnectionState.Open) m_conn.Open();
 
                 string table = Settings.Store.SessionTable;
-                string updatesql = string.Format("UPDATE `{0}` SET logoutstamp=NOW() WHERE logoutstamp=0 AND machine=@machine AND ipaddress=@ipaddress", table);
+                string updatesql = string.Format("UPDATE `{0}` SET logoutstamp=NOW() WHERE logoutstamp IS NULL AND machine=@machine AND ipaddress=@ipaddress", table);
 
                 using (var cmd = new MySqlCommand(updatesql, m_conn))
                 {
@@ -70,7 +70,7 @@ namespace pGina.Plugin.MySqlLogger
                     cmd.ExecuteNonQuery();
                 }
 
-                string insertsql = string.Format("INSERT INTO `{0}` (dbid, loginstamp, logoutstamp, username, machine, ipaddress) VALUES (NULL, NOW(), 0, @username, @machine, @ipaddress)", table);
+                string insertsql = string.Format("INSERT INTO `{0}` (dbid, loginstamp, logoutstamp, username, machine, ipaddress) VALUES (NULL, NOW(), NULL, @username, @machine, @ipaddress)", table);
                 using (var cmd = new MySqlCommand(insertsql, m_conn))
                 {
                     cmd.Parameters.AddWithValue("@username", username);
@@ -86,7 +86,7 @@ namespace pGina.Plugin.MySqlLogger
                 if (m_conn.State != System.Data.ConnectionState.Open) m_conn.Open();
 
                 string table = Settings.Store.SessionTable;
-                string updatesql = string.Format("UPDATE `{0}` SET logoutstamp=NOW() WHERE logoutstamp=0 AND username=@username AND machine=@machine AND ipaddress=@ipaddress", table);
+                string updatesql = string.Format("UPDATE `{0}` SET logoutstamp=NOW() WHERE logoutstamp IS NULL AND username=@username AND machine=@machine AND ipaddress=@ipaddress", table);
 
                 using (var cmd = new MySqlCommand(updatesql, m_conn))
                 {
@@ -153,9 +153,10 @@ namespace pGina.Plugin.MySqlLogger
 
                 string table = Settings.Store.SessionTable;
                 string sql = string.Format(
-                    "CREATE TABLE `{0}` (dbid BIGINT NOT NULL AUTO_INCREMENT, loginstamp DATETIME NOT NULL, " +
-                    "logoutstamp DATETIME NOT NULL, username TEXT NOT NULL, machine TEXT NOT NULL, " +
-                    "ipaddress TEXT NOT NULL, INDEX (dbid)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", table);
+                    "CREATE TABLE `{0}` (dbid BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, loginstamp DATETIME NOT NULL, " +
+                    "logoutstamp DATETIME NULL, username VARCHAR(128) NOT NULL, machine VARCHAR(128) NOT NULL, " +
+                    "ipaddress VARCHAR(45) NOT NULL, INDEX idx_{0}_active (logoutstamp, machine, ipaddress), " +
+                    "INDEX idx_{0}_user (username, machine, ipaddress)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", table);
 
                 using (var cmd = new MySqlCommand(sql, m_conn))
                 {

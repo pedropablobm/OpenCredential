@@ -39,7 +39,8 @@
             this.label3 = new System.Windows.Forms.Label();
             this.passwordTB = new System.Windows.Forms.TextBox();
             this.passwdCB = new System.Windows.Forms.CheckBox();
-            this.useSslCB = new System.Windows.Forms.CheckBox();
+            this.sslModeCB = new System.Windows.Forms.ComboBox();
+            this.label21 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.dbTB = new System.Windows.Forms.TextBox();
             this.label4 = new System.Windows.Forms.Label();
@@ -48,6 +49,11 @@
             this.encBase64RB = new System.Windows.Forms.RadioButton();
             this.encHexRB = new System.Windows.Forms.RadioButton();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.activeValueTB = new System.Windows.Forms.TextBox();
+            this.label23 = new System.Windows.Forms.Label();
+            this.statusColTB = new System.Windows.Forms.TextBox();
+            this.label22 = new System.Windows.Forms.Label();
+            this.enforceStatusCB = new System.Windows.Forms.CheckBox();
             this.userPrimaryKeyColTB = new System.Windows.Forms.TextBox();
             this.label10 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
@@ -215,19 +221,33 @@
             this.passwdCB.UseVisualStyleBackColor = true;
             this.passwdCB.CheckedChanged += new System.EventHandler(this.passwdCB_CheckedChanged);
             // 
-            // useSslCB
+            // sslModeCB
             // 
-            this.useSslCB.AutoSize = true;
-            this.useSslCB.Location = new System.Drawing.Point(174, 48);
-            this.useSslCB.Name = "useSslCB";
-            this.useSslCB.Size = new System.Drawing.Size(68, 17);
-            this.useSslCB.TabIndex = 11;
-            this.useSslCB.Text = "Use SSL";
-            this.useSslCB.UseVisualStyleBackColor = true;
+            this.sslModeCB.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.sslModeCB.FormattingEnabled = true;
+            this.sslModeCB.Items.AddRange(new object[] {
+            "None",
+            "Required",
+            "VerifyCA",
+            "VerifyFull"});
+            this.sslModeCB.Location = new System.Drawing.Point(174, 46);
+            this.sslModeCB.Name = "sslModeCB";
+            this.sslModeCB.Size = new System.Drawing.Size(102, 21);
+            this.sslModeCB.TabIndex = 11;
+            // 
+            // label21
+            // 
+            this.label21.AutoSize = true;
+            this.label21.Location = new System.Drawing.Point(145, 49);
+            this.label21.Name = "label21";
+            this.label21.Size = new System.Drawing.Size(26, 13);
+            this.label21.TabIndex = 12;
+            this.label21.Text = "TLS:";
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.useSslCB);
+            this.groupBox1.Controls.Add(this.label21);
+            this.groupBox1.Controls.Add(this.sslModeCB);
             this.groupBox1.Controls.Add(this.passwdCB);
             this.groupBox1.Controls.Add(this.passwordTB);
             this.groupBox1.Controls.Add(this.label3);
@@ -292,7 +312,7 @@
             // encBase64RB
             // 
             this.encBase64RB.AutoSize = true;
-            this.encBase64RB.Location = new System.Drawing.Point(206, 176);
+            this.encBase64RB.Location = new System.Drawing.Point(206, 202);
             this.encBase64RB.Name = "encBase64RB";
             this.encBase64RB.Size = new System.Drawing.Size(64, 17);
             this.encBase64RB.TabIndex = 6;
@@ -303,7 +323,7 @@
             // encHexRB
             // 
             this.encHexRB.AutoSize = true;
-            this.encHexRB.Location = new System.Drawing.Point(114, 176);
+            this.encHexRB.Location = new System.Drawing.Point(114, 202);
             this.encHexRB.Name = "encHexRB";
             this.encHexRB.Size = new System.Drawing.Size(86, 17);
             this.encHexRB.TabIndex = 5;
@@ -314,6 +334,11 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.activeValueTB);
+            this.groupBox3.Controls.Add(this.label23);
+            this.groupBox3.Controls.Add(this.statusColTB);
+            this.groupBox3.Controls.Add(this.label22);
+            this.groupBox3.Controls.Add(this.enforceStatusCB);
             this.groupBox3.Controls.Add(this.userPrimaryKeyColTB);
             this.groupBox3.Controls.Add(this.label10);
             this.groupBox3.Controls.Add(this.label9);
@@ -324,11 +349,53 @@
             this.groupBox3.Controls.Add(this.label7);
             this.groupBox3.Location = new System.Drawing.Point(3, 40);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(513, 132);
+            this.groupBox3.Size = new System.Drawing.Size(513, 185);
             this.groupBox3.TabIndex = 8;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Column Names";
             this.groupBox3.Enter += new System.EventHandler(this.groupBox3_Enter);
+            // 
+            // activeValueTB
+            // 
+            this.activeValueTB.Location = new System.Drawing.Point(89, 150);
+            this.activeValueTB.Name = "activeValueTB";
+            this.activeValueTB.Size = new System.Drawing.Size(120, 20);
+            this.activeValueTB.TabIndex = 19;
+            // 
+            // label23
+            // 
+            this.label23.AutoSize = true;
+            this.label23.Location = new System.Drawing.Point(17, 153);
+            this.label23.Name = "label23";
+            this.label23.Size = new System.Drawing.Size(66, 13);
+            this.label23.TabIndex = 18;
+            this.label23.Text = "Active value:";
+            // 
+            // statusColTB
+            // 
+            this.statusColTB.Location = new System.Drawing.Point(302, 150);
+            this.statusColTB.Name = "statusColTB";
+            this.statusColTB.Size = new System.Drawing.Size(199, 20);
+            this.statusColTB.TabIndex = 17;
+            // 
+            // label22
+            // 
+            this.label22.AutoSize = true;
+            this.label22.Location = new System.Drawing.Point(225, 153);
+            this.label22.Name = "label22";
+            this.label22.Size = new System.Drawing.Size(71, 13);
+            this.label22.TabIndex = 16;
+            this.label22.Text = "Status column:";
+            // 
+            // enforceStatusCB
+            // 
+            this.enforceStatusCB.AutoSize = true;
+            this.enforceStatusCB.Location = new System.Drawing.Point(21, 127);
+            this.enforceStatusCB.Name = "enforceStatusCB";
+            this.enforceStatusCB.Size = new System.Drawing.Size(172, 17);
+            this.enforceStatusCB.TabIndex = 15;
+            this.enforceStatusCB.Text = "Require active user status filter";
+            this.enforceStatusCB.UseVisualStyleBackColor = true;
             // 
             // userPrimaryKeyColTB
             // 
@@ -397,7 +464,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(5, 178);
+            this.label6.Location = new System.Drawing.Point(5, 204);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(103, 13);
             this.label6.TabIndex = 4;
@@ -925,7 +992,8 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.TextBox passwordTB;
         private System.Windows.Forms.CheckBox passwdCB;
-        private System.Windows.Forms.CheckBox useSslCB;
+        private System.Windows.Forms.ComboBox sslModeCB;
+        private System.Windows.Forms.Label label21;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.TextBox userTableTB;
         private System.Windows.Forms.TextBox dbTB;
@@ -937,6 +1005,11 @@
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.RadioButton encBase64RB;
         private System.Windows.Forms.GroupBox groupBox3;
+        private System.Windows.Forms.TextBox activeValueTB;
+        private System.Windows.Forms.Label label23;
+        private System.Windows.Forms.TextBox statusColTB;
+        private System.Windows.Forms.Label label22;
+        private System.Windows.Forms.CheckBox enforceStatusCB;
         private System.Windows.Forms.TextBox unameColTB;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Label label9;

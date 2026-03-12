@@ -61,11 +61,8 @@
     <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=10.0.0.3, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Extensions.Logging.Abstractions.10.0.3\lib\net462\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>
-    <Reference Include="MySql.Data, Version=9.6.0.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
-      <HintPath>..\packages\MySql.Data.9.6.0\lib\net48\MySql.Data.dll</HintPath>
-    </Reference>
-    <Reference Include="MySqlConnector">
-      <HintPath>..\..\..\lib\mysql\MySqlConnector.dll</HintPath>
+    <Reference Include="MySqlConnector, Version=2.0.0.0, Culture=neutral, PublicKeyToken=d33d3e53aa5f8c92, processorArchitecture=MSIL">
+      <HintPath>..\packages\MySqlConnector.2.5.0\lib\net48\MySqlConnector.dll</HintPath>
     </Reference>
     <Reference Include="pGina.Shared">
       <HintPath>..\..\..\SDK\pGina.Shared.dll</HintPath>

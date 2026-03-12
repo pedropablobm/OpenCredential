@@ -36,11 +36,25 @@ using MySqlConnector;
 
 namespace pGina.Plugin.MySQLAuth
 {
+    /// <summary>
+    /// MySQL/MariaDB Authentication Plugin for pGina.
+    /// Compatible with MySQL 8.x, MariaDB 10.x/11.x, and Windows 10/11.
+    /// Supports BCrypt and legacy hash algorithms.
+    /// Version: 4.1.0
+    /// </summary>
     public class PluginImpl : IPluginAuthentication, IPluginAuthorization, IPluginAuthenticationGateway, IPluginConfiguration
     {
+        /// <summary>
+        /// Unique identifier for this plugin.
+        /// </summary>
         public static readonly Guid PluginUuid = new Guid("{A89DF410-53CA-4FE1-A6CA-4479B841CA19}");
+        
         private ILog m_logger = LogManager.GetLogger("MySQLAuth");
 
+        /// <summary>
+        /// Authenticates a user against the MySQL/MariaDB database.
+        /// Supports BCrypt and legacy hash algorithms.
+        /// </summary>
         public BooleanResult AuthenticateUser(SessionProperties properties)
         {
             UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
@@ -71,53 +85,105 @@ namespace pGina.Plugin.MySQLAuth
             if (entry != null)
             {
                 m_logger.DebugFormat("Retrieved info for user {0}. Hash: {1}", entry.Name, entry.HashAlg);
+                
+                // Verify password - supports BCrypt and legacy algorithms
                 bool passwordOk = entry.VerifyPassword(userInfo.Password);
+                
                 if (passwordOk)
                 {
+                    // Check if we should migrate to BCrypt (only if enabled and not already BCrypt)
+                    if (Settings.IsMigrationEnabled() && entry.HashAlg != PasswordHashAlgorithm.BCRYPT)
+                    {
+                        TryMigrateToBCrypt(userInfo.Username, userInfo.Password, entry);
+                    }
+
                     m_logger.InfoFormat("Authentication successful for {0}", userInfo.Username);
                     return new BooleanResult { Success = true, Message = "Success." };
                 }
+                
+                m_logger.WarnFormat("Authentication failed for {0} - invalid password", userInfo.Username);
                 return new BooleanResult { Success = false, Message = "Invalid username or password." };
             }
+            
+            m_logger.WarnFormat("Authentication failed - user {0} not found", userInfo.Username);
             return new BooleanResult { Success = false, Message = "Invalid username or password." };
         }
 
+        /// <summary>
+        /// Plugin description shown in pGina UI.
+        /// </summary>
         public string Description
         {
-            get { return "Uses MySQL or MariaDB server as account database. Compatible with MySQL 8.x, MariaDB 10.x/11.x, Windows 10/11."; }
+            get { return "Uses MySQL or MariaDB server as account database. Compatible with MySQL 8.x, MariaDB 10.x/11.x, Windows 10/11. Supports BCrypt, MD5, SHA256, SHA512 hash algorithms."; }
         }
 
+        /// <summary>
+        /// Plugin name shown in pGina UI.
+        /// </summary>
         public string Name
         {
             get { return "MySQL/MariaDB Auth"; }
         }
 
+        /// <summary>
+        /// Called when the plugin is starting.
+        /// </summary>
         public void Starting()
         {
             m_logger.InfoFormat("MySQL Auth Plugin starting. Version: {0}", Version);
+            m_logger.InfoFormat("Database: {0}@{1}:{2}", 
+                Settings.Store.User, 
+                Settings.Store.Host, 
+                Settings.GetPort());
+            m_logger.InfoFormat("Table: {0}, UsernameColumn: {1}", 
+                Settings.Store.Table, 
+                Settings.Store.UsernameColumn);
+            m_logger.InfoFormat("TLS Mode: {0}", Settings.GetSslMode());
+            m_logger.InfoFormat("Enforce Active User Status: {0}, Column: {1}, ActiveValue: {2}",
+                Settings.IsUserStatusValidationEnabled(),
+                Settings.GetUserStatusColumn(),
+                Settings.GetUserActiveValue());
+            m_logger.InfoFormat("BCrypt Work Factor: {0}, Migration Enabled: {1}",
+                Settings.GetBCryptWorkFactor(),
+                Settings.IsMigrationEnabled());
         }
 
+        /// <summary>
+        /// Called when the plugin is stopping.
+        /// </summary>
         public void Stopping()
         {
             m_logger.Info("MySQL Auth Plugin stopping.");
         }
 
+        /// <summary>
+        /// Unique identifier for this plugin.
+        /// </summary>
         public Guid Uuid
         {
             get { return PluginUuid; }
         }
 
+        /// <summary>
+        /// Plugin version.
+        /// </summary>
         public string Version
         {
             get { return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(); }
         }
 
+        /// <summary>
+        /// Opens the configuration dialog.
+        /// </summary>
         public void Configure()
         {
             Configuration dialog = new Configuration();
             dialog.ShowDialog();
         }
 
+        /// <summary>
+        /// Gateway method for adding groups to authenticated users.
+        /// </summary>
         public BooleanResult AuthenticatedUserGateway(SessionProperties properties)
         {
             UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
@@ -132,17 +198,21 @@ namespace pGina.Plugin.MySQLAuth
                         if (rule.RuleMatch(dataSource.IsMemberOfGroup(userInfo.Username, rule.Group)))
                         {
                             userInfo.Groups.Add(new GroupInformation { Name = rule.LocalGroup });
+                            m_logger.DebugFormat("Added group {0} to user {1} via gateway rule", 
+                                rule.LocalGroup, userInfo.Username);
                         }
                     }
                 }
             }
             catch (MySqlException e)
             {
-                bool preventLogon = Settings.Store.PreventLogonOnServerError;
+                bool preventLogon = Settings.PreventLogonOnServerError();
                 if (preventLogon)
                 {
+                    m_logger.ErrorFormat("Gateway error - preventing logon: {0}", e.Message);
                     return new BooleanResult { Success = false, Message = string.Format("Server error: {0}", e.Message) };
                 }
+                m_logger.WarnFormat("Gateway error - allowing logon: {0}", e.Message);
             }
             catch (Exception e)
             {
@@ -153,10 +223,14 @@ namespace pGina.Plugin.MySQLAuth
             return new BooleanResult { Success = true };
         }
 
+        /// <summary>
+        /// Authorization method for checking user permissions.
+        /// </summary>
         public BooleanResult AuthorizeUser(SessionProperties properties)
         {
             m_logger.Debug("MySQL Plugin Authorization");
-            bool requireAuth = Settings.Store.AuthzRequireMySqlAuth;
+            
+            bool requireAuth = Settings.IsAuthzRequireMySqlAuth();
 
             if (requireAuth)
             {
@@ -196,6 +270,8 @@ namespace pGina.Plugin.MySQLAuth
 
                         if (rule.RuleMatch(inGroup))
                         {
+                            m_logger.DebugFormat("Authorization result for {0}: {1} via rule '{2}'", 
+                                user, rule.AllowOnMatch ? "Allow" : "Deny", rule.ToString());
                             return new BooleanResult
                             {
                                 Success = rule.AllowOnMatch,
@@ -210,6 +286,36 @@ namespace pGina.Plugin.MySQLAuth
             {
                 m_logger.ErrorFormat("Authorization error: {0}", e);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Attempts to migrate a user's password hash to BCrypt.
+        /// Called after successful authentication with a legacy hash.
+        /// </summary>
+        private void TryMigrateToBCrypt(string username, string password, UserEntry entry)
+        {
+            try
+            {
+                m_logger.InfoFormat("Migrating hash for user {0} from {1} to BCrypt", 
+                    username, entry.HashAlg);
+
+                // Generate new BCrypt hash
+                int workFactor = Settings.GetBCryptWorkFactor();
+                string newHash = BCryptHasher.HashPassword(password, workFactor);
+
+                // Update database with new hash
+                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                {
+                    dataSource.UpdateUserHash(username, newHash, "BCRYPT");
+                }
+
+                m_logger.InfoFormat("Hash migration completed for user {0}", username);
+            }
+            catch (Exception ex)
+            {
+                // Log warning but don't fail authentication
+                m_logger.WarnFormat("Failed to migrate hash for user {0}: {1}", username, ex.Message);
             }
         }
     }

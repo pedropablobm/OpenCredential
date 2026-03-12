@@ -33,7 +33,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 
 namespace pGina.Plugin.MySqlLogger
 {
@@ -223,7 +223,7 @@ namespace pGina.Plugin.MySqlLogger
             }
             catch (Exception ex)
             {
-                MessageBox.Show("The following error occurred: {0}", ex.Message);
+                MessageBox.Show(string.Format("The following error occurred: {0}", ex.Message));
             }
 
             //Since the server info may change, close the current connection

@@ -61,19 +61,9 @@ namespace pGina.Plugin.MySqlLogger
 
         private static string BuildConnectionString()
         {
-            uint port = 0;
-            try
-            {
-                port = Convert.ToUInt32((String)Settings.Store.Port);
-            }
-            catch (FormatException e)
-            {
-                throw new Exception("Invalid port number.", e);
-            }
-
             MySqlConnectionStringBuilder bldr = new MySqlConnectionStringBuilder();
             bldr.Server = Settings.Store.Host;
-            bldr.Port = port;
+            bldr.Port = Settings.GetPort();
             bldr.UserID = Settings.Store.User;
             bldr.Database = Settings.Store.Database;
             bldr.Password = Settings.Store.GetEncryptedSetting("Password");

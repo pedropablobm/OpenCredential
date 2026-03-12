@@ -37,8 +37,6 @@ using pGina.Shared.Types;
 using Abstractions.WindowsApi;
 using log4net;
 
-using MySql.Data.MySqlClient;
-
 namespace pGina.Plugin.MySqlLogger
 {
     enum LoggerMode { EVENT, SESSION };

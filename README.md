@@ -17,7 +17,9 @@ This is a fork of the original [pGina](https://github.com/pgina/pgina) project, 
 - **Multiple Authentication Plugins** - MySQL, LDAP, LocalMachine, RADIUS
 - **Session Management** - Drive mapping, session limits, logging
 - **Group-based Authorization** - Flexible authorization rules based on database groups
-- **Password Hash Support** - MD5, SHA-256, SHA-512 (configurable)
+- **Password Hash Support** - BCrypt, MD5, SHA-256, SHA-512
+- **Active User Validation** - Can require a status column such as `estado=1`
+- **TLS Options** - Supports `Required`, `VerifyCA`, and `VerifyFull`
 
 ## Requirements
 
@@ -51,6 +53,7 @@ Database: your_database_name
 User: your_db_user
 Password: your_db_password
 Table: estudiantes (or your custom table name)
+TLS Mode: None, Required, VerifyCA, or VerifyFull
 ```
 
 ### Required Table Structure
@@ -72,15 +75,19 @@ CREATE TABLE `estudiantes` (
 );
 ```
 
+The plugin can validate only active users by checking a configurable status column.
+Default settings expect `estado = 1`.
+
 ### Password Hashing
 
 The plugin supports multiple hash algorithms:
 
 | Algorithm | `metodo_hash` value | Example Hash |
 |-----------|---------------------|--------------|
+| BCrypt | `BCRYPT` | `$2b$12$...` |
 | MD5 | `MD5` | `e10adc3949ba59abbe56e057f20f883e` |
-| SHA-256 | `SHA256` | `e3b0c44298fc1c149afbf4c8996fb924... |
-| SHA-512 | `SHA512` | `cf83e1357eefb8bdf1542850d66d8007... |
+| SHA-256 | `SHA256` | `e3b0c44298fc1c149afbf4c8996fb924...` |
+| SHA-512 | `SHA512` | `cf83e1357eefb8bdf1542850d66d8007...` |
 
 ## Plugin Configuration
 
@@ -93,6 +100,7 @@ In pGina Configuration:
 3. Configure connection settings:
    - **Host**: MySQL server address
    - **Port**: 3306 (default)
+   - **TLS**: `VerifyFull` for inter-campus deployments when certificates are available
    - **Database**: Database name
    - **User**: Database username
    - **Password**: Database password
@@ -100,7 +108,9 @@ In pGina Configuration:
    - **Username Column**: `codigo`
    - **Password Column**: `clave`
    - **Hash Method Column**: `metodo_hash`
-   - **Password Hash**: Select MD5 (or your preferred method)
+   - **Require active user status filter**: enabled for academic environments
+   - **Status Column**: `estado`
+   - **Active Value**: `1`
 
 4. Go to **Authorization** and configure rules
 5. Save configuration
@@ -144,6 +154,7 @@ msbuild pGina-3.x.sln /p:Configuration=Release /p:Platform=Win32
    - Verify the user has proper permissions
    - Check that MySQL is configured to accept connections from your IP
    - Ensure the authentication plugin is `mysql_native_password` or `caching_sha2_password`
+   - If using TLS between campuses, verify certificates match the selected TLS mode
 
 3. **Authentication fails**
    - Verify the password hash matches the stored hash

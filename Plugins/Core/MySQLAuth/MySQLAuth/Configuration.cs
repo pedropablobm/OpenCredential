@@ -33,8 +33,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 
-using MySql.Data;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 
 namespace pGina.Plugin.MySQLAuth
 {
@@ -57,8 +56,8 @@ namespace pGina.Plugin.MySQLAuth
             this.userTB.Text = Settings.Store.User;
             this.passwordTB.Text = Settings.Store.GetEncryptedSetting("Password");
             this.dbTB.Text = Settings.Store.Database;
-            bool useSsl = Settings.Store.UseSsl;
-            this.useSslCB.Checked = useSsl;
+            this.sslModeCB.SelectedItem = Settings.GetSslMode().ToString();
+            this.enforceStatusCB.Checked = Settings.IsUserStatusValidationEnabled();
 
             // User table schema settings
             this.userTableTB.Text = Settings.Store.Table;
@@ -66,6 +65,8 @@ namespace pGina.Plugin.MySQLAuth
             this.hashMethodColTB.Text = Settings.Store.HashMethodColumn;
             this.passwdColTB.Text = Settings.Store.PasswordColumn;
             this.userPrimaryKeyColTB.Text = Settings.Store.UserTablePrimaryKeyColumn;
+            this.statusColTB.Text = Settings.GetUserStatusColumn();
+            this.activeValueTB.Text = Settings.GetUserActiveValue();
 
             int encodingInt = Settings.Store.HashEncoding;
             Settings.HashEncoding encoding = (Settings.HashEncoding)encodingInt;
@@ -154,7 +155,14 @@ namespace pGina.Plugin.MySQLAuth
             Settings.Store.User = this.userTB.Text.Trim();
             Settings.Store.SetEncryptedSetting("Password", this.passwordTB.Text);
             Settings.Store.Database = this.dbTB.Text.Trim();
-            Settings.Store.UseSsl = this.useSslCB.Checked;
+            MySqlSslMode sslMode;
+            if (!Enum.TryParse(this.sslModeCB.Text, true, out sslMode))
+            {
+                MessageBox.Show("Please select a valid TLS mode.");
+                return false;
+            }
+            Settings.Store.SslMode = sslMode.ToString();
+            Settings.Store.UseSsl = sslMode != MySqlSslMode.None;
 
             // User table settings
             Settings.Store.Table = this.userTableTB.Text.Trim();
@@ -162,6 +170,16 @@ namespace pGina.Plugin.MySQLAuth
             Settings.Store.HashMethodColumn = this.hashMethodColTB.Text.Trim();
             Settings.Store.PasswordColumn = this.passwdColTB.Text.Trim();
             Settings.Store.UserTablePrimaryKeyColumn = this.userPrimaryKeyColTB.Text.Trim();
+            Settings.Store.EnforceUserStatus = this.enforceStatusCB.Checked;
+            Settings.Store.UserStatusColumn = this.statusColTB.Text.Trim();
+            Settings.Store.UserActiveValue = this.activeValueTB.Text.Trim();
+
+            if (this.enforceStatusCB.Checked &&
+                (string.IsNullOrWhiteSpace(this.statusColTB.Text) || string.IsNullOrWhiteSpace(this.activeValueTB.Text)))
+            {
+                MessageBox.Show("User status validation requires both status column and active value.");
+                return false;
+            }
 
             if (encHexRB.Checked)
                 Settings.Store.HashEncoding = (int)Settings.HashEncoding.HEX;
@@ -236,7 +254,7 @@ namespace pGina.Plugin.MySQLAuth
                 string query = "";
 
                 // Check SSL status
-                if (useSslCB.Checked)
+                if (Settings.GetSslMode() != MySqlSslMode.None)
                 {
                     string cipher = "";
                     query = "SHOW STATUS LIKE 'Ssl_cipher'";
@@ -251,22 +269,22 @@ namespace pGina.Plugin.MySQLAuth
 
                     if (string.IsNullOrEmpty(cipher))
                     {
-                        infoDlg.AppendLine( "Not using SSL." );
+                        infoDlg.AppendLine("TLS mode configured, but no cipher is active.");
                     }
                     else
                     {
-                        infoDlg.AppendLine("SSL enabled, using cipher: " + cipher);
+                        infoDlg.AppendLine(string.Format("TLS mode: {0}, cipher: {1}", Settings.GetSslMode(), cipher));
                     }
                 }
                 else
                 {
-                    infoDlg.AppendLine( "Not using SSL." );
+                    infoDlg.AppendLine("TLS disabled.");
                 }
 
                 infoDlg.AppendLine( Environment.NewLine + "User Table" );
                 infoDlg.AppendLine( "-------------------------------");
                 CheckTable(tableName,
-                    new string[] { this.unameColTB.Text.Trim(), this.passwdColTB.Text.Trim(), this.hashMethodColTB.Text.Trim(), this.userPrimaryKeyColTB.Text.Trim() },
+                    BuildUserTableColumns(),
                     infoDlg, conn);
 
                 infoDlg.AppendLine(Environment.NewLine + "Group Table");
@@ -378,6 +396,7 @@ namespace pGina.Plugin.MySQLAuth
                         string unameCol = this.unameColTB.Text.Trim();
                         string hashMethodCol = this.hashMethodColTB.Text.Trim();
                         string passwdCol = this.passwdColTB.Text.Trim();
+                        string statusCol = Settings.GetUserStatusColumn();
 
                         // Is the primary key the same as the username?
                         bool pkIsUserName =
@@ -389,6 +408,8 @@ namespace pGina.Plugin.MySQLAuth
                             sql.AppendFormat(" {0} BIGINT auto_increment PRIMARY KEY, \r\n", pk);
                         sql.AppendFormat(" {0} VARCHAR(128) {1}, \r\n", unameCol, pkIsUserName ? "PRIMARY KEY" : "NOT NULL UNIQUE");
                         sql.AppendFormat(" {0} TEXT NOT NULL, \r\n", hashMethodCol);
+                        if (Settings.IsUserStatusValidationEnabled())
+                            sql.AppendFormat(" {0} VARCHAR(32) NOT NULL DEFAULT '{1}', \r\n", statusCol, Settings.GetUserActiveValue().Replace("'", "''"));
                         sql.AppendFormat(" {0} TEXT \r\n", passwdCol);
                         sql.Append(")");  // End create table.
 
@@ -529,12 +550,29 @@ namespace pGina.Plugin.MySQLAuth
             bldr.Database = this.dbTB.Text.Trim();
             bldr.Password = this.passwordTB.Text;
 
-            if (this.useSslCB.Checked)
-            {
-                bldr.SslMode = MySqlSslMode.Required;
-            }
+            MySqlSslMode sslMode;
+            if (!Enum.TryParse(this.sslModeCB.Text, true, out sslMode))
+                sslMode = MySqlSslMode.None;
 
-            return bldr.GetConnectionString(true);
+            bldr.SslMode = sslMode;
+
+            return bldr.ConnectionString;
+        }
+
+        private string[] BuildUserTableColumns()
+        {
+            List<string> columns = new List<string>
+            {
+                this.unameColTB.Text.Trim(),
+                this.passwdColTB.Text.Trim(),
+                this.hashMethodColTB.Text.Trim(),
+                this.userPrimaryKeyColTB.Text.Trim()
+            };
+
+            if (Settings.IsUserStatusValidationEnabled())
+                columns.Add(Settings.GetUserStatusColumn());
+
+            return columns.ToArray();
         }
 
         private void encHexRB_CheckedChanged(object sender, EventArgs e)

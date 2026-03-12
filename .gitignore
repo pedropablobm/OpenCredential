@@ -1,7 +1,17 @@
-```
-# Compiled and binary files
+# General development clutter
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+.DS_Store
+Thumbs.db
+.env
+.env.local
+*.env.*
+*.log
 
-# Dependencies
+# Python / JS / Java leftovers
 node_modules/
 venv/
 .venv/
@@ -10,28 +20,31 @@ __pycache__/
 .pytest_cache/
 target/
 .gradle/
-
-# Editor/IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*.tmp
-
-# System/Environment files
-.DS_Store
-Thumbs.db
-.env
-.env.local
-*.env.*
-
-# Logs and coverage
-*.log
 coverage/
 htmlcov/
 .coverage
-
-# Build artifacts
 dist/
 build/
-```
+
+# Visual Studio / .NET
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+**/bin/
+**/obj/
+Debug/
+Release/
+TestResults/
+
+# NuGet
+packages/
+.nuget/
+*.nupkg
+
+# Keep installer payloads under source control
+!Installer/bin/
+!Installer/bin/**
+!Installer/Output/
+!Installer/Output/**
