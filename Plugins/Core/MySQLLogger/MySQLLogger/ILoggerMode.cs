@@ -59,6 +59,11 @@ namespace pGina.Plugin.MySqlLogger
             m_conn = null;
         }
 
+        public static MySqlConnection CreateConnection()
+        {
+            return new MySqlConnection(BuildConnectionString());
+        }
+
         private static string BuildConnectionString()
         {
             MySqlConnectionStringBuilder bldr = new MySqlConnectionStringBuilder();

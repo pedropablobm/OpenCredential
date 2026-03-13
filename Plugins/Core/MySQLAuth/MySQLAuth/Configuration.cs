@@ -50,26 +50,30 @@ namespace pGina.Plugin.MySQLAuth
 
         private void InitUI()
         {
-            this.hostTB.Text = Settings.Store.Host;
-            int port = Settings.Store.Port;
-            this.portTB.Text = Convert.ToString(port);
-            this.userTB.Text = Settings.Store.User;
+            this.hostTB.Text = Convert.ToString(Settings.Store.Host);
+            this.portTB.Text = Convert.ToString(Settings.GetPort());
+            this.userTB.Text = Convert.ToString(Settings.Store.User);
             this.passwordTB.Text = Settings.Store.GetEncryptedSetting("Password");
-            this.dbTB.Text = Settings.Store.Database;
+            this.dbTB.Text = Convert.ToString(Settings.Store.Database);
             this.sslModeCB.SelectedItem = Settings.GetSslMode().ToString();
+            this.localCacheEnabledCB.Checked = Settings.IsLocalCacheEnabled();
+            this.offlineFallbackEnabledCB.Checked = Settings.IsOfflineFallbackEnabled();
+            this.offlineBypassCB.Checked = Settings.AllowOfflineBypassForAuthorization();
+            this.syncIntervalTB.Text = Convert.ToString(Settings.GetSyncIntervalMinutes());
+            this.healthCheckTB.Text = Convert.ToString(Settings.GetHealthCheckSeconds());
+            this.cachePathTB.Text = Settings.GetLocalCachePath();
             this.enforceStatusCB.Checked = Settings.IsUserStatusValidationEnabled();
 
             // User table schema settings
-            this.userTableTB.Text = Settings.Store.Table;
-            this.unameColTB.Text = Settings.Store.UsernameColumn;
-            this.hashMethodColTB.Text = Settings.Store.HashMethodColumn;
-            this.passwdColTB.Text = Settings.Store.PasswordColumn;
-            this.userPrimaryKeyColTB.Text = Settings.Store.UserTablePrimaryKeyColumn;
+            this.userTableTB.Text = Convert.ToString(Settings.Store.Table);
+            this.unameColTB.Text = Convert.ToString(Settings.Store.UsernameColumn);
+            this.hashMethodColTB.Text = Convert.ToString(Settings.Store.HashMethodColumn);
+            this.passwdColTB.Text = Convert.ToString(Settings.Store.PasswordColumn);
+            this.userPrimaryKeyColTB.Text = Convert.ToString(Settings.Store.UserTablePrimaryKeyColumn);
             this.statusColTB.Text = Settings.GetUserStatusColumn();
             this.activeValueTB.Text = Settings.GetUserActiveValue();
 
-            int encodingInt = Settings.Store.HashEncoding;
-            Settings.HashEncoding encoding = (Settings.HashEncoding)encodingInt;
+            Settings.HashEncoding encoding = Settings.GetHashEncoding();
 
             if (encoding == Settings.HashEncoding.HEX)
                 this.encHexRB.Checked = true;
@@ -77,20 +81,20 @@ namespace pGina.Plugin.MySQLAuth
                 this.encBase64RB.Checked = true;
 
             // Group table schema settings
-            this.groupTableNameTB.Text = Settings.Store.GroupTableName;
-            this.groupNameColTB.Text = Settings.Store.GroupNameColumn;
-            this.groupTablePrimaryKeyColTB.Text = Settings.Store.GroupTablePrimaryKeyColumn;
+            this.groupTableNameTB.Text = Convert.ToString(Settings.Store.GroupTableName);
+            this.groupNameColTB.Text = Convert.ToString(Settings.Store.GroupNameColumn);
+            this.groupTablePrimaryKeyColTB.Text = Convert.ToString(Settings.Store.GroupTablePrimaryKeyColumn);
 
             // User-Group table settings
-            this.userGroupTableNameTB.Text = Settings.Store.UserGroupTableName;
-            this.userGroupUserFKColTB.Text = Settings.Store.UserForeignKeyColumn;
-            this.userGroupGroupFKColTB.Text = Settings.Store.GroupForeignKeyColumn;
+            this.userGroupTableNameTB.Text = Convert.ToString(Settings.Store.UserGroupTableName);
+            this.userGroupUserFKColTB.Text = Convert.ToString(Settings.Store.UserForeignKeyColumn);
+            this.userGroupGroupFKColTB.Text = Convert.ToString(Settings.Store.GroupForeignKeyColumn);
 
             /////////////// Authorization tab /////////////////
             this.cbAuthzMySqlGroupMemberOrNot.SelectedIndex = 0;
             this.cbAuthzGroupRuleAllowOrDeny.SelectedIndex = 0;
 
-            this.ckDenyWhenMySqlAuthFails.Checked = Settings.Store.AuthzRequireMySqlAuth;
+            this.ckDenyWhenMySqlAuthFails.Checked = Settings.IsAuthzRequireMySqlAuth();
 
             List<GroupAuthzRule> lst = GroupRuleLoader.GetAuthzRules();
             // The last one should be the default rule
@@ -119,7 +123,7 @@ namespace pGina.Plugin.MySQLAuth
                 this.gtwRulesListBox.Items.Add(rule);
             this.gtwRuleConditionCB.SelectedIndex = 0;
 
-            this.m_preventLogonWhenServerUnreachableCb.Checked = Settings.Store.PreventLogonOnServerError;
+            this.m_preventLogonWhenServerUnreachableCb.Checked = Settings.PreventLogonOnServerError();
         }
 
         private void cancelButton_Click(object sender, EventArgs e)
@@ -140,6 +144,8 @@ namespace pGina.Plugin.MySQLAuth
         private bool Save()
         {
             int port = 0;
+            int syncIntervalMinutes = 0;
+            int healthCheckSeconds = 0;
             try
             {
                 port = Convert.ToInt32(this.portTB.Text);
@@ -150,11 +156,40 @@ namespace pGina.Plugin.MySQLAuth
                 return false;
             }
 
+            try
+            {
+                syncIntervalMinutes = Convert.ToInt32(this.syncIntervalTB.Text);
+                healthCheckSeconds = Convert.ToInt32(this.healthCheckTB.Text);
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Sync interval and health check must be positive integers.");
+                return false;
+            }
+
+            if (syncIntervalMinutes < 1)
+            {
+                MessageBox.Show("Sync interval must be at least 1 minute.");
+                return false;
+            }
+
+            if (healthCheckSeconds < 5)
+            {
+                MessageBox.Show("Health check must be at least 5 seconds.");
+                return false;
+            }
+
             Settings.Store.Host = this.hostTB.Text.Trim();
             Settings.Store.Port = port;
             Settings.Store.User = this.userTB.Text.Trim();
             Settings.Store.SetEncryptedSetting("Password", this.passwordTB.Text);
             Settings.Store.Database = this.dbTB.Text.Trim();
+            Settings.Store.LocalCacheEnabled = this.localCacheEnabledCB.Checked;
+            Settings.Store.OfflineFallbackEnabled = this.offlineFallbackEnabledCB.Checked;
+            Settings.Store.AllowOfflineBypassForAuthorization = this.offlineBypassCB.Checked;
+            Settings.Store.SyncIntervalMinutes = syncIntervalMinutes;
+            Settings.Store.HealthCheckSeconds = healthCheckSeconds;
+            Settings.Store.LocalCachePath = this.cachePathTB.Text.Trim();
             MySqlSslMode sslMode;
             if (!Enum.TryParse(this.sslModeCB.Text, true, out sslMode))
             {

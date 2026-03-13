@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using log4net;
 
 using pGina.Shared.Interfaces;
@@ -48,6 +49,10 @@ namespace pGina.Plugin.MySQLAuth
         /// Unique identifier for this plugin.
         /// </summary>
         public static readonly Guid PluginUuid = new Guid("{A89DF410-53CA-4FE1-A6CA-4479B841CA19}");
+        private static readonly object m_timerLock = new object();
+        private static Timer m_healthTimer;
+        private static bool m_mysqlAvailable = true;
+        private static bool m_localCacheRuntimeAvailable = true;
         
         private ILog m_logger = LogManager.GetLogger("MySQLAuth");
 
@@ -67,6 +72,11 @@ namespace pGina.Plugin.MySQLAuth
                 {
                     entry = dataSource.GetUserEntry(userInfo.Username);
                 }
+
+                if (entry != null && Settings.IsLocalCacheEnabled() && m_localCacheRuntimeAvailable)
+                {
+                    TryCacheUserEntry(entry);
+                }
             }
             catch (MySqlException ex)
             {
@@ -74,12 +84,12 @@ namespace pGina.Plugin.MySQLAuth
                     m_logger.ErrorFormat("Unable to connect to host: {0}", Settings.Store.Host);
                 else
                     m_logger.ErrorFormat("MySQL error {0}: {1}", ex.Number, ex.Message);
-                throw;
+                return TryOfflineAuthentication(userInfo, ex.Message);
             }
             catch (Exception e)
             {
                 m_logger.ErrorFormat("Unexpected error: {0}", e);
-                throw;
+                return TryOfflineAuthentication(userInfo, e.Message);
             }
 
             if (entry != null)
@@ -130,6 +140,23 @@ namespace pGina.Plugin.MySQLAuth
         /// </summary>
         public void Starting()
         {
+            m_localCacheRuntimeAvailable = Settings.IsLocalCacheEnabled();
+
+            if (m_localCacheRuntimeAvailable)
+            {
+                try
+                {
+                    LocalUserCache.Initialize();
+                }
+                catch (Exception ex)
+                {
+                    m_localCacheRuntimeAvailable = false;
+                    m_logger.ErrorFormat("Disabling local SQLite cache at runtime: {0}", ex);
+                }
+            }
+
+            StartBackgroundTasks();
+
             m_logger.InfoFormat("MySQL Auth Plugin starting. Version: {0}", Version);
             m_logger.InfoFormat("Database: {0}@{1}:{2}", 
                 Settings.Store.User, 
@@ -153,6 +180,7 @@ namespace pGina.Plugin.MySQLAuth
         /// </summary>
         public void Stopping()
         {
+            StopBackgroundTasks();
             m_logger.Info("MySQL Auth Plugin stopping.");
         }
 
@@ -206,6 +234,12 @@ namespace pGina.Plugin.MySQLAuth
             }
             catch (MySqlException e)
             {
+                if (Settings.IsOfflineFallbackEnabled() && Settings.AllowOfflineBypassForAuthorization())
+                {
+                    m_logger.WarnFormat("Gateway offline bypass enabled: {0}", e.Message);
+                    return new BooleanResult { Success = true, Message = "Gateway bypassed while MySQL is unavailable." };
+                }
+
                 bool preventLogon = Settings.PreventLogonOnServerError();
                 if (preventLogon)
                 {
@@ -216,6 +250,12 @@ namespace pGina.Plugin.MySQLAuth
             }
             catch (Exception e)
             {
+                if (Settings.IsOfflineFallbackEnabled() && Settings.AllowOfflineBypassForAuthorization())
+                {
+                    m_logger.WarnFormat("Gateway offline bypass enabled after unexpected error: {0}", e.Message);
+                    return new BooleanResult { Success = true, Message = "Gateway bypassed while MySQL is unavailable." };
+                }
+
                 m_logger.ErrorFormat("Gateway error: {0}", e);
                 throw;
             }
@@ -284,8 +324,108 @@ namespace pGina.Plugin.MySQLAuth
             }
             catch (Exception e)
             {
+                if (Settings.IsOfflineFallbackEnabled() && Settings.AllowOfflineBypassForAuthorization())
+                {
+                    m_logger.WarnFormat("Authorization offline bypass enabled: {0}", e.Message);
+                    return new BooleanResult { Success = true, Message = "Authorization bypassed while MySQL is unavailable." };
+                }
+
                 m_logger.ErrorFormat("Authorization error: {0}", e);
                 throw;
+            }
+        }
+
+        private BooleanResult TryOfflineAuthentication(UserInformation userInfo, string reason)
+        {
+            if (!Settings.IsLocalCacheEnabled() || !Settings.IsOfflineFallbackEnabled() || !m_localCacheRuntimeAvailable)
+            {
+                return new BooleanResult { Success = false, Message = "MySQL unavailable and offline fallback is disabled." };
+            }
+
+            UserEntry cachedEntry;
+            bool authenticated = LocalUserCache.TryAuthenticate(userInfo.Username, userInfo.Password, out cachedEntry);
+
+            if (authenticated)
+            {
+                m_logger.WarnFormat("Offline cache authentication successful for {0}. Reason: {1}", userInfo.Username, reason);
+                return new BooleanResult { Success = true, Message = "Success (offline cache)." };
+            }
+
+            m_logger.WarnFormat("Offline cache authentication failed for {0}. Reason: {1}", userInfo.Username, reason);
+            return new BooleanResult { Success = false, Message = "Invalid username or password." };
+        }
+
+        private void StartBackgroundTasks()
+        {
+            lock (m_timerLock)
+            {
+                if (m_healthTimer != null)
+                    return;
+
+                int periodMs = Settings.GetHealthCheckSeconds() * 1000;
+                m_healthTimer = new Timer(BackgroundHealthCheck, null, 0, periodMs);
+            }
+        }
+
+        private void StopBackgroundTasks()
+        {
+            lock (m_timerLock)
+            {
+                if (m_healthTimer != null)
+                {
+                    m_healthTimer.Dispose();
+                    m_healthTimer = null;
+                }
+            }
+        }
+
+        private void BackgroundHealthCheck(object state)
+        {
+            if (!Settings.IsLocalCacheEnabled() || !m_localCacheRuntimeAvailable)
+                return;
+
+            try
+            {
+                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                {
+                    m_mysqlAvailable = true;
+
+                    DateTime? lastSyncUtc = LocalUserCache.GetLastSyncUtc();
+                    if (!lastSyncUtc.HasValue ||
+                        DateTime.UtcNow - lastSyncUtc.Value >= TimeSpan.FromMinutes(Settings.GetSyncIntervalMinutes()))
+                    {
+                        List<UserEntry> users = dataSource.GetAllUserEntriesForCache();
+                        LocalUserCache.UpsertUsers(users);
+                        LocalUserCache.SetLastSyncUtc(DateTime.UtcNow);
+                        m_logger.InfoFormat("Local SQLite cache synchronized. Users cached: {0}", users.Count);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (m_mysqlAvailable)
+                {
+                    m_logger.WarnFormat("MySQL health check failed, switching to offline mode: {0}", ex.Message);
+                }
+
+                m_mysqlAvailable = false;
+            }
+        }
+
+        private void TryCacheUserEntry(UserEntry entry)
+        {
+            if (!m_localCacheRuntimeAvailable || entry == null)
+                return;
+
+            try
+            {
+                LocalUserCache.UpsertUser(entry);
+            }
+            catch (Exception ex)
+            {
+                m_localCacheRuntimeAvailable = false;
+                m_logger.ErrorFormat("Disabling local SQLite cache after runtime failure: {0}", ex);
+                StopBackgroundTasks();
             }
         }
 

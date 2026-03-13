@@ -28,6 +28,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
+using System.Reflection;
 
 using pGina.Shared.Settings;
 
@@ -68,31 +70,162 @@ namespace pGina.Plugin.MySqlLogger
             m_settings.SetDefault("EvtRemoteDisconnect", false);
 
             m_settings.SetDefault("UseModifiedName", false);
+            m_settings.SetDefault("OfflineQueueEnabled", true);
+            m_settings.SetDefault("HealthCheckSeconds", 30);
+            m_settings.SetDefault("FlushBatchSize", 100);
+            m_settings.SetDefault("OfflineQueuePath", string.Empty);
+        }
+
+        private static object UnwrapSettingValue(object value)
+        {
+            if (value == null)
+                return null;
+
+            PropertyInfo rawValueProperty = value.GetType().GetProperty("RawValue");
+            return rawValueProperty != null
+                ? rawValueProperty.GetValue(value, null)
+                : value;
+        }
+
+        private static string GetStringSetting(string name, string defaultValue = "")
+        {
+            object value = UnwrapSettingValue(m_settings.GetSetting(name, defaultValue));
+            return value == null ? defaultValue : Convert.ToString(value);
+        }
+
+        private static int GetIntSetting(string name, int defaultValue = 0)
+        {
+            object value = UnwrapSettingValue(m_settings.GetSetting(name, defaultValue));
+            if (value == null)
+                return defaultValue;
+
+            if (value is int intValue)
+                return intValue;
+
+            if (value is long longValue)
+                return Convert.ToInt32(longValue);
+
+            if (value is string stringValue && int.TryParse(stringValue, out int parsed))
+                return parsed;
+
+            return Convert.ToInt32(value);
+        }
+
+        private static bool GetBoolSetting(string name, bool defaultValue = false)
+        {
+            object value = UnwrapSettingValue(m_settings.GetSetting(name, defaultValue));
+            if (value == null)
+                return defaultValue;
+
+            if (value is bool boolValue)
+                return boolValue;
+
+            if (value is int intValue)
+                return intValue != 0;
+
+            if (value is string stringValue)
+            {
+                if (bool.TryParse(stringValue, out bool parsedBool))
+                    return parsedBool;
+
+                if (int.TryParse(stringValue, out int parsedInt))
+                    return parsedInt != 0;
+            }
+
+            return Convert.ToBoolean(value);
         }
 
         public static uint GetPort()
         {
-            return Convert.ToUInt32(m_settings.Port);
+            return Convert.ToUInt32(GetIntSetting("Port", 3306));
         }
 
         public static bool GetEventMode()
         {
-            return Convert.ToBoolean(m_settings.EventMode);
+            return GetBoolSetting("EventMode", true);
         }
 
         public static bool GetSessionMode()
         {
-            return Convert.ToBoolean(m_settings.SessionMode);
+            return GetBoolSetting("SessionMode");
         }
 
         public static bool GetUseModifiedName()
         {
-            return Convert.ToBoolean(m_settings.UseModifiedName);
+            return GetBoolSetting("UseModifiedName");
         }
 
         public static bool GetEvtLogon()
         {
-            return Convert.ToBoolean(m_settings.EvtLogon);
+            return GetBoolSetting("EvtLogon", true);
+        }
+
+        public static bool GetEvtLogoff()
+        {
+            return GetBoolSetting("EvtLogoff", true);
+        }
+
+        public static bool GetEvtLock()
+        {
+            return GetBoolSetting("EvtLock");
+        }
+
+        public static bool GetEvtUnlock()
+        {
+            return GetBoolSetting("EvtUnlock");
+        }
+
+        public static bool GetEvtConsoleConnect()
+        {
+            return GetBoolSetting("EvtConsoleConnect");
+        }
+
+        public static bool GetEvtConsoleDisconnect()
+        {
+            return GetBoolSetting("EvtConsoleDisconnect");
+        }
+
+        public static bool GetEvtRemoteControl()
+        {
+            return GetBoolSetting("EvtRemoteControl");
+        }
+
+        public static bool GetEvtRemoteConnect()
+        {
+            return GetBoolSetting("EvtRemoteConnect");
+        }
+
+        public static bool GetEvtRemoteDisconnect()
+        {
+            return GetBoolSetting("EvtRemoteDisconnect");
+        }
+
+        public static bool IsOfflineQueueEnabled()
+        {
+            return GetBoolSetting("OfflineQueueEnabled", true);
+        }
+
+        public static int GetHealthCheckSeconds()
+        {
+            return Math.Max(5, GetIntSetting("HealthCheckSeconds", 30));
+        }
+
+        public static int GetFlushBatchSize()
+        {
+            return Math.Max(1, GetIntSetting("FlushBatchSize", 100));
+        }
+
+        public static string GetOfflineQueuePath()
+        {
+            string configuredPath = GetStringSetting("OfflineQueuePath");
+            if (!string.IsNullOrWhiteSpace(configuredPath))
+                return configuredPath;
+
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "pGina",
+                "MySQLLogger",
+                "mysqllogger-queue.sqlite");
         }
 
     }

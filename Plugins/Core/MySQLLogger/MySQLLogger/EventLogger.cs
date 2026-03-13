@@ -195,42 +195,42 @@ namespace pGina.Plugin.MySqlLogger
 
         private string LogoffEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.Store.EvtLogoff ? string.Format("[{0}] Logoff user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
+            return Settings.GetEvtLogoff() ? string.Format("[{0}] Logoff user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
         }
 
         private string ConsoleConnectEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.Store.EvtConsoleConnect ? string.Format("[{0}] Console connect", sessionId) : "";
+            return Settings.GetEvtConsoleConnect() ? string.Format("[{0}] Console connect", sessionId) : "";
         }
 
         private string ConsoleDisconnectEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.Store.EvtConsoleDisconnect ? string.Format("[{0}] Console disconnect", sessionId) : "";
+            return Settings.GetEvtConsoleDisconnect() ? string.Format("[{0}] Console disconnect", sessionId) : "";
         }
 
         private string RemoteDisconnectEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.Store.EvtRemoteDisconnect ? string.Format("[{0}] Remote disconnect user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
+            return Settings.GetEvtRemoteDisconnect() ? string.Format("[{0}] Remote disconnect user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
         }
 
         private string RemoteConnectEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.Store.EvtRemoteConnect ? string.Format("[{0}] Remote connect user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
+            return Settings.GetEvtRemoteConnect() ? string.Format("[{0}] Remote connect user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
         }
 
         private string RemoteControlEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.Store.EvtRemoteControl ? string.Format("[{0}] Remote control user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
+            return Settings.GetEvtRemoteControl() ? string.Format("[{0}] Remote control user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
         }
 
         private string SessionUnlockEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.Store.EvtUnlock ? string.Format("[{0}] Session unlock user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
+            return Settings.GetEvtUnlock() ? string.Format("[{0}] Session unlock user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
         }
 
         private string SessionLockEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.Store.EvtLock ? string.Format("[{0}] Session lock user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
+            return Settings.GetEvtLock() ? string.Format("[{0}] Session lock user: {1}", sessionId, getUsername(properties) ?? UNKNOWN_USERNAME) : "";
         }
     }
 }

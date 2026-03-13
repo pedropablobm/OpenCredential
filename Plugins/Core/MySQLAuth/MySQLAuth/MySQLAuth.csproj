@@ -143,6 +143,7 @@
       <DependentUpon>Configuration.cs</DependentUpon>
     </Compile>
     <Compile Include="GroupRules.cs" />
+    <Compile Include="LocalUserCache.cs" />
     <Compile Include="MySqlUserDataSource.cs" />
     <Compile Include="PluginImpl.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

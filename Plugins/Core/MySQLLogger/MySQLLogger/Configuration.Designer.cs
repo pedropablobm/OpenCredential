@@ -63,6 +63,13 @@
             this.sessionModeCB = new System.Windows.Forms.CheckBox();
             this.label3 = new System.Windows.Forms.Label();
             this.sessionTableTB = new System.Windows.Forms.TextBox();
+            this.offlineQueueEnabledCB = new System.Windows.Forms.CheckBox();
+            this.healthCheckTB = new System.Windows.Forms.TextBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.flushBatchTB = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.offlineQueuePathTB = new System.Windows.Forms.TextBox();
+            this.label6 = new System.Windows.Forms.Label();
             this.eventsBox.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.optionsBox.SuspendLayout();
@@ -87,7 +94,7 @@
             // 
             // okBtn
             // 
-            this.okBtn.Location = new System.Drawing.Point(430, 394);
+            this.okBtn.Location = new System.Drawing.Point(430, 468);
             this.okBtn.Name = "okBtn";
             this.okBtn.Size = new System.Drawing.Size(70, 28);
             this.okBtn.TabIndex = 7;
@@ -97,7 +104,7 @@
             // 
             // cancelBtn
             // 
-            this.cancelBtn.Location = new System.Drawing.Point(354, 394);
+            this.cancelBtn.Location = new System.Drawing.Point(354, 468);
             this.cancelBtn.Name = "cancelBtn";
             this.cancelBtn.Size = new System.Drawing.Size(70, 28);
             this.cancelBtn.TabIndex = 6;
@@ -172,7 +179,7 @@
             // 
             // testButton
             // 
-            this.testButton.Location = new System.Drawing.Point(6, 396);
+            this.testButton.Location = new System.Drawing.Point(6, 470);
             this.testButton.Name = "testButton";
             this.testButton.Size = new System.Drawing.Size(67, 27);
             this.testButton.TabIndex = 4;
@@ -182,7 +189,7 @@
             // 
             // createTableBtn
             // 
-            this.createTableBtn.Location = new System.Drawing.Point(79, 396);
+            this.createTableBtn.Location = new System.Drawing.Point(79, 470);
             this.createTableBtn.Name = "createTableBtn";
             this.createTableBtn.Size = new System.Drawing.Size(91, 26);
             this.createTableBtn.TabIndex = 5;
@@ -351,10 +358,17 @@
             // 
             // optionsBox
             // 
+            this.optionsBox.Controls.Add(this.offlineQueuePathTB);
+            this.optionsBox.Controls.Add(this.label6);
+            this.optionsBox.Controls.Add(this.flushBatchTB);
+            this.optionsBox.Controls.Add(this.label5);
+            this.optionsBox.Controls.Add(this.healthCheckTB);
+            this.optionsBox.Controls.Add(this.label4);
+            this.optionsBox.Controls.Add(this.offlineQueueEnabledCB);
             this.optionsBox.Controls.Add(this.useModNameCB);
             this.optionsBox.Location = new System.Drawing.Point(6, 347);
             this.optionsBox.Name = "optionsBox";
-            this.optionsBox.Size = new System.Drawing.Size(494, 41);
+            this.optionsBox.Size = new System.Drawing.Size(494, 115);
             this.optionsBox.TabIndex = 3;
             this.optionsBox.TabStop = false;
             this.optionsBox.Text = "Options";
@@ -368,6 +382,64 @@
             this.useModNameCB.TabIndex = 0;
             this.useModNameCB.Text = "Use Modified Username";
             this.useModNameCB.UseVisualStyleBackColor = true;
+            // 
+            // offlineQueueEnabledCB
+            // 
+            this.offlineQueueEnabledCB.AutoSize = true;
+            this.offlineQueueEnabledCB.Location = new System.Drawing.Point(170, 18);
+            this.offlineQueueEnabledCB.Name = "offlineQueueEnabledCB";
+            this.offlineQueueEnabledCB.Size = new System.Drawing.Size(167, 17);
+            this.offlineQueueEnabledCB.TabIndex = 1;
+            this.offlineQueueEnabledCB.Text = "Enable offline SQLite queue";
+            this.offlineQueueEnabledCB.UseVisualStyleBackColor = true;
+            // 
+            // healthCheckTB
+            // 
+            this.healthCheckTB.Location = new System.Drawing.Point(117, 45);
+            this.healthCheckTB.Name = "healthCheckTB";
+            this.healthCheckTB.Size = new System.Drawing.Size(45, 20);
+            this.healthCheckTB.TabIndex = 3;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(6, 48);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(105, 13);
+            this.label4.TabIndex = 2;
+            this.label4.Text = "Flush every (seconds):";
+            // 
+            // flushBatchTB
+            // 
+            this.flushBatchTB.Location = new System.Drawing.Point(277, 45);
+            this.flushBatchTB.Name = "flushBatchTB";
+            this.flushBatchTB.Size = new System.Drawing.Size(45, 20);
+            this.flushBatchTB.TabIndex = 5;
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(183, 48);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(88, 13);
+            this.label5.TabIndex = 4;
+            this.label5.Text = "Flush batch size:";
+            // 
+            // offlineQueuePathTB
+            // 
+            this.offlineQueuePathTB.Location = new System.Drawing.Point(73, 76);
+            this.offlineQueuePathTB.Name = "offlineQueuePathTB";
+            this.offlineQueuePathTB.Size = new System.Drawing.Size(415, 20);
+            this.offlineQueuePathTB.TabIndex = 7;
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(6, 79);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(61, 13);
+            this.label6.TabIndex = 6;
+            this.label6.Text = "Queue file:";
             // 
             // groupBox3
             // 
@@ -422,7 +494,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(512, 437);
+            this.ClientSize = new System.Drawing.Size(512, 509);
             this.ControlBox = false;
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.optionsBox);
@@ -486,5 +558,12 @@
         private System.Windows.Forms.CheckBox eventModeCB;
         private System.Windows.Forms.TextBox sessionTableTB;
         private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.CheckBox offlineQueueEnabledCB;
+        private System.Windows.Forms.TextBox healthCheckTB;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.TextBox flushBatchTB;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.TextBox offlineQueuePathTB;
+        private System.Windows.Forms.Label label6;
     }
 }

@@ -168,8 +168,6 @@ namespace pGina.Plugin.MySQLAuth
                             ? rdr[3].ToString().Trim()
                             : string.Empty;
 
-                        PasswordHashAlgorithm hashAlg;
-
                         m_logger.DebugFormat("User {0} found, hash method from DB: {1}", uname, hashMethodStr);
 
                         if (enforceUserStatus &&
@@ -183,72 +181,65 @@ namespace pGina.Plugin.MySQLAuth
                             return null;
                         }
 
-                        switch (hashMethodStr)
-                        {
-                            case "NONE":
-                                hashAlg = PasswordHashAlgorithm.NONE;
-                                break;
-                            case "MD5":
-                                hashAlg = PasswordHashAlgorithm.MD5;
-                                break;
-                            case "SMD5":
-                                hashAlg = PasswordHashAlgorithm.SMD5;
-                                break;
-                            case "SHA1":
-                                hashAlg = PasswordHashAlgorithm.SHA1;
-                                break;
-                            case "SSHA1":
-                                hashAlg = PasswordHashAlgorithm.SSHA1;
-                                break;
-                            case "SHA256":
-                                hashAlg = PasswordHashAlgorithm.SHA256;
-                                break;
-                            case "SSHA256":
-                                hashAlg = PasswordHashAlgorithm.SSHA256;
-                                break;
-                            case "SHA384":
-                                hashAlg = PasswordHashAlgorithm.SHA384;
-                                break;
-                            case "SSHA384":
-                                hashAlg = PasswordHashAlgorithm.SSHA384;
-                                break;
-                            case "SHA512":
-                                hashAlg = PasswordHashAlgorithm.SHA512;
-                                break;
-                            case "SSHA512":
-                                hashAlg = PasswordHashAlgorithm.SSHA512;
-                                break;
-                            case "BCRYPT":
-                            case "BCRYPT_SHA256":
-                                hashAlg = PasswordHashAlgorithm.BCRYPT;
-                                m_logger.DebugFormat("User {0} using BCrypt hash", uname);
-                                break;
-                            default:
-                                // Auto-detect BCrypt by hash format
-                                if (hash.Length == 60 &&
-                                    (hash.StartsWith("$2a$") || hash.StartsWith("$2b$") || hash.StartsWith("$2y$")))
-                                {
-                                    m_logger.WarnFormat("Hash method column says '{0}' but hash appears to be BCrypt for user {1}",
-                                        hashMethodStr, uname);
-                                    hashAlg = PasswordHashAlgorithm.BCRYPT;
-                                }
-                                else
-                                {
-                                    m_logger.ErrorFormat("Unrecognized hash method: {0} for user {1}",
-                                        hashMethodStr, uname);
-                                    return null;
-                                }
-                                break;
-                        }
+                        PasswordHashAlgorithm hashAlg;
+                        if (!TryParseHashAlgorithm(hashMethodStr, hash, uname, out hashAlg))
+                            return null;
 
                         m_logger.DebugFormat("Retrieved user entry for {0}, hash algorithm: {1}", uname, hashAlg);
-                        return new UserEntry(uname, hashAlg, hash);
+                        return new UserEntry(uname, hashAlg, hash, statusValue);
                     }
 
                     m_logger.DebugFormat("User {0} not found in database", userName);
                     return null;
                 }
             }
+        }
+
+        public List<UserEntry> GetAllUserEntriesForCache()
+        {
+            if (m_conn == null || m_conn.State != ConnectionState.Open)
+            {
+                m_logger.Error("Database connection is not open");
+                return new List<UserEntry>();
+            }
+
+            bool includeStatus = Settings.IsUserStatusValidationEnabled();
+            string query = includeStatus
+                ? string.Format("SELECT `{1}`, `{2}`, `{3}`, `{4}` FROM `{0}`",
+                    Settings.Store.Table,
+                    Settings.Store.UsernameColumn,
+                    Settings.Store.HashMethodColumn,
+                    Settings.Store.PasswordColumn,
+                    Settings.GetUserStatusColumn())
+                : string.Format("SELECT `{1}`, `{2}`, `{3}` FROM `{0}`",
+                    Settings.Store.Table,
+                    Settings.Store.UsernameColumn,
+                    Settings.Store.HashMethodColumn,
+                    Settings.Store.PasswordColumn);
+
+            var users = new List<UserEntry>();
+
+            using (var cmd = new MySqlCommand(query, m_conn))
+            using (var rdr = cmd.ExecuteReader())
+            {
+                while (rdr.Read())
+                {
+                    string uname = Convert.ToString(rdr[0]);
+                    string hashMethodStr = rdr[1] != DBNull.Value ? Convert.ToString(rdr[1]).ToUpper().Trim() : "NONE";
+                    string hash = rdr[2] != DBNull.Value ? Convert.ToString(rdr[2]) : string.Empty;
+                    string statusValue = includeStatus && rdr.FieldCount > 3 && rdr[3] != DBNull.Value
+                        ? Convert.ToString(rdr[3]).Trim()
+                        : null;
+                    PasswordHashAlgorithm hashAlg;
+
+                    if (!TryParseHashAlgorithm(hashMethodStr, hash, uname, out hashAlg))
+                        continue;
+
+                    users.Add(new UserEntry(uname, hashAlg, hash, statusValue));
+                }
+            }
+
+            return users;
         }
 
         /// <summary>
@@ -320,6 +311,66 @@ namespace pGina.Plugin.MySQLAuth
 
             m_logger.DebugFormat("User {0} is NOT member of group {1}", userName, groupName);
             return false;
+        }
+
+        private bool TryParseHashAlgorithm(string hashMethodStr, string hash, string uname, out PasswordHashAlgorithm hashAlg)
+        {
+            switch (hashMethodStr)
+            {
+                case "NONE":
+                    hashAlg = PasswordHashAlgorithm.NONE;
+                    return true;
+                case "MD5":
+                    hashAlg = PasswordHashAlgorithm.MD5;
+                    return true;
+                case "SMD5":
+                    hashAlg = PasswordHashAlgorithm.SMD5;
+                    return true;
+                case "SHA1":
+                    hashAlg = PasswordHashAlgorithm.SHA1;
+                    return true;
+                case "SSHA1":
+                    hashAlg = PasswordHashAlgorithm.SSHA1;
+                    return true;
+                case "SHA256":
+                    hashAlg = PasswordHashAlgorithm.SHA256;
+                    return true;
+                case "SSHA256":
+                    hashAlg = PasswordHashAlgorithm.SSHA256;
+                    return true;
+                case "SHA384":
+                    hashAlg = PasswordHashAlgorithm.SHA384;
+                    return true;
+                case "SSHA384":
+                    hashAlg = PasswordHashAlgorithm.SSHA384;
+                    return true;
+                case "SHA512":
+                    hashAlg = PasswordHashAlgorithm.SHA512;
+                    return true;
+                case "SSHA512":
+                    hashAlg = PasswordHashAlgorithm.SSHA512;
+                    return true;
+                case "BCRYPT":
+                case "BCRYPT_SHA256":
+                    hashAlg = PasswordHashAlgorithm.BCRYPT;
+                    m_logger.DebugFormat("User {0} using BCrypt hash", uname);
+                    return true;
+                default:
+                    if (hash.Length == 60 &&
+                        (hash.StartsWith("$2a$") || hash.StartsWith("$2b$") || hash.StartsWith("$2y$")))
+                    {
+                        m_logger.WarnFormat(
+                            "Hash method column says '{0}' but hash appears to be BCrypt for user {1}",
+                            hashMethodStr,
+                            uname);
+                        hashAlg = PasswordHashAlgorithm.BCRYPT;
+                        return true;
+                    }
+
+                    m_logger.ErrorFormat("Unrecognized hash method: {0} for user {1}", hashMethodStr, uname);
+                    hashAlg = PasswordHashAlgorithm.NONE;
+                    return false;
+            }
         }
 
         /// <summary>

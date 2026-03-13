@@ -64,12 +64,14 @@ namespace pGina.Plugin.MySQLAuth
         public string Name { get; private set; }
         public PasswordHashAlgorithm HashAlg { get; private set; }
         public string Hash { get; private set; }
+        public string StatusValue { get; private set; }
 
-        public UserEntry(string name, PasswordHashAlgorithm hashAlg, string hash)
+        public UserEntry(string name, PasswordHashAlgorithm hashAlg, string hash, string statusValue = null)
         {
             Name = name;
             HashAlg = hashAlg;
             Hash = hash;
+            StatusValue = statusValue;
         }
 
         /// <summary>

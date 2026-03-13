@@ -110,6 +110,16 @@
             this.gtwRuleConditionCB = new System.Windows.Forms.ComboBox();
             this.tabPage6 = new System.Windows.Forms.TabPage();
             this.m_preventLogonWhenServerUnreachableCb = new System.Windows.Forms.CheckBox();
+            this.groupBoxOffline = new System.Windows.Forms.GroupBox();
+            this.cachePathTB = new System.Windows.Forms.TextBox();
+            this.label29 = new System.Windows.Forms.Label();
+            this.healthCheckTB = new System.Windows.Forms.TextBox();
+            this.label28 = new System.Windows.Forms.Label();
+            this.syncIntervalTB = new System.Windows.Forms.TextBox();
+            this.label27 = new System.Windows.Forms.Label();
+            this.offlineBypassCB = new System.Windows.Forms.CheckBox();
+            this.offlineFallbackEnabledCB = new System.Windows.Forms.CheckBox();
+            this.localCacheEnabledCB = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.tabControlDBSchema.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -123,6 +133,7 @@
             this.tabAuthz.SuspendLayout();
             this.tabPage5.SuspendLayout();
             this.tabPage6.SuspendLayout();
+            this.groupBoxOffline.SuspendLayout();
             this.SuspendLayout();
             // 
             // cancelButton
@@ -922,6 +933,7 @@
             // 
             // tabPage6
             // 
+            this.tabPage6.Controls.Add(this.groupBoxOffline);
             this.tabPage6.Controls.Add(this.groupBox1);
             this.tabPage6.Location = new System.Drawing.Point(4, 22);
             this.tabPage6.Name = "tabPage6";
@@ -940,6 +952,102 @@
             this.m_preventLogonWhenServerUnreachableCb.TabIndex = 8;
             this.m_preventLogonWhenServerUnreachableCb.Text = "Prevent logon on server error.";
             this.m_preventLogonWhenServerUnreachableCb.UseVisualStyleBackColor = true;
+            // 
+            // groupBoxOffline
+            // 
+            this.groupBoxOffline.Controls.Add(this.cachePathTB);
+            this.groupBoxOffline.Controls.Add(this.label29);
+            this.groupBoxOffline.Controls.Add(this.healthCheckTB);
+            this.groupBoxOffline.Controls.Add(this.label28);
+            this.groupBoxOffline.Controls.Add(this.syncIntervalTB);
+            this.groupBoxOffline.Controls.Add(this.label27);
+            this.groupBoxOffline.Controls.Add(this.offlineBypassCB);
+            this.groupBoxOffline.Controls.Add(this.offlineFallbackEnabledCB);
+            this.groupBoxOffline.Controls.Add(this.localCacheEnabledCB);
+            this.groupBoxOffline.Location = new System.Drawing.Point(6, 164);
+            this.groupBoxOffline.Name = "groupBoxOffline";
+            this.groupBoxOffline.Size = new System.Drawing.Size(530, 110);
+            this.groupBoxOffline.TabIndex = 13;
+            this.groupBoxOffline.TabStop = false;
+            this.groupBoxOffline.Text = "Offline Resilience";
+            // 
+            // cachePathTB
+            // 
+            this.cachePathTB.Location = new System.Drawing.Point(89, 78);
+            this.cachePathTB.Name = "cachePathTB";
+            this.cachePathTB.Size = new System.Drawing.Size(428, 20);
+            this.cachePathTB.TabIndex = 8;
+            // 
+            // label29
+            // 
+            this.label29.AutoSize = true;
+            this.label29.Location = new System.Drawing.Point(26, 81);
+            this.label29.Name = "label29";
+            this.label29.Size = new System.Drawing.Size(57, 13);
+            this.label29.TabIndex = 7;
+            this.label29.Text = "Cache file:";
+            // 
+            // healthCheckTB
+            // 
+            this.healthCheckTB.Location = new System.Drawing.Point(412, 51);
+            this.healthCheckTB.Name = "healthCheckTB";
+            this.healthCheckTB.Size = new System.Drawing.Size(48, 20);
+            this.healthCheckTB.TabIndex = 6;
+            // 
+            // label28
+            // 
+            this.label28.AutoSize = true;
+            this.label28.Location = new System.Drawing.Point(288, 54);
+            this.label28.Name = "label28";
+            this.label28.Size = new System.Drawing.Size(118, 13);
+            this.label28.TabIndex = 5;
+            this.label28.Text = "Health check (seconds):";
+            // 
+            // syncIntervalTB
+            // 
+            this.syncIntervalTB.Location = new System.Drawing.Point(185, 51);
+            this.syncIntervalTB.Name = "syncIntervalTB";
+            this.syncIntervalTB.Size = new System.Drawing.Size(48, 20);
+            this.syncIntervalTB.TabIndex = 4;
+            // 
+            // label27
+            // 
+            this.label27.AutoSize = true;
+            this.label27.Location = new System.Drawing.Point(26, 54);
+            this.label27.Name = "label27";
+            this.label27.Size = new System.Drawing.Size(153, 13);
+            this.label27.TabIndex = 3;
+            this.label27.Text = "Sync cached users (minutes):";
+            // 
+            // offlineBypassCB
+            // 
+            this.offlineBypassCB.AutoSize = true;
+            this.offlineBypassCB.Location = new System.Drawing.Point(348, 24);
+            this.offlineBypassCB.Name = "offlineBypassCB";
+            this.offlineBypassCB.Size = new System.Drawing.Size(168, 17);
+            this.offlineBypassCB.TabIndex = 2;
+            this.offlineBypassCB.Text = "Fail open for authz/gateway";
+            this.offlineBypassCB.UseVisualStyleBackColor = true;
+            // 
+            // offlineFallbackEnabledCB
+            // 
+            this.offlineFallbackEnabledCB.AutoSize = true;
+            this.offlineFallbackEnabledCB.Location = new System.Drawing.Point(184, 24);
+            this.offlineFallbackEnabledCB.Name = "offlineFallbackEnabledCB";
+            this.offlineFallbackEnabledCB.Size = new System.Drawing.Size(158, 17);
+            this.offlineFallbackEnabledCB.TabIndex = 1;
+            this.offlineFallbackEnabledCB.Text = "Allow cached offline logons";
+            this.offlineFallbackEnabledCB.UseVisualStyleBackColor = true;
+            // 
+            // localCacheEnabledCB
+            // 
+            this.localCacheEnabledCB.AutoSize = true;
+            this.localCacheEnabledCB.Location = new System.Drawing.Point(28, 24);
+            this.localCacheEnabledCB.Name = "localCacheEnabledCB";
+            this.localCacheEnabledCB.Size = new System.Drawing.Size(150, 17);
+            this.localCacheEnabledCB.TabIndex = 0;
+            this.localCacheEnabledCB.Text = "Enable local SQLite cache";
+            this.localCacheEnabledCB.UseVisualStyleBackColor = true;
             // 
             // Configuration
             // 
@@ -975,6 +1083,8 @@
             this.tabPage5.ResumeLayout(false);
             this.tabPage5.PerformLayout();
             this.tabPage6.ResumeLayout(false);
+            this.groupBoxOffline.ResumeLayout(false);
+            this.groupBoxOffline.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -1063,5 +1173,15 @@
         private System.Windows.Forms.Label label20;
         private System.Windows.Forms.TabPage tabPage6;
         private System.Windows.Forms.CheckBox m_preventLogonWhenServerUnreachableCb;
+        private System.Windows.Forms.GroupBox groupBoxOffline;
+        private System.Windows.Forms.TextBox cachePathTB;
+        private System.Windows.Forms.Label label29;
+        private System.Windows.Forms.TextBox healthCheckTB;
+        private System.Windows.Forms.Label label28;
+        private System.Windows.Forms.TextBox syncIntervalTB;
+        private System.Windows.Forms.Label label27;
+        private System.Windows.Forms.CheckBox offlineBypassCB;
+        private System.Windows.Forms.CheckBox offlineFallbackEnabledCB;
+        private System.Windows.Forms.CheckBox localCacheEnabledCB;
     }
 }
