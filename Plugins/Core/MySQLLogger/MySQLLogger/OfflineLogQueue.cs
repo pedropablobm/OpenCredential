@@ -32,6 +32,8 @@ namespace pGina.Plugin.MySqlLogger
         {
             lock (m_syncRoot)
             {
+                SQLiteNativeBootstrap.EnsureInitialized();
+
                 string dbPath = Settings.GetOfflineQueuePath();
                 string directory = Path.GetDirectoryName(dbPath);
 
@@ -251,6 +253,7 @@ namespace pGina.Plugin.MySqlLogger
 
         private static SQLiteConnection OpenConnection()
         {
+            SQLiteNativeBootstrap.EnsureInitialized();
             var conn = new SQLiteConnection(string.Format("Data Source={0};Version=3;", Settings.GetOfflineQueuePath()));
             conn.Open();
             return conn;

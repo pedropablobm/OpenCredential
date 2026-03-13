@@ -151,6 +151,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="SQLiteNativeBootstrap.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="TextBoxInfoDialog.cs">
       <SubType>Form</SubType>
@@ -175,6 +176,14 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+    <Content Include="..\..\SQLiteNative\win-x64\native\e_sqlite3.dll">
+      <Link>runtimes\win-x64\native\e_sqlite3.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\SQLiteNative\win-x86\native\e_sqlite3.dll">
+      <Link>runtimes\win-x86\native\e_sqlite3.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="Resources\delete.png" />
     <None Include="Resources\UpArrowSolid.png" />
     <None Include="Resources\DownArrowSolid.png" />

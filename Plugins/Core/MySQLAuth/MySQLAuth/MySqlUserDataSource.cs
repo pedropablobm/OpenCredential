@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using System.Globalization;
 
 using log4net;
 
@@ -43,6 +44,18 @@ namespace pGina.Plugin.MySQLAuth
     /// </summary>
     class MySqlUserDataSource : IDisposable
     {
+        internal sealed class FailedAttemptResult
+        {
+            public int FailedAttempts { get; set; }
+            public DateTime? BlockedUntilUtc { get; set; }
+            public bool IsLockedByDatabase { get; set; }
+
+            public bool IsLocked
+            {
+                get { return IsLockedByDatabase || (BlockedUntilUtc.HasValue && BlockedUntilUtc.Value > DateTime.UtcNow); }
+            }
+        }
+
         private MySqlConnection m_conn = null;
         private ILog m_logger;
         private bool m_disposed = false;
@@ -132,13 +145,37 @@ namespace pGina.Plugin.MySQLAuth
             }
 
             bool enforceUserStatus = Settings.IsUserStatusValidationEnabled();
-            string query = enforceUserStatus
+            bool includeLockout = Settings.IsLoginLockoutEnabled();
+            string query = enforceUserStatus && includeLockout
+                ? string.Format(
+                    "SELECT `{1}`, `{2}`, `{3}`, `{4}`, `{5}`, `{6}`, " +
+                    "CASE WHEN `{6}` IS NOT NULL AND `{6}` > NOW() THEN 1 ELSE 0 END " +
+                    "FROM `{0}` WHERE `{1}` = @user",
+                    Settings.Store.Table,
+                    Settings.Store.UsernameColumn,
+                    Settings.Store.HashMethodColumn,
+                    Settings.Store.PasswordColumn,
+                    Settings.GetUserStatusColumn(),
+                    Settings.GetFailedAttemptsColumn(),
+                    Settings.GetBlockedUntilColumn())
+                : enforceUserStatus
                 ? string.Format("SELECT `{1}`, `{2}`, `{3}`, `{4}` FROM `{0}` WHERE `{1}` = @user",
                     Settings.Store.Table,
                     Settings.Store.UsernameColumn,
                     Settings.Store.HashMethodColumn,
                     Settings.Store.PasswordColumn,
                     Settings.GetUserStatusColumn())
+                : includeLockout
+                ? string.Format(
+                    "SELECT `{1}`, `{2}`, `{3}`, `{4}`, `{5}`, " +
+                    "CASE WHEN `{5}` IS NOT NULL AND `{5}` > NOW() THEN 1 ELSE 0 END " +
+                    "FROM `{0}` WHERE `{1}` = @user",
+                    Settings.Store.Table,
+                    Settings.Store.UsernameColumn,
+                    Settings.Store.HashMethodColumn,
+                    Settings.Store.PasswordColumn,
+                    Settings.GetFailedAttemptsColumn(),
+                    Settings.GetBlockedUntilColumn())
                 : string.Format("SELECT `{1}`, `{2}`, `{3}` FROM `{0}` WHERE `{1}` = @user",
                     Settings.Store.Table,
                     Settings.Store.UsernameColumn,
@@ -164,9 +201,19 @@ namespace pGina.Plugin.MySQLAuth
                         string hash = rdr[2] != null && rdr[2] != DBNull.Value
                             ? rdr[2].ToString()
                             : "";
-                        string statusValue = enforceUserStatus && rdr.FieldCount > 3 && rdr[3] != DBNull.Value
-                            ? rdr[3].ToString().Trim()
+                        int nextFieldIndex = 3;
+                        string statusValue = enforceUserStatus && rdr.FieldCount > nextFieldIndex && rdr[nextFieldIndex] != DBNull.Value
+                            ? rdr[nextFieldIndex++].ToString().Trim()
                             : string.Empty;
+                        int failedAttempts = includeLockout && rdr.FieldCount > nextFieldIndex && rdr[nextFieldIndex] != DBNull.Value
+                            ? Convert.ToInt32(rdr[nextFieldIndex++])
+                            : 0;
+                        DateTime? blockedUntilUtc = includeLockout && rdr.FieldCount > nextFieldIndex
+                            ? ReadUtcDateTime(rdr[nextFieldIndex++])
+                            : null;
+                        bool isLockedByDatabase = includeLockout && rdr.FieldCount > nextFieldIndex && rdr[nextFieldIndex] != DBNull.Value
+                            ? Convert.ToInt32(rdr[nextFieldIndex]) == 1
+                            : false;
 
                         m_logger.DebugFormat("User {0} found, hash method from DB: {1}", uname, hashMethodStr);
 
@@ -186,7 +233,7 @@ namespace pGina.Plugin.MySQLAuth
                             return null;
 
                         m_logger.DebugFormat("Retrieved user entry for {0}, hash algorithm: {1}", uname, hashAlg);
-                        return new UserEntry(uname, hashAlg, hash, statusValue);
+                        return new UserEntry(uname, hashAlg, hash, statusValue, failedAttempts, blockedUntilUtc, isLockedByDatabase);
                     }
 
                     m_logger.DebugFormat("User {0} not found in database", userName);
@@ -204,13 +251,31 @@ namespace pGina.Plugin.MySQLAuth
             }
 
             bool includeStatus = Settings.IsUserStatusValidationEnabled();
-            string query = includeStatus
+            bool includeLockout = Settings.IsLoginLockoutEnabled();
+            string query = includeStatus && includeLockout
+                ? string.Format("SELECT `{1}`, `{2}`, `{3}`, `{4}`, `{5}`, `{6}` FROM `{0}`",
+                    Settings.Store.Table,
+                    Settings.Store.UsernameColumn,
+                    Settings.Store.HashMethodColumn,
+                    Settings.Store.PasswordColumn,
+                    Settings.GetUserStatusColumn(),
+                    Settings.GetFailedAttemptsColumn(),
+                    Settings.GetBlockedUntilColumn())
+                : includeStatus
                 ? string.Format("SELECT `{1}`, `{2}`, `{3}`, `{4}` FROM `{0}`",
                     Settings.Store.Table,
                     Settings.Store.UsernameColumn,
                     Settings.Store.HashMethodColumn,
                     Settings.Store.PasswordColumn,
                     Settings.GetUserStatusColumn())
+                : includeLockout
+                ? string.Format("SELECT `{1}`, `{2}`, `{3}`, `{4}`, `{5}` FROM `{0}`",
+                    Settings.Store.Table,
+                    Settings.Store.UsernameColumn,
+                    Settings.Store.HashMethodColumn,
+                    Settings.Store.PasswordColumn,
+                    Settings.GetFailedAttemptsColumn(),
+                    Settings.GetBlockedUntilColumn())
                 : string.Format("SELECT `{1}`, `{2}`, `{3}` FROM `{0}`",
                     Settings.Store.Table,
                     Settings.Store.UsernameColumn,
@@ -227,15 +292,22 @@ namespace pGina.Plugin.MySQLAuth
                     string uname = Convert.ToString(rdr[0]);
                     string hashMethodStr = rdr[1] != DBNull.Value ? Convert.ToString(rdr[1]).ToUpper().Trim() : "NONE";
                     string hash = rdr[2] != DBNull.Value ? Convert.ToString(rdr[2]) : string.Empty;
-                    string statusValue = includeStatus && rdr.FieldCount > 3 && rdr[3] != DBNull.Value
-                        ? Convert.ToString(rdr[3]).Trim()
+                    int nextFieldIndex = 3;
+                    string statusValue = includeStatus && rdr.FieldCount > nextFieldIndex && rdr[nextFieldIndex] != DBNull.Value
+                        ? Convert.ToString(rdr[nextFieldIndex++]).Trim()
+                        : null;
+                    int failedAttempts = includeLockout && rdr.FieldCount > nextFieldIndex && rdr[nextFieldIndex] != DBNull.Value
+                        ? Convert.ToInt32(rdr[nextFieldIndex++])
+                        : 0;
+                    DateTime? blockedUntilUtc = includeLockout && rdr.FieldCount > nextFieldIndex
+                        ? ReadUtcDateTime(rdr[nextFieldIndex++])
                         : null;
                     PasswordHashAlgorithm hashAlg;
 
                     if (!TryParseHashAlgorithm(hashMethodStr, hash, uname, out hashAlg))
                         continue;
 
-                    users.Add(new UserEntry(uname, hashAlg, hash, statusValue));
+                    users.Add(new UserEntry(uname, hashAlg, hash, statusValue, failedAttempts, blockedUntilUtc));
                 }
             }
 
@@ -413,6 +485,105 @@ namespace pGina.Plugin.MySQLAuth
                     m_logger.WarnFormat("No rows affected when updating hash for user {0}", userName);
                 }
             }
+        }
+
+        public void ResetFailedLoginState(string userName)
+        {
+            if (!Settings.IsLoginLockoutEnabled())
+                return;
+
+            string query = string.Format(
+                "UPDATE `{0}` SET `{2}` = 0, `{3}` = NULL, `{4}` = NOW() WHERE `{1}` = @user",
+                Settings.Store.Table,
+                Settings.Store.UsernameColumn,
+                Settings.GetFailedAttemptsColumn(),
+                Settings.GetBlockedUntilColumn(),
+                Settings.GetLastAttemptColumn());
+
+            using (var cmd = new MySqlCommand(query, m_conn))
+            {
+                cmd.Parameters.AddWithValue("@user", userName);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public FailedAttemptResult RegisterFailedLoginAttempt(string userName)
+        {
+            var result = new FailedAttemptResult();
+
+            if (!Settings.IsLoginLockoutEnabled())
+                return result;
+
+            string updateQuery = string.Format(
+                "UPDATE `{0}` " +
+                "SET `{2}` = COALESCE(`{2}`, 0) + 1, " +
+                "`{4}` = NOW(), " +
+                "`{3}` = CASE " +
+                "WHEN COALESCE(`{2}`, 0) + 1 >= @maxAttempts THEN DATE_ADD(NOW(), INTERVAL @lockoutMinutes MINUTE) " +
+                "ELSE NULL END " +
+                "WHERE `{1}` = @user",
+                Settings.Store.Table,
+                Settings.Store.UsernameColumn,
+                Settings.GetFailedAttemptsColumn(),
+                Settings.GetBlockedUntilColumn(),
+                Settings.GetLastAttemptColumn());
+
+            using (var cmd = new MySqlCommand(updateQuery, m_conn))
+            {
+                cmd.Parameters.AddWithValue("@user", userName);
+                cmd.Parameters.AddWithValue("@maxAttempts", Settings.GetMaxFailedAttempts());
+                cmd.Parameters.AddWithValue("@lockoutMinutes", Settings.GetLockoutMinutes());
+                cmd.ExecuteNonQuery();
+            }
+
+            string selectQuery = string.Format(
+                "SELECT `{1}`, `{2}`, CASE WHEN `{2}` IS NOT NULL AND `{2}` > NOW() THEN 1 ELSE 0 END " +
+                "FROM `{0}` WHERE `{3}` = @user",
+                Settings.Store.Table,
+                Settings.GetFailedAttemptsColumn(),
+                Settings.GetBlockedUntilColumn(),
+                Settings.Store.UsernameColumn);
+
+            using (var cmd = new MySqlCommand(selectQuery, m_conn))
+            {
+                cmd.Parameters.AddWithValue("@user", userName);
+                using (var rdr = cmd.ExecuteReader())
+                {
+                    if (rdr.Read())
+                    {
+                        result.FailedAttempts = rdr[0] == DBNull.Value ? 0 : Convert.ToInt32(rdr[0]);
+                        result.BlockedUntilUtc = ReadUtcDateTime(rdr[1]);
+                        result.IsLockedByDatabase = rdr[2] != DBNull.Value && Convert.ToInt32(rdr[2]) == 1;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private DateTime? ReadUtcDateTime(object value)
+        {
+            if (value == null || value == DBNull.Value)
+                return null;
+
+            if (value is DateTime dateTime)
+                return dateTime.Kind == DateTimeKind.Utc ? dateTime : dateTime.ToUniversalTime();
+
+            if (value is MySqlDateTime mySqlDateTime)
+            {
+                if (!mySqlDateTime.IsValidDateTime)
+                    return null;
+
+                DateTime parsedDateTime = mySqlDateTime.GetDateTime();
+                return parsedDateTime.Kind == DateTimeKind.Utc
+                    ? parsedDateTime
+                    : parsedDateTime.ToUniversalTime();
+            }
+
+            if (DateTime.TryParse(Convert.ToString(value), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTime parsed))
+                return parsed.ToUniversalTime();
+
+            return null;
         }
     }
 }
