@@ -42,5 +42,20 @@ namespace pGina.Plugin.MySQLAuth
                 s_initialized = true;
             }
         }
+
+        public static string GetNativeDirectory()
+        {
+            string assemblyDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            if (string.IsNullOrWhiteSpace(assemblyDirectory))
+                return string.Empty;
+
+            string runtimeFolder = Environment.Is64BitProcess ? "win-x64" : "win-x86";
+            return Path.Combine(assemblyDirectory, "runtimes", runtimeFolder, "native");
+        }
+
+        public static string GetNativeDllPath()
+        {
+            return Path.Combine(GetNativeDirectory(), "e_sqlite3.dll");
+        }
     }
 }

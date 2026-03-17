@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.SQLite;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using log4net;
 
 namespace pGina.Plugin.MySQLAuth
@@ -231,6 +232,40 @@ namespace pGina.Plugin.MySQLAuth
                     cmd.ExecuteNonQuery();
                 }
             }
+        }
+
+        public static string TestConfiguration()
+        {
+            var sb = new StringBuilder();
+            string dbPath = Settings.GetLocalCachePath();
+            string nativeDirectory = SQLiteNativeBootstrap.GetNativeDirectory();
+            string nativeDllPath = SQLiteNativeBootstrap.GetNativeDllPath();
+
+            sb.AppendLine("Offline cache");
+            sb.AppendLine("-------------------------------");
+            sb.AppendLine(string.Format("Process architecture: {0}", Environment.Is64BitProcess ? "x64" : "x86"));
+            sb.AppendLine(string.Format("Native SQLite dir: {0}", nativeDirectory));
+            sb.AppendLine(string.Format("Native SQLite dll: {0}", File.Exists(nativeDllPath) ? nativeDllPath : "MISSING"));
+            sb.AppendLine(string.Format("Cache file: {0}", dbPath));
+
+            try
+            {
+                Initialize();
+                using (var conn = OpenConnection())
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT 1";
+                    cmd.ExecuteScalar();
+                }
+
+                sb.AppendLine("SQLite offline cache: OK");
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine(string.Format("SQLite offline cache ERROR: {0}", ex.Message));
+            }
+
+            return sb.ToString();
         }
 
         private static SQLiteConnection OpenConnection()

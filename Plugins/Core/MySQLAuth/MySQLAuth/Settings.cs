@@ -84,6 +84,12 @@ namespace pGina.Plugin.MySQLAuth
             m_settings.SetDefault("EnforceUserStatus", true);
             m_settings.SetDefault("UserStatusColumn", "estado");
             m_settings.SetDefault("UserActiveValue", "1");
+            m_settings.SetDefault("EnableLoginLockout", true);
+            m_settings.SetDefault("FailedAttemptsColumn", "intentos_fallidos");
+            m_settings.SetDefault("BlockedUntilColumn", "bloqueado_hasta");
+            m_settings.SetDefault("LastAttemptColumn", "ultimo_intento");
+            m_settings.SetDefault("MaxFailedAttempts", 5);
+            m_settings.SetDefault("LockoutMinutes", 15);
 
             // =============================================
             // Group Table Configuration
@@ -308,6 +314,36 @@ namespace pGina.Plugin.MySQLAuth
         public static bool IsLocalCacheEnabled()
         {
             return GetBoolSetting("LocalCacheEnabled", true);
+        }
+
+        public static bool IsLoginLockoutEnabled()
+        {
+            return GetBoolSetting("EnableLoginLockout", true);
+        }
+
+        public static string GetFailedAttemptsColumn()
+        {
+            return GetStringSetting("FailedAttemptsColumn");
+        }
+
+        public static string GetBlockedUntilColumn()
+        {
+            return GetStringSetting("BlockedUntilColumn");
+        }
+
+        public static string GetLastAttemptColumn()
+        {
+            return GetStringSetting("LastAttemptColumn");
+        }
+
+        public static int GetMaxFailedAttempts()
+        {
+            return Math.Max(1, GetIntSetting("MaxFailedAttempts", 5));
+        }
+
+        public static int GetLockoutMinutes()
+        {
+            return Math.Max(1, GetIntSetting("LockoutMinutes", 15));
         }
 
         public static bool IsOfflineFallbackEnabled()

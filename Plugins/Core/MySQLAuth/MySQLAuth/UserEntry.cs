@@ -65,13 +65,31 @@ namespace pGina.Plugin.MySQLAuth
         public PasswordHashAlgorithm HashAlg { get; private set; }
         public string Hash { get; private set; }
         public string StatusValue { get; private set; }
+        public int FailedAttempts { get; private set; }
+        public DateTime? BlockedUntilUtc { get; private set; }
+        public bool IsLockedByDatabase { get; private set; }
 
-        public UserEntry(string name, PasswordHashAlgorithm hashAlg, string hash, string statusValue = null)
+        public UserEntry(
+            string name,
+            PasswordHashAlgorithm hashAlg,
+            string hash,
+            string statusValue = null,
+            int failedAttempts = 0,
+            DateTime? blockedUntilUtc = null,
+            bool isLockedByDatabase = false)
         {
             Name = name;
             HashAlg = hashAlg;
             Hash = hash;
             StatusValue = statusValue;
+            FailedAttempts = failedAttempts;
+            BlockedUntilUtc = blockedUntilUtc;
+            IsLockedByDatabase = isLockedByDatabase;
+        }
+
+        public bool IsCurrentlyLocked()
+        {
+            return IsLockedByDatabase || (BlockedUntilUtc.HasValue && BlockedUntilUtc.Value > DateTime.UtcNow);
         }
 
         /// <summary>

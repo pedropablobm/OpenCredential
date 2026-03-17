@@ -4,6 +4,7 @@ using System.Data.SQLite;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Text;
 using log4net;
 using MySqlConnector;
 using pGina.Shared.Types;
@@ -249,6 +250,40 @@ namespace pGina.Plugin.MySqlLogger
                 cmd.Parameters.AddWithValue("@id", id);
                 cmd.ExecuteNonQuery();
             }
+        }
+
+        public static string TestConfiguration()
+        {
+            var sb = new StringBuilder();
+            string dbPath = Settings.GetOfflineQueuePath();
+            string nativeDirectory = SQLiteNativeBootstrap.GetNativeDirectory();
+            string nativeDllPath = SQLiteNativeBootstrap.GetNativeDllPath();
+
+            sb.AppendLine("Offline queue");
+            sb.AppendLine("-------------------------------");
+            sb.AppendLine(string.Format("Process architecture: {0}", Environment.Is64BitProcess ? "x64" : "x86"));
+            sb.AppendLine(string.Format("Native SQLite dir: {0}", nativeDirectory));
+            sb.AppendLine(string.Format("Native SQLite dll: {0}", File.Exists(nativeDllPath) ? nativeDllPath : "MISSING"));
+            sb.AppendLine(string.Format("Queue file: {0}", dbPath));
+
+            try
+            {
+                Initialize();
+                using (var conn = OpenConnection())
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT 1";
+                    cmd.ExecuteScalar();
+                }
+
+                sb.AppendLine("SQLite offline queue: OK");
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine(string.Format("SQLite offline queue ERROR: {0}", ex.Message));
+            }
+
+            return sb.ToString();
         }
 
         private static SQLiteConnection OpenConnection()

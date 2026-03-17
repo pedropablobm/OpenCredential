@@ -373,6 +373,8 @@ namespace pGina.Plugin.MySQLAuth
                 CheckTable(this.userGroupTableNameTB.Text.Trim(),
                     new string[] { this.userGroupUserFKColTB.Text.Trim(), this.userGroupGroupFKColTB.Text.Trim() },
                     infoDlg, conn);
+
+                infoDlg.AppendLine(Environment.NewLine + LocalUserCache.TestConfiguration());
             }
             catch (Exception ex)
             {
