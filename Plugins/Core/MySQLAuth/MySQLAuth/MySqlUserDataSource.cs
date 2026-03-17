@@ -42,20 +42,8 @@ namespace pGina.Plugin.MySQLAuth
     /// Provides access to user data stored in MySQL/MariaDB database.
     /// Supports MySQL 8.x and MariaDB 10.x/11.x.
     /// </summary>
-    class MySqlUserDataSource : IDisposable
+    class MySqlUserDataSource : IUserDataSource
     {
-        internal sealed class FailedAttemptResult
-        {
-            public int FailedAttempts { get; set; }
-            public DateTime? BlockedUntilUtc { get; set; }
-            public bool IsLockedByDatabase { get; set; }
-
-            public bool IsLocked
-            {
-                get { return IsLockedByDatabase || (BlockedUntilUtc.HasValue && BlockedUntilUtc.Value > DateTime.UtcNow); }
-            }
-        }
-
         private MySqlConnection m_conn = null;
         private ILog m_logger;
         private bool m_disposed = false;

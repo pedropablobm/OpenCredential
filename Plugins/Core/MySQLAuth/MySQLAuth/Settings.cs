@@ -40,6 +40,12 @@ namespace pGina.Plugin.MySQLAuth
     /// </summary>
     public class Settings
     {
+        public enum DatabaseProvider
+        {
+            MySql = 0,
+            PostgreSql = 1
+        }
+
         /// <summary>
         /// Encoding format for password hashes in the database.
         /// </summary>
@@ -62,6 +68,7 @@ namespace pGina.Plugin.MySQLAuth
             // =============================================
             m_settings.SetDefault("Host", "localhost");
             m_settings.SetDefault("Port", 3306);
+            m_settings.SetDefault("DatabaseProvider", (int)DatabaseProvider.MySql);
             m_settings.SetDefault("UseSsl", false);
             m_settings.SetDefault("SslMode", MySqlConnector.MySqlSslMode.None.ToString());
             m_settings.SetDefault("User", "pgina_user");
@@ -234,6 +241,11 @@ namespace pGina.Plugin.MySQLAuth
         public static int GetPort()
         {
             return GetIntSetting("Port", 3306);
+        }
+
+        public static DatabaseProvider GetDatabaseProvider()
+        {
+            return (DatabaseProvider)GetIntSetting("DatabaseProvider", (int)DatabaseProvider.MySql);
         }
         
         /// <summary>

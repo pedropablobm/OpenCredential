@@ -67,7 +67,7 @@ namespace pGina.Plugin.MySQLAuth
 
             try
             {
-                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                using (IUserDataSource dataSource = UserDataSourceFactory.Create())
                 {
                     UserEntry entry = dataSource.GetUserEntry(userInfo.Username);
 
@@ -115,7 +115,7 @@ namespace pGina.Plugin.MySQLAuth
                             return new BooleanResult { Success = true, Message = "Success." };
                         }
 
-                        MySqlUserDataSource.FailedAttemptResult failedAttemptResult =
+                        FailedAttemptResult failedAttemptResult =
                             dataSource.RegisterFailedLoginAttempt(userInfo.Username);
 
                         m_logger.WarnFormat(
@@ -257,7 +257,7 @@ namespace pGina.Plugin.MySQLAuth
 
             try
             {
-                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                using (IUserDataSource dataSource = UserDataSourceFactory.Create())
                 {
                     List<GroupGatewayRule> rules = GroupRuleLoader.GetGatewayRules();
                     foreach (GroupGatewayRule rule in rules)
@@ -337,7 +337,7 @@ namespace pGina.Plugin.MySQLAuth
                 UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
                 string user = userInfo.Username;
 
-                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                using (IUserDataSource dataSource = UserDataSourceFactory.Create())
                 {
                     foreach (GroupAuthzRule rule in rules)
                     {
@@ -425,7 +425,7 @@ namespace pGina.Plugin.MySQLAuth
 
             try
             {
-                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                using (IUserDataSource dataSource = UserDataSourceFactory.Create())
                 {
                     m_mysqlAvailable = true;
 
@@ -484,7 +484,7 @@ namespace pGina.Plugin.MySQLAuth
                 string newHash = BCryptHasher.HashPassword(password, workFactor);
 
                 // Update database with new hash
-                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                using (IUserDataSource dataSource = UserDataSourceFactory.Create())
                 {
                     dataSource.UpdateUserHash(username, newHash, "BCRYPT");
                 }

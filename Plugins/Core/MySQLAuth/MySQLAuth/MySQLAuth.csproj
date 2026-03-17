@@ -142,7 +142,9 @@
     <Compile Include="Configuration.Designer.cs">
       <DependentUpon>Configuration.cs</DependentUpon>
     </Compile>
+    <Compile Include="FailedAttemptResult.cs" />
     <Compile Include="GroupRules.cs" />
+    <Compile Include="IUserDataSource.cs" />
     <Compile Include="LocalUserCache.cs" />
     <Compile Include="MySqlUserDataSource.cs" />
     <Compile Include="PluginImpl.cs" />
@@ -159,6 +161,7 @@
     <Compile Include="TextBoxInfoDialog.Designer.cs">
       <DependentUpon>TextBoxInfoDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="UserDataSourceFactory.cs" />
     <Compile Include="UserEntry.cs" />
   </ItemGroup>
   <ItemGroup>
