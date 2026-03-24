@@ -202,11 +202,12 @@ namespace pGina.Plugin.MySqlLogger
             if (string.Equals(entry.Reason, "SessionLogon", StringComparison.OrdinalIgnoreCase))
             {
                 string updateSql = string.Format(
-                    "UPDATE `{0}` SET logoutstamp=@logoutstamp WHERE logoutstamp IS NULL AND machine=@machine AND ipaddress=@ipaddress",
+                    "UPDATE `{0}` SET logoutstamp=@logoutstamp WHERE logoutstamp IS NULL AND username=@username AND machine=@machine AND ipaddress=@ipaddress",
                     table);
                 using (var updateCmd = new MySqlCommand(updateSql, mysqlConn))
                 {
                     updateCmd.Parameters.AddWithValue("@logoutstamp", entry.EventUtc);
+                    updateCmd.Parameters.AddWithValue("@username", entry.Username ?? "--UNKNOWN--");
                     updateCmd.Parameters.AddWithValue("@machine", entry.Machine);
                     updateCmd.Parameters.AddWithValue("@ipaddress", (object)entry.IpAddress ?? DBNull.Value);
                     updateCmd.ExecuteNonQuery();
