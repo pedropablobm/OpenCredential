@@ -185,6 +185,7 @@ namespace pGina.Plugin.MySqlLogger
         {
             if (properties == null) return UNKNOWN_USERNAME;
             UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
+            if (userInfo == null) return UNKNOWN_USERNAME;
             return Settings.GetUseModifiedName() ? userInfo.Username : userInfo.OriginalUsername;
         }
 

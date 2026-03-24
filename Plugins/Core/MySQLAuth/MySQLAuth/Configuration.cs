@@ -152,8 +152,8 @@ namespace pGina.Plugin.MySQLAuth
             int port = 0;
             int syncIntervalMinutes = 0;
             int healthCheckSeconds = 0;
-            int maxFailedAttempts = 0;
-            int lockoutMinutes = 0;
+            int maxFailedAttempts = Settings.GetMaxFailedAttempts();
+            int lockoutMinutes = Settings.GetLockoutMinutes();
             try
             {
                 port = Convert.ToInt32(this.portTB.Text);
@@ -187,21 +187,24 @@ namespace pGina.Plugin.MySQLAuth
                 return false;
             }
 
-            try
+            if (this.lockoutEnabledCB.Checked)
             {
-                maxFailedAttempts = Convert.ToInt32(this.maxFailedAttemptsTB.Text);
-                lockoutMinutes = Convert.ToInt32(this.lockoutMinutesTB.Text);
-            }
-            catch (Exception)
-            {
-                MessageBox.Show("Login lockout values must be positive integers.");
-                return false;
-            }
+                try
+                {
+                    maxFailedAttempts = Convert.ToInt32(this.maxFailedAttemptsTB.Text);
+                    lockoutMinutes = Convert.ToInt32(this.lockoutMinutesTB.Text);
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("Login lockout values must be positive integers.");
+                    return false;
+                }
 
-            if (maxFailedAttempts < 1 || lockoutMinutes < 1)
-            {
-                MessageBox.Show("Login lockout values must be at least 1.");
-                return false;
+                if (maxFailedAttempts < 1 || lockoutMinutes < 1)
+                {
+                    MessageBox.Show("Login lockout values must be at least 1.");
+                    return false;
+                }
             }
 
             Settings.Store.Host = this.hostTB.Text.Trim();

@@ -91,7 +91,7 @@ namespace pGina.Plugin.MySQLAuth
             m_settings.SetDefault("EnforceUserStatus", true);
             m_settings.SetDefault("UserStatusColumn", "estado");
             m_settings.SetDefault("UserActiveValue", "1");
-            m_settings.SetDefault("EnableLoginLockout", true);
+            m_settings.SetDefault("EnableLoginLockout", false);
             m_settings.SetDefault("FailedAttemptsColumn", "intentos_fallidos");
             m_settings.SetDefault("BlockedUntilColumn", "bloqueado_hasta");
             m_settings.SetDefault("LastAttemptColumn", "ultimo_intento");

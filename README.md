@@ -78,6 +78,15 @@ CREATE TABLE `estudiantes` (
 The plugin can validate only active users by checking a configurable status column.
 Default settings expect `estado = 1`.
 
+Login lockout is available but disabled by default. If you enable it in the plugin configuration, your user table must also include these columns:
+
+```sql
+ALTER TABLE `estudiantes`
+  ADD COLUMN `intentos_fallidos` int(11) NOT NULL DEFAULT 0,
+  ADD COLUMN `bloqueado_hasta` datetime NULL,
+  ADD COLUMN `ultimo_intento` datetime NULL;
+```
+
 ### Password Hashing
 
 The plugin supports multiple hash algorithms:
@@ -88,6 +97,8 @@ The plugin supports multiple hash algorithms:
 | MD5 | `MD5` | `e10adc3949ba59abbe56e057f20f883e` |
 | SHA-256 | `SHA256` | `e3b0c44298fc1c149afbf4c8996fb924...` |
 | SHA-512 | `SHA512` | `cf83e1357eefb8bdf1542850d66d8007...` |
+
+For legacy unsalted hashes, the plugin can compare values stored either as hexadecimal or Base64, depending on the `Hash Encoding` setting in the configuration UI.
 
 ## Plugin Configuration
 
