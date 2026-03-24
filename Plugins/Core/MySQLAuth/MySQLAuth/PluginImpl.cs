@@ -62,7 +62,19 @@ namespace pGina.Plugin.MySQLAuth
         /// </summary>
         public BooleanResult AuthenticateUser(SessionProperties properties)
         {
+            if (properties == null)
+            {
+                m_logger.Error("AuthenticateUser called without session properties.");
+                return new BooleanResult { Success = false, Message = "Missing session properties." };
+            }
+
             UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
+            if (userInfo == null || string.IsNullOrWhiteSpace(userInfo.Username))
+            {
+                m_logger.Error("AuthenticateUser called without valid UserInformation.");
+                return new BooleanResult { Success = false, Message = "Missing user information." };
+            }
+
             m_logger.DebugFormat("Authenticate: {0}", userInfo.Username);
 
             try
@@ -253,7 +265,18 @@ namespace pGina.Plugin.MySQLAuth
         /// </summary>
         public BooleanResult AuthenticatedUserGateway(SessionProperties properties)
         {
+            if (properties == null)
+            {
+                m_logger.Error("AuthenticatedUserGateway called without session properties.");
+                return new BooleanResult { Success = false, Message = "Missing session properties for gateway processing." };
+            }
+
             UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
+            if (userInfo == null || string.IsNullOrWhiteSpace(userInfo.Username))
+            {
+                m_logger.Error("AuthenticatedUserGateway called without valid UserInformation.");
+                return new BooleanResult { Success = false, Message = "Missing user information for gateway processing." };
+            }
 
             try
             {
@@ -310,6 +333,11 @@ namespace pGina.Plugin.MySQLAuth
             m_logger.Debug("MySQL Plugin Authorization");
             
             bool requireAuth = Settings.IsAuthzRequireMySqlAuth();
+            if (properties == null)
+            {
+                m_logger.Error("AuthorizeUser called without session properties.");
+                return new BooleanResult { Success = false, Message = "Missing session properties." };
+            }
 
             if (requireAuth)
             {
@@ -330,11 +358,20 @@ namespace pGina.Plugin.MySQLAuth
 
             List<GroupAuthzRule> rules = GroupRuleLoader.GetAuthzRules();
             if (rules.Count == 0)
-                throw new Exception("No authorization rules found.");
+            {
+                m_logger.Error("Authorization failed because no authorization rules are configured.");
+                return new BooleanResult { Success = false, Message = "No authorization rules configured." };
+            }
 
             try
             {
                 UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
+                if (userInfo == null || string.IsNullOrWhiteSpace(userInfo.Username))
+                {
+                    m_logger.Error("AuthorizeUser called without valid UserInformation.");
+                    return new BooleanResult { Success = false, Message = "Missing user information." };
+                }
+
                 string user = userInfo.Username;
 
                 using (IUserDataSource dataSource = UserDataSourceFactory.Create())
@@ -359,23 +396,35 @@ namespace pGina.Plugin.MySQLAuth
                         }
                     }
                 }
-                throw new Exception("Missing default authorization rule.");
+                m_logger.Error("Authorization failed because no default rule matched.");
+                return new BooleanResult { Success = false, Message = "Missing default authorization rule." };
             }
-            catch (Exception e)
+            catch (MySqlException e)
             {
                 if (Settings.IsOfflineFallbackEnabled() && Settings.AllowOfflineBypassForAuthorization())
                 {
-                    m_logger.WarnFormat("Authorization offline bypass enabled: {0}", e.Message);
+                    m_logger.WarnFormat("Authorization offline bypass enabled because MySQL is unavailable: {0}", e.Message);
                     return new BooleanResult { Success = true, Message = "Authorization bypassed while MySQL is unavailable." };
                 }
 
+                m_logger.ErrorFormat("Authorization MySQL error: {0}", e);
+                return new BooleanResult { Success = false, Message = string.Format("Authorization failed: {0}", e.Message) };
+            }
+            catch (Exception e)
+            {
                 m_logger.ErrorFormat("Authorization error: {0}", e);
-                throw;
+                return new BooleanResult { Success = false, Message = string.Format("Authorization failed: {0}", e.Message) };
             }
         }
 
         private BooleanResult TryOfflineAuthentication(UserInformation userInfo, string reason)
         {
+            if (userInfo == null || string.IsNullOrWhiteSpace(userInfo.Username))
+            {
+                m_logger.ErrorFormat("Offline authentication unavailable because user context is missing. Reason: {0}", reason);
+                return new BooleanResult { Success = false, Message = "Missing user information." };
+            }
+
             if (!Settings.IsLocalCacheEnabled() || !Settings.IsOfflineFallbackEnabled() || !m_localCacheRuntimeAvailable)
             {
                 return new BooleanResult { Success = false, Message = "MySQL unavailable and offline fallback is disabled." };
