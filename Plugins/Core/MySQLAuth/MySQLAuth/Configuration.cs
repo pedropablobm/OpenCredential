@@ -34,18 +34,45 @@ using System.Text;
 using System.Windows.Forms;
 
 using MySqlConnector;
+using Npgsql;
 
 namespace pGina.Plugin.MySQLAuth
 {
     public partial class Configuration : Form
     {
+        private ComboBox m_providerCB;
+        private Label m_providerLabel;
 
         private log4net.ILog m_logger = log4net.LogManager.GetLogger("MySQLAuth Configuration");
 
         public Configuration()
         {
             InitializeComponent();
+            InitializeProviderControls();
             InitUI();
+        }
+
+        private void InitializeProviderControls()
+        {
+            m_providerLabel = new Label();
+            m_providerLabel.AutoSize = true;
+            m_providerLabel.Location = new Point(284, 49);
+            m_providerLabel.Name = "providerLabel";
+            m_providerLabel.Size = new Size(49, 13);
+            m_providerLabel.Text = "Provider:";
+
+            m_providerCB = new ComboBox();
+            m_providerCB.DropDownStyle = ComboBoxStyle.DropDownList;
+            m_providerCB.FormattingEnabled = true;
+            m_providerCB.Location = new Point(339, 46);
+            m_providerCB.Name = "providerCB";
+            m_providerCB.Size = new Size(159, 21);
+            m_providerCB.Items.Add(Settings.DatabaseProvider.MySql.ToString());
+            m_providerCB.Items.Add(Settings.DatabaseProvider.PostgreSql.ToString());
+            m_providerCB.SelectedIndexChanged += providerCB_SelectedIndexChanged;
+
+            this.groupBox1.Controls.Add(m_providerLabel);
+            this.groupBox1.Controls.Add(m_providerCB);
         }
 
         private void InitUI()
@@ -55,6 +82,7 @@ namespace pGina.Plugin.MySQLAuth
             this.userTB.Text = Convert.ToString(Settings.Store.User);
             this.passwordTB.Text = Settings.Store.GetEncryptedSetting("Password");
             this.dbTB.Text = Convert.ToString(Settings.Store.Database);
+            this.m_providerCB.SelectedItem = Settings.GetDatabaseProvider().ToString();
             this.sslModeCB.SelectedItem = Settings.GetSslMode().ToString();
             this.localCacheEnabledCB.Checked = Settings.IsLocalCacheEnabled();
             this.offlineFallbackEnabledCB.Checked = Settings.IsOfflineFallbackEnabled();
@@ -130,6 +158,7 @@ namespace pGina.Plugin.MySQLAuth
             this.gtwRuleConditionCB.SelectedIndex = 0;
 
             this.m_preventLogonWhenServerUnreachableCb.Checked = Settings.PreventLogonOnServerError();
+            UpdateProviderUi();
         }
 
         private void cancelButton_Click(object sender, EventArgs e)
@@ -230,8 +259,16 @@ namespace pGina.Plugin.MySQLAuth
                 return false;
             }
 
+            Settings.DatabaseProvider provider;
+            if (!Enum.TryParse(Convert.ToString(this.m_providerCB.SelectedItem), out provider))
+            {
+                MessageBox.Show("Please select a valid database provider.");
+                return false;
+            }
+
             Settings.Store.Host = this.hostTB.Text.Trim();
             Settings.Store.Port = port;
+            Settings.Store.DatabaseProvider = (int)provider;
             Settings.Store.User = this.userTB.Text.Trim();
             Settings.Store.SetEncryptedSetting("Password", this.passwordTB.Text);
             Settings.Store.Database = this.dbTB.Text.Trim();
@@ -310,6 +347,12 @@ namespace pGina.Plugin.MySQLAuth
         {
             TextBoxInfoDialog infoDlg = new TextBoxInfoDialog();
             infoDlg.Show();
+
+            if (GetSelectedDatabaseProvider() == Settings.DatabaseProvider.PostgreSql)
+            {
+                TestPostgreSql(infoDlg);
+                return;
+            }
 
             infoDlg.AppendLine("Beginning test of MySQL database..." + Environment.NewLine);
             MySqlConnection conn = null;
@@ -451,6 +494,12 @@ namespace pGina.Plugin.MySQLAuth
 
         private void createTableBtn_Click(object sender, EventArgs e)
         {
+            if (GetSelectedDatabaseProvider() == Settings.DatabaseProvider.PostgreSql)
+            {
+                CreatePostgreSqlTables();
+                return;
+            }
+
             string connStr = this.BuildConnectionString();
             if (connStr == null) return;
 
@@ -487,21 +536,21 @@ namespace pGina.Plugin.MySQLAuth
                             unameCol.Equals(pk, StringComparison.CurrentCultureIgnoreCase);
 
                         StringBuilder sql = new StringBuilder();
-                        sql.AppendFormat("CREATE TABLE {0} ( \r\n", tableName);
+                        sql.AppendFormat("CREATE TABLE `{0}` ( \r\n", tableName);
                         if (!pkIsUserName)
-                            sql.AppendFormat(" {0} BIGINT auto_increment PRIMARY KEY, \r\n", pk);
-                        sql.AppendFormat(" {0} VARCHAR(128) {1}, \r\n", unameCol, pkIsUserName ? "PRIMARY KEY" : "NOT NULL UNIQUE");
-                        sql.AppendFormat(" {0} TEXT NOT NULL, \r\n", hashMethodCol);
+                            sql.AppendFormat(" `{0}` BIGINT AUTO_INCREMENT PRIMARY KEY, \r\n", pk);
+                        sql.AppendFormat(" `{0}` VARCHAR(128) {1}, \r\n", unameCol, pkIsUserName ? "PRIMARY KEY" : "NOT NULL UNIQUE");
+                        sql.AppendFormat(" `{0}` TEXT NOT NULL, \r\n", hashMethodCol);
                         if (this.enforceStatusCB.Checked)
-                            sql.AppendFormat(" {0} VARCHAR(32) NOT NULL DEFAULT '{1}', \r\n", statusCol, this.activeValueTB.Text.Trim().Replace("'", "''"));
+                            sql.AppendFormat(" `{0}` VARCHAR(32) NOT NULL DEFAULT '{1}', \r\n", statusCol, this.activeValueTB.Text.Trim().Replace("'", "''"));
                         if (this.lockoutEnabledCB.Checked)
                         {
-                            sql.AppendFormat(" {0} INT NOT NULL DEFAULT 0, \r\n", failedAttemptsCol);
-                            sql.AppendFormat(" {0} DATETIME NULL, \r\n", blockedUntilCol);
-                            sql.AppendFormat(" {0} DATETIME NULL, \r\n", lastAttemptCol);
+                            sql.AppendFormat(" `{0}` INT NOT NULL DEFAULT 0, \r\n", failedAttemptsCol);
+                            sql.AppendFormat(" `{0}` DATETIME NULL, \r\n", blockedUntilCol);
+                            sql.AppendFormat(" `{0}` DATETIME NULL, \r\n", lastAttemptCol);
                         }
-                        sql.AppendFormat(" {0} TEXT \r\n", passwdCol);
-                        sql.Append(")");  // End create table.
+                        sql.AppendFormat(" `{0}` TEXT \r\n", passwdCol);
+                        sql.Append(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");  // End create table.
 
                         infoDlg.AppendLine("Executing SQL:");
                         infoDlg.AppendLine(sql.ToString());
@@ -534,11 +583,11 @@ namespace pGina.Plugin.MySQLAuth
                             groupNameCol.Equals(pk, StringComparison.CurrentCultureIgnoreCase);
 
                         StringBuilder sql = new StringBuilder();
-                        sql.AppendFormat("CREATE TABLE {0} ( \r\n", tableName);
+                        sql.AppendFormat("CREATE TABLE `{0}` ( \r\n", tableName);
                         if (!pkIsGroupName)
-                            sql.AppendFormat(" {0} BIGINT AUTO_INCREMENT PRIMARY KEY, \r\n", pk);
-                        sql.AppendFormat(" {0} VARCHAR(128) {1} \r\n", groupNameCol, pkIsGroupName ? "PRIMARY KEY" : "NOT NULL UNIQUE");
-                        sql.Append(")");  // End create table.
+                            sql.AppendFormat(" `{0}` BIGINT AUTO_INCREMENT PRIMARY KEY, \r\n", pk);
+                        sql.AppendFormat(" `{0}` VARCHAR(128) {1} \r\n", groupNameCol, pkIsGroupName ? "PRIMARY KEY" : "NOT NULL UNIQUE");
+                        sql.Append(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");  // End create table.
 
                         infoDlg.AppendLine("Executing SQL:");
                         infoDlg.AppendLine(sql.ToString());
@@ -578,11 +627,11 @@ namespace pGina.Plugin.MySQLAuth
                             unameCol.Equals(userPK, StringComparison.CurrentCultureIgnoreCase);
 
                         StringBuilder sql = new StringBuilder();
-                        sql.AppendFormat("CREATE TABLE {0} ( \r\n", tableName);
-                        sql.AppendFormat(" {0} {1}, \r\n", groupFK, pkIsGroupName ? "VARCHAR(128)" : "BIGINT");
-                        sql.AppendFormat(" {0} {1}, \r\n", userFK, pkIsUserName ? "VARCHAR(128)" : "BIGINT");
-                        sql.AppendFormat(" PRIMARY KEY ({0}, {1}) \r\n", userFK, groupFK);
-                        sql.Append(")");  // End create table.
+                        sql.AppendFormat("CREATE TABLE `{0}` ( \r\n", tableName);
+                        sql.AppendFormat(" `{0}` {1}, \r\n", groupFK, pkIsGroupName ? "VARCHAR(128)" : "BIGINT");
+                        sql.AppendFormat(" `{0}` {1}, \r\n", userFK, pkIsUserName ? "VARCHAR(128)" : "BIGINT");
+                        sql.AppendFormat(" PRIMARY KEY (`{0}`, `{1}`) \r\n", userFK, groupFK);
+                        sql.Append(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");  // End create table.
 
                         infoDlg.AppendLine("Executing SQL:");
                         infoDlg.AppendLine(sql.ToString());
@@ -595,6 +644,13 @@ namespace pGina.Plugin.MySQLAuth
                     {
                         infoDlg.AppendLine(
                             string.Format("WARNING: Table \"{0}\"already exists, skipping.", tableName));
+                    }
+
+                    if (this.IsStandardEnglishFullSchemaRequested())
+                    {
+                        infoDlg.AppendLine(Environment.NewLine + "Extending standard English schema...");
+                        this.EnsureEnglishReferenceTables(infoDlg, conn);
+                        this.EnsureEnglishUserColumns(infoDlg, conn);
                     }
 
                 }
@@ -620,6 +676,174 @@ namespace pGina.Plugin.MySQLAuth
             return tableExists;
         }
 
+        private bool ColumnExists(string tableName, string columnName, MySqlConnection conn)
+        {
+            string query =
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS " +
+                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = @table AND COLUMN_NAME = @column";
+            using (MySqlCommand cmd = new MySqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@table", tableName);
+                cmd.Parameters.AddWithValue("@column", columnName);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private bool IndexExists(string tableName, string indexName, MySqlConnection conn)
+        {
+            string query =
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS " +
+                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = @table AND INDEX_NAME = @index";
+            using (MySqlCommand cmd = new MySqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@table", tableName);
+                cmd.Parameters.AddWithValue("@index", indexName);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private bool ForeignKeyExists(string tableName, string constraintName, MySqlConnection conn)
+        {
+            string query =
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS " +
+                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = @table AND CONSTRAINT_NAME = @constraint";
+            using (MySqlCommand cmd = new MySqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@table", tableName);
+                cmd.Parameters.AddWithValue("@constraint", constraintName);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private bool IsStandardEnglishFullSchemaRequested()
+        {
+            return
+                this.userTableTB.Text.Trim().Equals("users", StringComparison.OrdinalIgnoreCase) &&
+                this.unameColTB.Text.Trim().Equals("username", StringComparison.OrdinalIgnoreCase) &&
+                this.passwdColTB.Text.Trim().Equals("password_hash", StringComparison.OrdinalIgnoreCase) &&
+                this.hashMethodColTB.Text.Trim().Equals("hash_method", StringComparison.OrdinalIgnoreCase) &&
+                this.userPrimaryKeyColTB.Text.Trim().Equals("id", StringComparison.OrdinalIgnoreCase) &&
+                this.groupTableNameTB.Text.Trim().Equals("groups", StringComparison.OrdinalIgnoreCase) &&
+                this.groupNameColTB.Text.Trim().Equals("group_name", StringComparison.OrdinalIgnoreCase) &&
+                this.groupTablePrimaryKeyColTB.Text.Trim().Equals("group_id", StringComparison.OrdinalIgnoreCase) &&
+                this.userGroupTableNameTB.Text.Trim().Equals("user_groups", StringComparison.OrdinalIgnoreCase) &&
+                this.userGroupUserFKColTB.Text.Trim().Equals("user_id", StringComparison.OrdinalIgnoreCase) &&
+                this.userGroupGroupFKColTB.Text.Trim().Equals("group_id", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void EnsureEnglishReferenceTables(TextBoxInfoDialog infoDlg, MySqlConnection conn)
+        {
+            if (!this.TableExists("careers", conn))
+            {
+                string sql =
+                    "CREATE TABLE `careers` (" +
+                    "`id` INT NOT NULL AUTO_INCREMENT, " +
+                    "`name` VARCHAR(255) NOT NULL, " +
+                    "`status` INT NOT NULL DEFAULT 1, " +
+                    "PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+                infoDlg.AppendLine("Creating table \"careers\"");
+                using (MySqlCommand cmd = new MySqlCommand(sql, conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            else
+            {
+                infoDlg.AppendLine("Table \"careers\" already exists.");
+            }
+
+            if (!this.TableExists("levels", conn))
+            {
+                string sql =
+                    "CREATE TABLE `levels` (" +
+                    "`id` INT NOT NULL AUTO_INCREMENT, " +
+                    "`name` VARCHAR(100) NOT NULL, " +
+                    "`status` INT NOT NULL DEFAULT 1, " +
+                    "PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+                infoDlg.AppendLine("Creating table \"levels\"");
+                using (MySqlCommand cmd = new MySqlCommand(sql, conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            else
+            {
+                infoDlg.AppendLine("Table \"levels\" already exists.");
+            }
+        }
+
+        private void EnsureEnglishUserColumns(TextBoxInfoDialog infoDlg, MySqlConnection conn)
+        {
+            this.AddColumnIfMissing("users", "first_name", "ALTER TABLE `users` ADD COLUMN `first_name` VARCHAR(100) NULL", infoDlg, conn);
+            this.AddColumnIfMissing("users", "last_name", "ALTER TABLE `users` ADD COLUMN `last_name` VARCHAR(100) NULL", infoDlg, conn);
+            this.AddColumnIfMissing("users", "document_id", "ALTER TABLE `users` ADD COLUMN `document_id` VARCHAR(15) NULL", infoDlg, conn);
+            this.AddColumnIfMissing("users", "email", "ALTER TABLE `users` ADD COLUMN `email` VARCHAR(200) NULL", infoDlg, conn);
+            this.AddColumnIfMissing("users", "career_id", "ALTER TABLE `users` ADD COLUMN `career_id` INT NULL", infoDlg, conn);
+            this.AddColumnIfMissing("users", "level_id", "ALTER TABLE `users` ADD COLUMN `level_id` INT NULL", infoDlg, conn);
+
+            this.AddIndexIfMissing("users", "idx_users_career_id", "ALTER TABLE `users` ADD INDEX `idx_users_career_id` (`career_id`)", infoDlg, conn);
+            this.AddIndexIfMissing("users", "idx_users_level_id", "ALTER TABLE `users` ADD INDEX `idx_users_level_id` (`level_id`)", infoDlg, conn);
+
+            this.AddForeignKeyIfMissing(
+                "users",
+                "fk_users_career",
+                "ALTER TABLE `users` ADD CONSTRAINT `fk_users_career` FOREIGN KEY (`career_id`) REFERENCES `careers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE",
+                infoDlg,
+                conn);
+
+            this.AddForeignKeyIfMissing(
+                "users",
+                "fk_users_level",
+                "ALTER TABLE `users` ADD CONSTRAINT `fk_users_level` FOREIGN KEY (`level_id`) REFERENCES `levels` (`id`) ON DELETE CASCADE ON UPDATE CASCADE",
+                infoDlg,
+                conn);
+        }
+
+        private void AddColumnIfMissing(string tableName, string columnName, string sql, TextBoxInfoDialog infoDlg, MySqlConnection conn)
+        {
+            if (this.ColumnExists(tableName, columnName, conn))
+            {
+                infoDlg.AppendLine(string.Format("Column \"{0}.{1}\" already exists.", tableName, columnName));
+                return;
+            }
+
+            infoDlg.AppendLine(string.Format("Adding column \"{0}.{1}\"", tableName, columnName));
+            using (MySqlCommand cmd = new MySqlCommand(sql, conn))
+            {
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private void AddIndexIfMissing(string tableName, string indexName, string sql, TextBoxInfoDialog infoDlg, MySqlConnection conn)
+        {
+            if (this.IndexExists(tableName, indexName, conn))
+            {
+                infoDlg.AppendLine(string.Format("Index \"{0}\" already exists on \"{1}\".", indexName, tableName));
+                return;
+            }
+
+            infoDlg.AppendLine(string.Format("Adding index \"{0}\" on \"{1}\"", indexName, tableName));
+            using (MySqlCommand cmd = new MySqlCommand(sql, conn))
+            {
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private void AddForeignKeyIfMissing(string tableName, string constraintName, string sql, TextBoxInfoDialog infoDlg, MySqlConnection conn)
+        {
+            if (this.ForeignKeyExists(tableName, constraintName, conn))
+            {
+                infoDlg.AppendLine(string.Format("Foreign key \"{0}\" already exists on \"{1}\".", constraintName, tableName));
+                return;
+            }
+
+            infoDlg.AppendLine(string.Format("Adding foreign key \"{0}\" on \"{1}\"", constraintName, tableName));
+            using (MySqlCommand cmd = new MySqlCommand(sql, conn))
+            {
+                cmd.ExecuteNonQuery();
+            }
+        }
+
         private string BuildConnectionString()
         {
             uint port = 0;
@@ -633,20 +857,465 @@ namespace pGina.Plugin.MySQLAuth
                 return null;
             }
 
-            MySqlConnectionStringBuilder bldr = new MySqlConnectionStringBuilder();
-            bldr.Server = this.hostTB.Text.Trim();
-            bldr.Port = port;
-            bldr.UserID = this.userTB.Text.Trim();
-            bldr.Database = this.dbTB.Text.Trim();
-            bldr.Password = this.passwordTB.Text;
+            Settings.DatabaseProvider provider = Settings.GetDatabaseProvider();
+            if (m_providerCB != null && m_providerCB.SelectedItem != null)
+                Enum.TryParse(Convert.ToString(m_providerCB.SelectedItem), out provider);
 
             MySqlSslMode sslMode;
             if (!Enum.TryParse(this.sslModeCB.Text, true, out sslMode))
                 sslMode = MySqlSslMode.None;
 
-            bldr.SslMode = sslMode;
+            if (provider == Settings.DatabaseProvider.PostgreSql)
+            {
+                var builder = new NpgsqlConnectionStringBuilder
+                {
+                    Host = this.hostTB.Text.Trim(),
+                    Port = Convert.ToInt32(port),
+                    Username = this.userTB.Text.Trim(),
+                    Database = this.dbTB.Text.Trim(),
+                    Password = this.passwordTB.Text,
+                    SslMode = MapPostgreSqlSslMode(sslMode),
+                    Pooling = true
+                };
+
+                if (builder.SslMode == SslMode.Require)
+                    builder.TrustServerCertificate = true;
+
+                return builder.ConnectionString;
+            }
+
+            MySqlConnectionStringBuilder bldr = new MySqlConnectionStringBuilder
+            {
+                Server = this.hostTB.Text.Trim(),
+                Port = port,
+                UserID = this.userTB.Text.Trim(),
+                Database = this.dbTB.Text.Trim(),
+                Password = this.passwordTB.Text,
+                SslMode = sslMode
+            };
 
             return bldr.ConnectionString;
+        }
+
+        private Settings.DatabaseProvider GetSelectedDatabaseProvider()
+        {
+            Settings.DatabaseProvider provider = Settings.GetDatabaseProvider();
+            if (m_providerCB != null && m_providerCB.SelectedItem != null)
+                Enum.TryParse(Convert.ToString(m_providerCB.SelectedItem), out provider);
+            return provider;
+        }
+
+        private void TestPostgreSql(TextBoxInfoDialog infoDlg)
+        {
+            infoDlg.AppendLine("Beginning test of PostgreSQL database..." + Environment.NewLine);
+            NpgsqlConnection conn = null;
+            try
+            {
+                string connStr = this.BuildConnectionString();
+                if (connStr == null)
+                    return;
+
+                infoDlg.AppendLine("Connection Status");
+                infoDlg.AppendLine("-------------------------------------");
+
+                conn = new NpgsqlConnection(connStr);
+                conn.Open();
+
+                infoDlg.AppendLine(string.Format("Connection to {0} successful.", this.hostTB.Text.Trim()));
+                infoDlg.AppendLine(string.Format("SSL mode: {0}", MapPostgreSqlSslMode(Settings.GetSslMode())));
+
+                infoDlg.AppendLine(Environment.NewLine + "User Table");
+                infoDlg.AppendLine("-------------------------------");
+                CheckTable(this.userTableTB.Text.Trim(), BuildUserTableColumns(), infoDlg, conn);
+
+                infoDlg.AppendLine(Environment.NewLine + "Group Table");
+                infoDlg.AppendLine("-------------------------------");
+                CheckTable(this.groupTableNameTB.Text.Trim(),
+                    new string[] { this.groupNameColTB.Text.Trim(), this.groupTablePrimaryKeyColTB.Text.Trim() },
+                    infoDlg, conn);
+
+                infoDlg.AppendLine(Environment.NewLine + "User-Group Table");
+                infoDlg.AppendLine("-------------------------------");
+                CheckTable(this.userGroupTableNameTB.Text.Trim(),
+                    new string[] { this.userGroupUserFKColTB.Text.Trim(), this.userGroupGroupFKColTB.Text.Trim() },
+                    infoDlg, conn);
+
+                infoDlg.AppendLine(Environment.NewLine + LocalUserCache.TestConfiguration());
+            }
+            catch (Exception ex)
+            {
+                infoDlg.AppendLine(string.Format("ERROR: A fatal error occurred: {0}", ex));
+            }
+            finally
+            {
+                infoDlg.AppendLine(Environment.NewLine + "Closing connection.");
+                if (conn != null)
+                    conn.Close();
+                infoDlg.AppendLine("Test complete.");
+            }
+        }
+
+        private void CheckTable(string tableName, string[] columnNames, TextBoxInfoDialog infoDlg, NpgsqlConnection conn)
+        {
+            bool tableExists = this.TableExists(tableName, conn);
+            if (!tableExists)
+            {
+                infoDlg.AppendLine(string.Format("ERROR: Table \"{0}\" not found.", tableName));
+                return;
+            }
+
+            infoDlg.AppendLine(string.Format("Table \"{0}\" found.", tableName));
+            List<string> columnNamesFromDb = new List<string>();
+
+            using (NpgsqlCommand cmd = new NpgsqlCommand(
+                "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = @table ORDER BY ordinal_position",
+                conn))
+            {
+                cmd.Parameters.AddWithValue("@table", tableName);
+                using (NpgsqlDataReader rdr = cmd.ExecuteReader())
+                {
+                    while (rdr.Read())
+                        columnNamesFromDb.Add(Convert.ToString(rdr[0]));
+                }
+            }
+
+            bool ok = true;
+            foreach (string columnName in columnNames)
+            {
+                if (columnNamesFromDb.Contains(columnName, StringComparer.CurrentCultureIgnoreCase))
+                    infoDlg.AppendLine(string.Format("Found column \"{0}\"", columnName));
+                else
+                {
+                    ok = false;
+                    infoDlg.AppendLine(string.Format("ERROR: Column \"{0}\" not found!", columnName));
+                }
+            }
+
+            if (!ok)
+                infoDlg.AppendLine(string.Format("ERROR: Table \"{0}\" schema looks incorrect.", tableName));
+        }
+
+        private void CreatePostgreSqlTables()
+        {
+            string connStr = this.BuildConnectionString();
+            if (connStr == null)
+                return;
+
+            TextBoxInfoDialog infoDlg = new TextBoxInfoDialog();
+            infoDlg.ClearText();
+            infoDlg.Show();
+
+            try
+            {
+                using (NpgsqlConnection conn = new NpgsqlConnection(connStr))
+                {
+                    infoDlg.AppendLine("Connecting...");
+                    conn.Open();
+
+                    CreatePostgreSqlUserTable(infoDlg, conn);
+                    CreatePostgreSqlGroupTable(infoDlg, conn);
+                    CreatePostgreSqlUserGroupTable(infoDlg, conn);
+
+                    if (this.IsStandardEnglishFullSchemaRequested())
+                    {
+                        infoDlg.AppendLine(Environment.NewLine + "Extending standard English schema...");
+                        this.EnsureEnglishReferenceTables(infoDlg, conn);
+                        this.EnsureEnglishUserColumns(infoDlg, conn);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                infoDlg.AppendLine(string.Format("ERROR: {0}", ex.Message));
+            }
+            finally
+            {
+                infoDlg.AppendLine(Environment.NewLine + "Finished.");
+            }
+        }
+
+        private void CreatePostgreSqlUserTable(TextBoxInfoDialog infoDlg, NpgsqlConnection conn)
+        {
+            string tableName = this.userTableTB.Text.Trim();
+            infoDlg.AppendLine(Environment.NewLine + string.Format("Creating table \"{0}\"", tableName));
+
+            if (this.TableExists(tableName, conn))
+            {
+                infoDlg.AppendLine(string.Format("WARNING: Table \"{0}\" already exists, skipping.", tableName));
+                return;
+            }
+
+            string pk = this.userPrimaryKeyColTB.Text.Trim();
+            string unameCol = this.unameColTB.Text.Trim();
+            string hashMethodCol = this.hashMethodColTB.Text.Trim();
+            string passwdCol = this.passwdColTB.Text.Trim();
+            string statusCol = this.statusColTB.Text.Trim();
+            string failedAttemptsCol = this.failedAttemptsColTB.Text.Trim();
+            string blockedUntilCol = this.blockedUntilColTB.Text.Trim();
+            string lastAttemptCol = this.lastAttemptColTB.Text.Trim();
+            bool pkIsUserName = unameCol.Equals(pk, StringComparison.CurrentCultureIgnoreCase);
+
+            StringBuilder sql = new StringBuilder();
+            sql.AppendFormat("CREATE TABLE {0} ( \r\n", QuotePg(tableName));
+            if (!pkIsUserName)
+                sql.AppendFormat(" {0} BIGSERIAL PRIMARY KEY, \r\n", QuotePg(pk));
+            sql.AppendFormat(" {0} VARCHAR(128) {1}, \r\n", QuotePg(unameCol), pkIsUserName ? "PRIMARY KEY" : "NOT NULL UNIQUE");
+            sql.AppendFormat(" {0} TEXT NOT NULL, \r\n", QuotePg(hashMethodCol));
+            if (this.enforceStatusCB.Checked)
+                sql.AppendFormat(" {0} VARCHAR(32) NOT NULL DEFAULT '{1}', \r\n", QuotePg(statusCol), this.activeValueTB.Text.Trim().Replace("'", "''"));
+            if (this.lockoutEnabledCB.Checked)
+            {
+                sql.AppendFormat(" {0} INT NOT NULL DEFAULT 0, \r\n", QuotePg(failedAttemptsCol));
+                sql.AppendFormat(" {0} TIMESTAMP NULL, \r\n", QuotePg(blockedUntilCol));
+                sql.AppendFormat(" {0} TIMESTAMP NULL, \r\n", QuotePg(lastAttemptCol));
+            }
+            sql.AppendFormat(" {0} TEXT \r\n", QuotePg(passwdCol));
+            sql.Append(")");
+
+            infoDlg.AppendLine("Executing SQL:");
+            infoDlg.AppendLine(sql.ToString());
+
+            using (NpgsqlCommand cmd = new NpgsqlCommand(sql.ToString(), conn))
+            {
+                cmd.ExecuteNonQuery();
+                infoDlg.AppendLine(string.Format("Table \"{0}\" created.", tableName));
+            }
+        }
+
+        private void CreatePostgreSqlGroupTable(TextBoxInfoDialog infoDlg, NpgsqlConnection conn)
+        {
+            string tableName = this.groupTableNameTB.Text.Trim();
+            infoDlg.AppendLine(Environment.NewLine + string.Format("Creating table \"{0}\"", tableName));
+
+            if (this.TableExists(tableName, conn))
+            {
+                infoDlg.AppendLine(string.Format("WARNING: Table \"{0}\" already exists, skipping.", tableName));
+                return;
+            }
+
+            string pk = this.groupTablePrimaryKeyColTB.Text.Trim();
+            string groupNameCol = this.groupNameColTB.Text.Trim();
+            bool pkIsGroupName = groupNameCol.Equals(pk, StringComparison.CurrentCultureIgnoreCase);
+
+            StringBuilder sql = new StringBuilder();
+            sql.AppendFormat("CREATE TABLE {0} ( \r\n", QuotePg(tableName));
+            if (!pkIsGroupName)
+                sql.AppendFormat(" {0} BIGSERIAL PRIMARY KEY, \r\n", QuotePg(pk));
+            sql.AppendFormat(" {0} VARCHAR(128) {1} \r\n", QuotePg(groupNameCol), pkIsGroupName ? "PRIMARY KEY" : "NOT NULL UNIQUE");
+            sql.Append(")");
+
+            infoDlg.AppendLine("Executing SQL:");
+            infoDlg.AppendLine(sql.ToString());
+
+            using (NpgsqlCommand cmd = new NpgsqlCommand(sql.ToString(), conn))
+            {
+                cmd.ExecuteNonQuery();
+                infoDlg.AppendLine(string.Format("Table \"{0}\" created.", tableName));
+            }
+        }
+
+        private void CreatePostgreSqlUserGroupTable(TextBoxInfoDialog infoDlg, NpgsqlConnection conn)
+        {
+            string tableName = this.userGroupTableNameTB.Text.Trim();
+            infoDlg.AppendLine(Environment.NewLine + string.Format("Creating table \"{0}\"", tableName));
+
+            if (this.TableExists(tableName, conn))
+            {
+                infoDlg.AppendLine(string.Format("WARNING: Table \"{0}\" already exists, skipping.", tableName));
+                return;
+            }
+
+            string userFK = this.userGroupUserFKColTB.Text.Trim();
+            string userPK = this.userPrimaryKeyColTB.Text.Trim();
+            string groupFK = this.userGroupGroupFKColTB.Text.Trim();
+            string groupPK = this.groupTablePrimaryKeyColTB.Text.Trim();
+            string groupNameCol = this.groupNameColTB.Text.Trim();
+            string unameCol = this.unameColTB.Text.Trim();
+
+            bool pkIsGroupName = groupNameCol.Equals(groupPK, StringComparison.CurrentCultureIgnoreCase);
+            bool pkIsUserName = unameCol.Equals(userPK, StringComparison.CurrentCultureIgnoreCase);
+
+            StringBuilder sql = new StringBuilder();
+            sql.AppendFormat("CREATE TABLE {0} ( \r\n", QuotePg(tableName));
+            sql.AppendFormat(" {0} {1}, \r\n", QuotePg(groupFK), pkIsGroupName ? "VARCHAR(128)" : "BIGINT");
+            sql.AppendFormat(" {0} {1}, \r\n", QuotePg(userFK), pkIsUserName ? "VARCHAR(128)" : "BIGINT");
+            sql.AppendFormat(" PRIMARY KEY ({0}, {1}) \r\n", QuotePg(userFK), QuotePg(groupFK));
+            sql.Append(")");
+
+            infoDlg.AppendLine("Executing SQL:");
+            infoDlg.AppendLine(sql.ToString());
+
+            using (NpgsqlCommand cmd = new NpgsqlCommand(sql.ToString(), conn))
+            {
+                cmd.ExecuteNonQuery();
+                infoDlg.AppendLine(string.Format("Table \"{0}\" created.", tableName));
+            }
+        }
+
+        private bool TableExists(string tableName, NpgsqlConnection conn)
+        {
+            string query = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = @table";
+            using (NpgsqlCommand cmd = new NpgsqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@table", tableName);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private bool ColumnExists(string tableName, string columnName, NpgsqlConnection conn)
+        {
+            string query =
+                "SELECT COUNT(*) FROM information_schema.columns " +
+                "WHERE table_schema = current_schema() AND table_name = @table AND column_name = @column";
+            using (NpgsqlCommand cmd = new NpgsqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@table", tableName);
+                cmd.Parameters.AddWithValue("@column", columnName);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private bool IndexExists(string tableName, string indexName, NpgsqlConnection conn)
+        {
+            string query =
+                "SELECT COUNT(*) FROM pg_indexes " +
+                "WHERE schemaname = current_schema() AND tablename = @table AND indexname = @index";
+            using (NpgsqlCommand cmd = new NpgsqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@table", tableName);
+                cmd.Parameters.AddWithValue("@index", indexName);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private bool ForeignKeyExists(string tableName, string constraintName, NpgsqlConnection conn)
+        {
+            string query =
+                "SELECT COUNT(*) FROM information_schema.table_constraints " +
+                "WHERE table_schema = current_schema() AND table_name = @table AND constraint_name = @constraint";
+            using (NpgsqlCommand cmd = new NpgsqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@table", tableName);
+                cmd.Parameters.AddWithValue("@constraint", constraintName);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private void EnsureEnglishReferenceTables(TextBoxInfoDialog infoDlg, NpgsqlConnection conn)
+        {
+            if (!this.TableExists("careers", conn))
+            {
+                string sql = "CREATE TABLE \"careers\" (\"id\" SERIAL PRIMARY KEY, \"name\" VARCHAR(255) NOT NULL, \"status\" INT NOT NULL DEFAULT 1)";
+                infoDlg.AppendLine("Creating table \"careers\"");
+                using (NpgsqlCommand cmd = new NpgsqlCommand(sql, conn))
+                    cmd.ExecuteNonQuery();
+            }
+            else
+            {
+                infoDlg.AppendLine("Table \"careers\" already exists.");
+            }
+
+            if (!this.TableExists("levels", conn))
+            {
+                string sql = "CREATE TABLE \"levels\" (\"id\" SERIAL PRIMARY KEY, \"name\" VARCHAR(100) NOT NULL, \"status\" INT NOT NULL DEFAULT 1)";
+                infoDlg.AppendLine("Creating table \"levels\"");
+                using (NpgsqlCommand cmd = new NpgsqlCommand(sql, conn))
+                    cmd.ExecuteNonQuery();
+            }
+            else
+            {
+                infoDlg.AppendLine("Table \"levels\" already exists.");
+            }
+        }
+
+        private void EnsureEnglishUserColumns(TextBoxInfoDialog infoDlg, NpgsqlConnection conn)
+        {
+            this.AddColumnIfMissing("users", "first_name", "ALTER TABLE \"users\" ADD COLUMN \"first_name\" VARCHAR(100) NULL", infoDlg, conn);
+            this.AddColumnIfMissing("users", "last_name", "ALTER TABLE \"users\" ADD COLUMN \"last_name\" VARCHAR(100) NULL", infoDlg, conn);
+            this.AddColumnIfMissing("users", "document_id", "ALTER TABLE \"users\" ADD COLUMN \"document_id\" VARCHAR(15) NULL", infoDlg, conn);
+            this.AddColumnIfMissing("users", "email", "ALTER TABLE \"users\" ADD COLUMN \"email\" VARCHAR(200) NULL", infoDlg, conn);
+            this.AddColumnIfMissing("users", "career_id", "ALTER TABLE \"users\" ADD COLUMN \"career_id\" INT NULL", infoDlg, conn);
+            this.AddColumnIfMissing("users", "level_id", "ALTER TABLE \"users\" ADD COLUMN \"level_id\" INT NULL", infoDlg, conn);
+
+            this.AddIndexIfMissing("users", "idx_users_career_id", "CREATE INDEX \"idx_users_career_id\" ON \"users\" (\"career_id\")", infoDlg, conn);
+            this.AddIndexIfMissing("users", "idx_users_level_id", "CREATE INDEX \"idx_users_level_id\" ON \"users\" (\"level_id\")", infoDlg, conn);
+
+            this.AddForeignKeyIfMissing("users", "fk_users_career", "ALTER TABLE \"users\" ADD CONSTRAINT \"fk_users_career\" FOREIGN KEY (\"career_id\") REFERENCES \"careers\" (\"id\") ON DELETE CASCADE ON UPDATE CASCADE", infoDlg, conn);
+            this.AddForeignKeyIfMissing("users", "fk_users_level", "ALTER TABLE \"users\" ADD CONSTRAINT \"fk_users_level\" FOREIGN KEY (\"level_id\") REFERENCES \"levels\" (\"id\") ON DELETE CASCADE ON UPDATE CASCADE", infoDlg, conn);
+        }
+
+        private void AddColumnIfMissing(string tableName, string columnName, string sql, TextBoxInfoDialog infoDlg, NpgsqlConnection conn)
+        {
+            if (this.ColumnExists(tableName, columnName, conn))
+            {
+                infoDlg.AppendLine(string.Format("Column \"{0}.{1}\" already exists.", tableName, columnName));
+                return;
+            }
+
+            infoDlg.AppendLine(string.Format("Adding column \"{0}.{1}\"", tableName, columnName));
+            using (NpgsqlCommand cmd = new NpgsqlCommand(sql, conn))
+                cmd.ExecuteNonQuery();
+        }
+
+        private void AddIndexIfMissing(string tableName, string indexName, string sql, TextBoxInfoDialog infoDlg, NpgsqlConnection conn)
+        {
+            if (this.IndexExists(tableName, indexName, conn))
+            {
+                infoDlg.AppendLine(string.Format("Index \"{0}\" already exists on \"{1}\".", indexName, tableName));
+                return;
+            }
+
+            infoDlg.AppendLine(string.Format("Adding index \"{0}\" on \"{1}\"", indexName, tableName));
+            using (NpgsqlCommand cmd = new NpgsqlCommand(sql, conn))
+                cmd.ExecuteNonQuery();
+        }
+
+        private void AddForeignKeyIfMissing(string tableName, string constraintName, string sql, TextBoxInfoDialog infoDlg, NpgsqlConnection conn)
+        {
+            if (this.ForeignKeyExists(tableName, constraintName, conn))
+            {
+                infoDlg.AppendLine(string.Format("Foreign key \"{0}\" already exists on \"{1}\".", constraintName, tableName));
+                return;
+            }
+
+            infoDlg.AppendLine(string.Format("Adding foreign key \"{0}\" on \"{1}\"", constraintName, tableName));
+            using (NpgsqlCommand cmd = new NpgsqlCommand(sql, conn))
+                cmd.ExecuteNonQuery();
+        }
+
+        private static string QuotePg(string identifier)
+        {
+            return "\"" + identifier.Replace("\"", "\"\"") + "\"";
+        }
+
+        private void providerCB_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateProviderUi();
+        }
+
+        private void UpdateProviderUi()
+        {
+            Settings.DatabaseProvider provider = Settings.DatabaseProvider.MySql;
+            if (m_providerCB != null && m_providerCB.SelectedItem != null)
+                Enum.TryParse(Convert.ToString(m_providerCB.SelectedItem), out provider);
+
+            bool isMySql = provider == Settings.DatabaseProvider.MySql;
+            this.label21.Enabled = isMySql;
+            this.sslModeCB.Enabled = true;
+            this.label4.Text = isMySql ? "MySQL Database:" : "PostgreSQL Database:";
+        }
+
+        private static SslMode MapPostgreSqlSslMode(MySqlSslMode sslMode)
+        {
+            switch (sslMode)
+            {
+                case MySqlSslMode.Required:
+                case MySqlSslMode.VerifyCA:
+                case MySqlSslMode.VerifyFull:
+                    return SslMode.Require;
+                default:
+                    return SslMode.Disable;
+            }
         }
 
         private string[] BuildUserTableColumns()

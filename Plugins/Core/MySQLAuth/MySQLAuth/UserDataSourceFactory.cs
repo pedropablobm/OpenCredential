@@ -11,7 +11,7 @@ namespace pGina.Plugin.MySQLAuth
                 case Settings.DatabaseProvider.MySql:
                     return new MySqlUserDataSource();
                 case Settings.DatabaseProvider.PostgreSql:
-                    throw new NotSupportedException("PostgreSQL provider is not implemented yet.");
+                    return new PostgreSqlUserDataSource();
                 default:
                     throw new NotSupportedException("Unsupported database provider.");
             }

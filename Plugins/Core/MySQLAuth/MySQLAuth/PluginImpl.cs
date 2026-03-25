@@ -34,6 +34,7 @@ using log4net;
 using pGina.Shared.Interfaces;
 using pGina.Shared.Types;
 using MySqlConnector;
+using Npgsql;
 
 namespace pGina.Plugin.MySQLAuth
 {
@@ -152,17 +153,9 @@ namespace pGina.Plugin.MySQLAuth
                     }
                 }
             }
-            catch (MySqlException ex)
-            {
-                if (ex.Number == 1042)
-                    m_logger.ErrorFormat("Unable to connect to host: {0}", Settings.Store.Host);
-                else
-                    m_logger.ErrorFormat("MySQL error {0}: {1}", ex.Number, ex.Message);
-                return TryOfflineAuthentication(userInfo, ex.Message);
-            }
             catch (Exception e)
             {
-                m_logger.ErrorFormat("Unexpected error: {0}", e);
+                LogDatabaseException("Authentication", e);
                 return TryOfflineAuthentication(userInfo, e.Message);
             }
 
@@ -294,24 +287,20 @@ namespace pGina.Plugin.MySQLAuth
                     }
                 }
             }
-            catch (MySqlException e)
-            {
-                if (Settings.IsOfflineFallbackEnabled() && Settings.AllowOfflineBypassForAuthorization())
-                {
-                    m_logger.WarnFormat("Gateway offline bypass enabled: {0}", e.Message);
-                    return new BooleanResult { Success = true, Message = "Gateway bypassed while MySQL is unavailable." };
-                }
-
-                bool preventLogon = Settings.PreventLogonOnServerError();
-                if (preventLogon)
-                {
-                    m_logger.ErrorFormat("Gateway error - preventing logon: {0}", e.Message);
-                    return new BooleanResult { Success = false, Message = string.Format("Server error: {0}", e.Message) };
-                }
-                m_logger.WarnFormat("Gateway error - allowing logon: {0}", e.Message);
-            }
             catch (Exception e)
             {
+                if (IsConnectivityException(e) && Settings.IsOfflineFallbackEnabled() && Settings.AllowOfflineBypassForAuthorization())
+                {
+                    m_logger.WarnFormat("Gateway offline bypass enabled: {0}", e.Message);
+                    return new BooleanResult { Success = true, Message = "Gateway bypassed while the database is unavailable." };
+                }
+
+                if (IsConnectivityException(e) && Settings.PreventLogonOnServerError())
+                {
+                    LogDatabaseException("Gateway", e);
+                    return new BooleanResult { Success = false, Message = string.Format("Server error: {0}", e.Message) };
+                }
+
                 m_logger.ErrorFormat("Gateway error: {0}", e);
                 return new BooleanResult { Success = false, Message = string.Format("Gateway failed: {0}", e.Message) };
             }
@@ -399,19 +388,17 @@ namespace pGina.Plugin.MySQLAuth
                 m_logger.Error("Authorization failed because no default rule matched.");
                 return new BooleanResult { Success = false, Message = "Missing default authorization rule." };
             }
-            catch (MySqlException e)
-            {
-                if (Settings.IsOfflineFallbackEnabled() && Settings.AllowOfflineBypassForAuthorization())
-                {
-                    m_logger.WarnFormat("Authorization offline bypass enabled because MySQL is unavailable: {0}", e.Message);
-                    return new BooleanResult { Success = true, Message = "Authorization bypassed while MySQL is unavailable." };
-                }
-
-                m_logger.ErrorFormat("Authorization MySQL error: {0}", e);
-                return new BooleanResult { Success = false, Message = string.Format("Authorization failed: {0}", e.Message) };
-            }
             catch (Exception e)
             {
+                if (IsConnectivityException(e) && Settings.IsOfflineFallbackEnabled() && Settings.AllowOfflineBypassForAuthorization())
+                {
+                    m_logger.WarnFormat("Authorization offline bypass enabled because the database is unavailable: {0}", e.Message);
+                    return new BooleanResult { Success = true, Message = "Authorization bypassed while the database is unavailable." };
+                }
+
+                if (IsConnectivityException(e))
+                    LogDatabaseException("Authorization", e);
+
                 m_logger.ErrorFormat("Authorization error: {0}", e);
                 return new BooleanResult { Success = false, Message = string.Format("Authorization failed: {0}", e.Message) };
             }
@@ -554,6 +541,31 @@ namespace pGina.Plugin.MySQLAuth
                 : blockedUntilUtc;
 
             return localTime.ToString("yyyy-MM-dd HH:mm:ss");
+        }
+
+        private void LogDatabaseException(string operation, Exception ex)
+        {
+            if (ex is MySqlException mySqlException)
+            {
+                if (mySqlException.Number == 1042)
+                    m_logger.ErrorFormat("{0}: unable to connect to MySQL host {1}", operation, Settings.Store.Host);
+                else
+                    m_logger.ErrorFormat("{0}: MySQL error {1}: {2}", operation, mySqlException.Number, mySqlException.Message);
+                return;
+            }
+
+            if (ex is NpgsqlException npgsqlException)
+            {
+                m_logger.ErrorFormat("{0}: PostgreSQL error: {1}", operation, npgsqlException.Message);
+                return;
+            }
+
+            m_logger.ErrorFormat("{0}: unexpected error: {1}", operation, ex);
+        }
+
+        private static bool IsConnectivityException(Exception ex)
+        {
+            return ex is MySqlException || ex is NpgsqlException;
         }
     }
 }

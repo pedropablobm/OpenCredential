@@ -1,44 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
+using System;
+using System.Data.Common;
 using MySqlConnector;
+using Npgsql;
 
 namespace pGina.Plugin.MySqlLogger
 {
     interface ILoggerMode
     {
-        //Logs the specified event/properties
         bool Log(System.ServiceProcess.SessionChangeDescription changeDescription, pGina.Shared.Types.SessionProperties properties);
-
-        //Tests to make sure the table exists, and contains the right columns, returns a string indicating the table status.
         string TestTable();
-
-        //Attempts to create the neccesary table for the logging mode, and returns a string indicating it's success/failure
         string CreateTable();
-
-        //Sets the connection to the MySql server, so that multiple loggers can share one stream
-        void SetConnection(MySqlConnection m_conn);
+        void SetConnection(DbConnection connection);
     }
 
     class LoggerModeFactory
     {
-
-        static private MySqlConnection m_conn = null;
+        private static DbConnection m_conn;
 
         private LoggerModeFactory() { }
 
         public static ILoggerMode getLoggerMode(LoggerMode mode)
         {
-            //Create a new MySqlConnection if no viable one is available
             if (m_conn == null || m_conn.State != System.Data.ConnectionState.Open)
             {
-                string connStr = BuildConnectionString();
-                m_conn = new MySqlConnection(connStr);
+                m_conn = CreateConnection();
             }
 
-            ILoggerMode logger = null;
+            ILoggerMode logger;
             if (mode == LoggerMode.EVENT)
                 logger = new EventLogger();
             else if (mode == LoggerMode.SESSION)
@@ -48,8 +36,6 @@ namespace pGina.Plugin.MySqlLogger
 
             logger.SetConnection(m_conn);
             return logger;
-
-
         }
 
         public static void closeConnection()
@@ -59,19 +45,44 @@ namespace pGina.Plugin.MySqlLogger
             m_conn = null;
         }
 
-        public static MySqlConnection CreateConnection()
+        public static DbConnection CreateConnection()
         {
-            return new MySqlConnection(BuildConnectionString());
+            string connStr = BuildConnectionString();
+            switch (Settings.GetDatabaseProvider())
+            {
+                case Settings.DatabaseProvider.PostgreSql:
+                    return new NpgsqlConnection(connStr);
+                default:
+                    return new MySqlConnection(connStr);
+            }
         }
 
         private static string BuildConnectionString()
         {
-            MySqlConnectionStringBuilder bldr = new MySqlConnectionStringBuilder();
-            bldr.Server = Settings.Store.Host;
-            bldr.Port = Settings.GetPort();
-            bldr.UserID = Settings.Store.User;
-            bldr.Database = Settings.Store.Database;
-            bldr.Password = Settings.Store.GetEncryptedSetting("Password");
+            if (Settings.GetDatabaseProvider() == Settings.DatabaseProvider.PostgreSql)
+            {
+                var builder = new NpgsqlConnectionStringBuilder
+                {
+                    Host = Settings.Store.Host,
+                    Port = (int)Settings.GetPort(),
+                    Username = Settings.Store.User,
+                    Database = Settings.Store.Database,
+                    Password = Settings.Store.GetEncryptedSetting("Password"),
+                    SslMode = SslMode.Disable,
+                    Pooling = true
+                };
+
+                return builder.ConnectionString;
+            }
+
+            MySqlConnectionStringBuilder bldr = new MySqlConnectionStringBuilder
+            {
+                Server = Settings.Store.Host,
+                Port = Settings.GetPort(),
+                UserID = Settings.Store.User,
+                Database = Settings.Store.Database,
+                Password = Settings.Store.GetEncryptedSetting("Password")
+            };
 
             return bldr.ConnectionString;
         }

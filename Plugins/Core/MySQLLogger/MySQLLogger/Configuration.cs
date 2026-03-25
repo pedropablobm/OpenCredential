@@ -33,16 +33,40 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 
-using MySqlConnector;
-
 namespace pGina.Plugin.MySqlLogger
 {
     public partial class Configuration : Form
     {
+        private ComboBox m_providerCB;
+        private Label m_providerLabel;
+
         public Configuration()
         {
             InitializeComponent();
+            InitializeProviderControls();
             InitUI();
+        }
+
+        private void InitializeProviderControls()
+        {
+            m_providerLabel = new Label();
+            m_providerLabel.AutoSize = true;
+            m_providerLabel.Location = new Point(205, 48);
+            m_providerLabel.Name = "providerLabel";
+            m_providerLabel.Size = new Size(49, 13);
+            m_providerLabel.Text = "Provider:";
+
+            m_providerCB = new ComboBox();
+            m_providerCB.DropDownStyle = ComboBoxStyle.DropDownList;
+            m_providerCB.FormattingEnabled = true;
+            m_providerCB.Location = new Point(260, 45);
+            m_providerCB.Name = "providerCB";
+            m_providerCB.Size = new Size(139, 21);
+            m_providerCB.Items.Add(Settings.DatabaseProvider.MySql.ToString());
+            m_providerCB.Items.Add(Settings.DatabaseProvider.PostgreSql.ToString());
+
+            this.Controls.Add(m_providerLabel);
+            this.Controls.Add(m_providerCB);
         }
 
         private void InitUI()
@@ -54,6 +78,7 @@ namespace pGina.Plugin.MySqlLogger
             this.hostTB.Text = host;
             string port = Convert.ToString(Settings.GetPort());
             this.portTB.Text = port;
+            m_providerCB.SelectedItem = Settings.GetDatabaseProvider().ToString();
             string db = Convert.ToString(Settings.Store.Database);
             this.dbTB.Text = db;
 
@@ -154,8 +179,16 @@ namespace pGina.Plugin.MySqlLogger
                 return false;
             }
 
+            Settings.DatabaseProvider provider;
+            if (!Enum.TryParse(Convert.ToString(m_providerCB.SelectedItem), out provider))
+            {
+                MessageBox.Show("Please select a valid database provider.");
+                return false;
+            }
+
             Settings.Store.SessionMode = sessionModeCB.Checked;
             Settings.Store.EventMode = eventModeCB.Checked;
+            Settings.Store.DatabaseProvider = (int)provider;
 
             Settings.Store.Host = this.hostTB.Text.Trim();
             Settings.Store.Database = this.dbTB.Text.Trim();

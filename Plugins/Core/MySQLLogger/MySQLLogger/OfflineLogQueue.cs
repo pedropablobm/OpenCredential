@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Data.SQLite;
 using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
 using log4net;
-using MySqlConnector;
+using Npgsql;
 using pGina.Shared.Types;
 
 namespace pGina.Plugin.MySqlLogger
@@ -37,16 +38,11 @@ namespace pGina.Plugin.MySqlLogger
 
                 string dbPath = Settings.GetOfflineQueuePath();
                 string directory = Path.GetDirectoryName(dbPath);
-
                 if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-                {
                     Directory.CreateDirectory(directory);
-                }
 
                 if (!File.Exists(dbPath))
-                {
                     SQLiteConnection.CreateFile(dbPath);
-                }
 
                 using (var conn = OpenConnection())
                 using (var cmd = conn.CreateCommand())
@@ -117,18 +113,18 @@ namespace pGina.Plugin.MySqlLogger
                 if (queuedEntries.Count == 0)
                     return;
 
-                using (var mysqlConn = LoggerModeFactory.CreateConnection())
+                using (var dbConn = LoggerModeFactory.CreateConnection())
                 {
-                    mysqlConn.Open();
+                    dbConn.Open();
 
                     foreach (QueuedLogEntry entry in queuedEntries)
                     {
-                        ReplayEntry(mysqlConn, entry);
+                        ReplayEntry(dbConn, entry);
                         DeleteEntry(entry.Id);
                     }
                 }
 
-                m_logger.InfoFormat("Flushed {0} offline log entries to MySQL.", queuedEntries.Count);
+                m_logger.InfoFormat("Flushed {0} offline log entries to {1}.", queuedEntries.Count, Settings.GetDatabaseProvider());
             }
         }
 
@@ -167,76 +163,95 @@ namespace pGina.Plugin.MySqlLogger
             return entries;
         }
 
-        private static void ReplayEntry(MySqlConnection mysqlConn, QueuedLogEntry entry)
+        private static void ReplayEntry(DbConnection dbConn, QueuedLogEntry entry)
         {
             if (entry.Mode == (int)LoggerMode.EVENT)
             {
-                ReplayEventLog(mysqlConn, entry);
+                ReplayEventLog(dbConn, entry);
                 return;
             }
 
-            ReplaySessionLog(mysqlConn, entry);
+            ReplaySessionLog(dbConn, entry);
         }
 
-        private static void ReplayEventLog(MySqlConnection mysqlConn, QueuedLogEntry entry)
+        private static void ReplayEventLog(DbConnection dbConn, QueuedLogEntry entry)
         {
             string sql = string.Format(
-                "INSERT INTO `{0}`(TimeStamp, Host, Ip, Machine, Message) VALUES (@timeStamp, @host, @ip, @machine, @message)",
-                Settings.Store.EventTable);
+                "INSERT INTO {0}({1}, {2}, {3}, {4}, {5}) VALUES (@timeStamp, @host, @ip, @machine, @message)",
+                Quote(Settings.Store.EventTable, dbConn),
+                QuoteColumn("TimeStamp", dbConn),
+                QuoteColumn("Host", dbConn),
+                QuoteColumn("Ip", dbConn),
+                QuoteColumn("Machine", dbConn),
+                QuoteColumn("Message", dbConn));
 
-            using (var cmd = new MySqlCommand(sql, mysqlConn))
+            using (var cmd = dbConn.CreateCommand())
             {
-                cmd.Parameters.AddWithValue("@timeStamp", entry.EventUtc);
-                cmd.Parameters.AddWithValue("@host", Dns.GetHostName());
-                cmd.Parameters.AddWithValue("@ip", (object)entry.IpAddress ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@machine", entry.Machine);
-                cmd.Parameters.Add("@message", MySqlDbType.Text).Value = entry.Message ?? string.Empty;
+                cmd.CommandText = sql;
+                AddParameter(cmd, "@timeStamp", entry.EventUtc);
+                AddParameter(cmd, "@host", Dns.GetHostName());
+                AddParameter(cmd, "@ip", (object)entry.IpAddress ?? DBNull.Value);
+                AddParameter(cmd, "@machine", entry.Machine);
+                AddParameter(cmd, "@message", entry.Message ?? string.Empty);
                 cmd.ExecuteNonQuery();
             }
         }
 
-        private static void ReplaySessionLog(MySqlConnection mysqlConn, QueuedLogEntry entry)
+        private static void ReplaySessionLog(DbConnection dbConn, QueuedLogEntry entry)
         {
             string table = Settings.Store.SessionTable;
+            string updateSql = string.Format(
+                "UPDATE {0} SET {1}=@logoutstamp WHERE {1} IS NULL AND {2}=@username AND {3}=@machine AND {4}=@ipaddress",
+                Quote(table, dbConn),
+                QuoteColumn("logoutstamp", dbConn),
+                QuoteColumn("username", dbConn),
+                QuoteColumn("machine", dbConn),
+                QuoteColumn("ipaddress", dbConn));
 
             if (string.Equals(entry.Reason, "SessionLogon", StringComparison.OrdinalIgnoreCase))
             {
-                string updateSql = string.Format(
-                    "UPDATE `{0}` SET logoutstamp=@logoutstamp WHERE logoutstamp IS NULL AND username=@username AND machine=@machine AND ipaddress=@ipaddress",
-                    table);
-                using (var updateCmd = new MySqlCommand(updateSql, mysqlConn))
+                using (var updateCmd = dbConn.CreateCommand())
                 {
-                    updateCmd.Parameters.AddWithValue("@logoutstamp", entry.EventUtc);
-                    updateCmd.Parameters.AddWithValue("@username", entry.Username ?? "--UNKNOWN--");
-                    updateCmd.Parameters.AddWithValue("@machine", entry.Machine);
-                    updateCmd.Parameters.AddWithValue("@ipaddress", (object)entry.IpAddress ?? DBNull.Value);
+                    updateCmd.CommandText = updateSql;
+                    AddParameter(updateCmd, "@logoutstamp", entry.EventUtc);
+                    AddParameter(updateCmd, "@username", entry.Username ?? "--UNKNOWN--");
+                    AddParameter(updateCmd, "@machine", entry.Machine);
+                    AddParameter(updateCmd, "@ipaddress", (object)entry.IpAddress ?? DBNull.Value);
                     updateCmd.ExecuteNonQuery();
                 }
 
-                string insertSql = string.Format(
-                    "INSERT INTO `{0}` (dbid, loginstamp, logoutstamp, username, machine, ipaddress) " +
-                    "VALUES (NULL, @loginstamp, NULL, @username, @machine, @ipaddress)",
-                    table);
-                using (var insertCmd = new MySqlCommand(insertSql, mysqlConn))
+                string insertSql = dbConn is NpgsqlConnection
+                    ? string.Format(
+                        "INSERT INTO {0} ({1}, {2}, {3}, {4}, {5}) VALUES (@loginstamp, NULL, @username, @machine, @ipaddress)",
+                        Quote(table, dbConn),
+                        QuoteColumn("loginstamp", dbConn),
+                        QuoteColumn("logoutstamp", dbConn),
+                        QuoteColumn("username", dbConn),
+                        QuoteColumn("machine", dbConn),
+                        QuoteColumn("ipaddress", dbConn))
+                    : string.Format(
+                        "INSERT INTO {0} (dbid, loginstamp, logoutstamp, username, machine, ipaddress) VALUES (NULL, @loginstamp, NULL, @username, @machine, @ipaddress)",
+                        Quote(table, dbConn));
+
+                using (var insertCmd = dbConn.CreateCommand())
                 {
-                    insertCmd.Parameters.AddWithValue("@loginstamp", entry.EventUtc);
-                    insertCmd.Parameters.AddWithValue("@username", entry.Username ?? "--UNKNOWN--");
-                    insertCmd.Parameters.AddWithValue("@machine", entry.Machine);
-                    insertCmd.Parameters.AddWithValue("@ipaddress", (object)entry.IpAddress ?? DBNull.Value);
+                    insertCmd.CommandText = insertSql;
+                    AddParameter(insertCmd, "@loginstamp", entry.EventUtc);
+                    AddParameter(insertCmd, "@username", entry.Username ?? "--UNKNOWN--");
+                    AddParameter(insertCmd, "@machine", entry.Machine);
+                    AddParameter(insertCmd, "@ipaddress", (object)entry.IpAddress ?? DBNull.Value);
                     insertCmd.ExecuteNonQuery();
                 }
             }
             else if (string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase))
             {
-                string updateSql = string.Format(
-                    "UPDATE `{0}` SET logoutstamp=@logoutstamp WHERE logoutstamp IS NULL AND username=@username AND machine=@machine AND ipaddress=@ipaddress",
-                    table);
-                using (var updateCmd = new MySqlCommand(updateSql, mysqlConn))
+                using (var updateCmd = dbConn.CreateCommand())
                 {
-                    updateCmd.Parameters.AddWithValue("@logoutstamp", entry.EventUtc);
-                    updateCmd.Parameters.AddWithValue("@username", entry.Username ?? "--UNKNOWN--");
-                    updateCmd.Parameters.AddWithValue("@machine", entry.Machine);
-                    updateCmd.Parameters.AddWithValue("@ipaddress", (object)entry.IpAddress ?? DBNull.Value);
+                    updateCmd.CommandText = updateSql;
+                    AddParameter(updateCmd, "@logoutstamp", entry.EventUtc);
+                    AddParameter(updateCmd, "@username", entry.Username ?? "--UNKNOWN--");
+                    AddParameter(updateCmd, "@machine", entry.Machine);
+                    AddParameter(updateCmd, "@ipaddress", (object)entry.IpAddress ?? DBNull.Value);
                     updateCmd.ExecuteNonQuery();
                 }
             }
@@ -344,6 +359,26 @@ namespace pGina.Plugin.MySqlLogger
                 default:
                     return string.Empty;
             }
+        }
+
+        private static void AddParameter(DbCommand cmd, string name, object value)
+        {
+            var parameter = cmd.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.Value = value ?? DBNull.Value;
+            cmd.Parameters.Add(parameter);
+        }
+
+        private static string Quote(string identifier, DbConnection dbConn)
+        {
+            return dbConn is NpgsqlConnection
+                ? "\"" + identifier.Replace("\"", "\"\"") + "\""
+                : "`" + identifier.Replace("`", "``") + "`";
+        }
+
+        private static string QuoteColumn(string identifier, DbConnection dbConn)
+        {
+            return dbConn is NpgsqlConnection ? Quote(identifier, dbConn) : identifier;
         }
     }
 }

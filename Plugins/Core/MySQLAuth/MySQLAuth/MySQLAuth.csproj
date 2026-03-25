@@ -85,6 +85,9 @@
     <Reference Include="MySqlConnector, Version=2.0.0.0, Culture=neutral, PublicKeyToken=d33d3e53aa5f8c92, processorArchitecture=MSIL">
       <HintPath>..\packages\MySqlConnector.2.5.0\lib\net48\MySqlConnector.dll</HintPath>
     </Reference>
+    <Reference Include="Npgsql">
+      <HintPath>..\packages\Npgsql.4.1.14\lib\net461\Npgsql.dll</HintPath>
+    </Reference>
     <Reference Include="pGina.Shared">
       <HintPath>..\..\..\SDK\pGina.Shared.dll</HintPath>
     </Reference>
@@ -147,6 +150,7 @@
     <Compile Include="IUserDataSource.cs" />
     <Compile Include="LocalUserCache.cs" />
     <Compile Include="MySqlUserDataSource.cs" />
+    <Compile Include="PostgreSqlUserDataSource.cs" />
     <Compile Include="PluginImpl.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">

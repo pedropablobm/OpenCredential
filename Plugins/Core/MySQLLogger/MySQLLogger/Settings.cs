@@ -35,10 +35,14 @@ using pGina.Shared.Settings;
 
 namespace pGina.Plugin.MySqlLogger
 {
-    
-
     class Settings
     {
+        public enum DatabaseProvider
+        {
+            MySql = 0,
+            PostgreSql = 1
+        }
+
         private static dynamic m_settings = new pGinaDynamicSettings(PluginImpl.PluginUuid);
         public static dynamic Store
         {
@@ -53,6 +57,7 @@ namespace pGina.Plugin.MySqlLogger
             m_settings.SetDefault("SessionMode", false);
             m_settings.SetDefault("Host", "localhost");
             m_settings.SetDefault("Port", 3306);
+            m_settings.SetDefault("DatabaseProvider", (int)DatabaseProvider.MySql);
             m_settings.SetDefault("User", "pGina");
             m_settings.SetDefaultEncryptedSetting("Password", "secret", null);
             m_settings.SetDefault("Database", "pGinaDB");
@@ -138,6 +143,11 @@ namespace pGina.Plugin.MySqlLogger
         public static uint GetPort()
         {
             return Convert.ToUInt32(GetIntSetting("Port", 3306));
+        }
+
+        public static DatabaseProvider GetDatabaseProvider()
+        {
+            return (DatabaseProvider)GetIntSetting("DatabaseProvider", (int)DatabaseProvider.MySql);
         }
 
         public static bool GetEventMode()
