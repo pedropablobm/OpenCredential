@@ -207,11 +207,16 @@ namespace pGina.Plugin.MySqlLogger
                 //Show one or both messages
                 if (sessionModeMsg != null && eventModeMsg != null)
                 {
-                    MessageBox.Show(String.Format("Event Mode Table: {0}\nSession Mode Table: {1}", eventModeMsg, sessionModeMsg));
+                    MessageBox.Show(
+                        String.Format(
+                            "Event Mode Table: {0}\nSession Mode Table: {1}\n\n{2}",
+                            eventModeMsg,
+                            sessionModeMsg,
+                            OfflineLogQueue.TestConfiguration()));
                 } 
                 else
                 {
-                    MessageBox.Show(sessionModeMsg ?? eventModeMsg);
+                    MessageBox.Show((sessionModeMsg ?? eventModeMsg) + "\n\n" + OfflineLogQueue.TestConfiguration());
                 }
             }
             catch (Exception ex)

@@ -62,20 +62,94 @@ namespace pGina.Plugin.MySQLAuth
         /// </summary>
         public BooleanResult AuthenticateUser(SessionProperties properties)
         {
+            if (properties == null)
+            {
+                m_logger.Error("AuthenticateUser called without session properties.");
+                return new BooleanResult { Success = false, Message = "Missing session properties." };
+            }
+
             UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
+            if (userInfo == null || string.IsNullOrWhiteSpace(userInfo.Username))
+            {
+                m_logger.Error("AuthenticateUser called without valid UserInformation.");
+                return new BooleanResult { Success = false, Message = "Missing user information." };
+            }
+
             m_logger.DebugFormat("Authenticate: {0}", userInfo.Username);
 
-            UserEntry entry = null;
             try
             {
-                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                using (IUserDataSource dataSource = UserDataSourceFactory.Create())
                 {
-                    entry = dataSource.GetUserEntry(userInfo.Username);
-                }
+                    UserEntry entry = dataSource.GetUserEntry(userInfo.Username);
 
-                if (entry != null && Settings.IsLocalCacheEnabled() && m_localCacheRuntimeAvailable)
-                {
-                    TryCacheUserEntry(entry);
+                    if (entry != null && Settings.IsLocalCacheEnabled() && m_localCacheRuntimeAvailable)
+                    {
+                        TryCacheUserEntry(entry);
+                    }
+
+                    if (entry != null)
+                    {
+                        m_logger.DebugFormat("Retrieved info for user {0}. Hash: {1}", entry.Name, entry.HashAlg);
+
+                        if (Settings.IsLoginLockoutEnabled() && entry.IsCurrentlyLocked())
+                        {
+                            string lockMessage = entry.BlockedUntilUtc.HasValue
+                                ? string.Format("Account locked until {0}.", FormatLockoutDisplay(entry.BlockedUntilUtc.Value))
+                                : "Account locked.";
+
+                            m_logger.WarnFormat(
+                                "Authentication denied for {0} because account is locked. BlockedUntilDisplay={1}",
+                                userInfo.Username,
+                                entry.BlockedUntilUtc.HasValue ? FormatLockoutDisplay(entry.BlockedUntilUtc.Value) : "null");
+                            return new BooleanResult
+                            {
+                                Success = false,
+                                Message = lockMessage
+                            };
+                        }
+
+                        bool passwordOk = entry.VerifyPassword(userInfo.Password);
+
+                        if (passwordOk)
+                        {
+                            if (Settings.IsLoginLockoutEnabled())
+                            {
+                                dataSource.ResetFailedLoginState(userInfo.Username);
+                            }
+
+                            if (Settings.IsMigrationEnabled() && entry.HashAlg != PasswordHashAlgorithm.BCRYPT)
+                            {
+                                TryMigrateToBCrypt(userInfo.Username, userInfo.Password, entry);
+                            }
+
+                            m_logger.InfoFormat("Authentication successful for {0}", userInfo.Username);
+                            return new BooleanResult { Success = true, Message = "Success." };
+                        }
+
+                        FailedAttemptResult failedAttemptResult =
+                            dataSource.RegisterFailedLoginAttempt(userInfo.Username);
+
+                        m_logger.WarnFormat(
+                            "Authentication failed for {0} - invalid password. Failed attempts: {1}",
+                            userInfo.Username,
+                            failedAttemptResult.FailedAttempts);
+
+                        if (failedAttemptResult.IsLocked)
+                        {
+                            string lockMessage = failedAttemptResult.BlockedUntilUtc.HasValue
+                                ? string.Format("Account locked until {0}.", FormatLockoutDisplay(failedAttemptResult.BlockedUntilUtc.Value))
+                                : "Account locked.";
+
+                            return new BooleanResult
+                            {
+                                Success = false,
+                                Message = lockMessage
+                            };
+                        }
+
+                        return new BooleanResult { Success = false, Message = "Invalid username or password." };
+                    }
                 }
             }
             catch (MySqlException ex)
@@ -92,29 +166,6 @@ namespace pGina.Plugin.MySQLAuth
                 return TryOfflineAuthentication(userInfo, e.Message);
             }
 
-            if (entry != null)
-            {
-                m_logger.DebugFormat("Retrieved info for user {0}. Hash: {1}", entry.Name, entry.HashAlg);
-                
-                // Verify password - supports BCrypt and legacy algorithms
-                bool passwordOk = entry.VerifyPassword(userInfo.Password);
-                
-                if (passwordOk)
-                {
-                    // Check if we should migrate to BCrypt (only if enabled and not already BCrypt)
-                    if (Settings.IsMigrationEnabled() && entry.HashAlg != PasswordHashAlgorithm.BCRYPT)
-                    {
-                        TryMigrateToBCrypt(userInfo.Username, userInfo.Password, entry);
-                    }
-
-                    m_logger.InfoFormat("Authentication successful for {0}", userInfo.Username);
-                    return new BooleanResult { Success = true, Message = "Success." };
-                }
-                
-                m_logger.WarnFormat("Authentication failed for {0} - invalid password", userInfo.Username);
-                return new BooleanResult { Success = false, Message = "Invalid username or password." };
-            }
-            
             m_logger.WarnFormat("Authentication failed - user {0} not found", userInfo.Username);
             return new BooleanResult { Success = false, Message = "Invalid username or password." };
         }
@@ -214,11 +265,22 @@ namespace pGina.Plugin.MySQLAuth
         /// </summary>
         public BooleanResult AuthenticatedUserGateway(SessionProperties properties)
         {
+            if (properties == null)
+            {
+                m_logger.Error("AuthenticatedUserGateway called without session properties.");
+                return new BooleanResult { Success = false, Message = "Missing session properties for gateway processing." };
+            }
+
             UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
+            if (userInfo == null || string.IsNullOrWhiteSpace(userInfo.Username))
+            {
+                m_logger.Error("AuthenticatedUserGateway called without valid UserInformation.");
+                return new BooleanResult { Success = false, Message = "Missing user information for gateway processing." };
+            }
 
             try
             {
-                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                using (IUserDataSource dataSource = UserDataSourceFactory.Create())
                 {
                     List<GroupGatewayRule> rules = GroupRuleLoader.GetGatewayRules();
                     foreach (GroupGatewayRule rule in rules)
@@ -250,14 +312,8 @@ namespace pGina.Plugin.MySQLAuth
             }
             catch (Exception e)
             {
-                if (Settings.IsOfflineFallbackEnabled() && Settings.AllowOfflineBypassForAuthorization())
-                {
-                    m_logger.WarnFormat("Gateway offline bypass enabled after unexpected error: {0}", e.Message);
-                    return new BooleanResult { Success = true, Message = "Gateway bypassed while MySQL is unavailable." };
-                }
-
                 m_logger.ErrorFormat("Gateway error: {0}", e);
-                throw;
+                return new BooleanResult { Success = false, Message = string.Format("Gateway failed: {0}", e.Message) };
             }
 
             return new BooleanResult { Success = true };
@@ -271,10 +327,21 @@ namespace pGina.Plugin.MySQLAuth
             m_logger.Debug("MySQL Plugin Authorization");
             
             bool requireAuth = Settings.IsAuthzRequireMySqlAuth();
+            if (properties == null)
+            {
+                m_logger.Error("AuthorizeUser called without session properties.");
+                return new BooleanResult { Success = false, Message = "Missing session properties." };
+            }
 
             if (requireAuth)
             {
                 PluginActivityInformation actInfo = properties.GetTrackedSingle<PluginActivityInformation>();
+                if (actInfo == null)
+                {
+                    m_logger.Error("AuthorizeUser requires MySQL authentication, but PluginActivityInformation is missing.");
+                    return new BooleanResult { Success = false, Message = "MySQL auth context is missing." };
+                }
+
                 try
                 {
                     BooleanResult mySqlResult = actInfo.GetAuthenticationResult(this.Uuid);
@@ -291,14 +358,23 @@ namespace pGina.Plugin.MySQLAuth
 
             List<GroupAuthzRule> rules = GroupRuleLoader.GetAuthzRules();
             if (rules.Count == 0)
-                throw new Exception("No authorization rules found.");
+            {
+                m_logger.Error("Authorization failed because no authorization rules are configured.");
+                return new BooleanResult { Success = false, Message = "No authorization rules configured." };
+            }
 
             try
             {
                 UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
+                if (userInfo == null || string.IsNullOrWhiteSpace(userInfo.Username))
+                {
+                    m_logger.Error("AuthorizeUser called without valid UserInformation.");
+                    return new BooleanResult { Success = false, Message = "Missing user information." };
+                }
+
                 string user = userInfo.Username;
 
-                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                using (IUserDataSource dataSource = UserDataSourceFactory.Create())
                 {
                     foreach (GroupAuthzRule rule in rules)
                     {
@@ -320,23 +396,35 @@ namespace pGina.Plugin.MySQLAuth
                         }
                     }
                 }
-                throw new Exception("Missing default authorization rule.");
+                m_logger.Error("Authorization failed because no default rule matched.");
+                return new BooleanResult { Success = false, Message = "Missing default authorization rule." };
             }
-            catch (Exception e)
+            catch (MySqlException e)
             {
                 if (Settings.IsOfflineFallbackEnabled() && Settings.AllowOfflineBypassForAuthorization())
                 {
-                    m_logger.WarnFormat("Authorization offline bypass enabled: {0}", e.Message);
+                    m_logger.WarnFormat("Authorization offline bypass enabled because MySQL is unavailable: {0}", e.Message);
                     return new BooleanResult { Success = true, Message = "Authorization bypassed while MySQL is unavailable." };
                 }
 
+                m_logger.ErrorFormat("Authorization MySQL error: {0}", e);
+                return new BooleanResult { Success = false, Message = string.Format("Authorization failed: {0}", e.Message) };
+            }
+            catch (Exception e)
+            {
                 m_logger.ErrorFormat("Authorization error: {0}", e);
-                throw;
+                return new BooleanResult { Success = false, Message = string.Format("Authorization failed: {0}", e.Message) };
             }
         }
 
         private BooleanResult TryOfflineAuthentication(UserInformation userInfo, string reason)
         {
+            if (userInfo == null || string.IsNullOrWhiteSpace(userInfo.Username))
+            {
+                m_logger.ErrorFormat("Offline authentication unavailable because user context is missing. Reason: {0}", reason);
+                return new BooleanResult { Success = false, Message = "Missing user information." };
+            }
+
             if (!Settings.IsLocalCacheEnabled() || !Settings.IsOfflineFallbackEnabled() || !m_localCacheRuntimeAvailable)
             {
                 return new BooleanResult { Success = false, Message = "MySQL unavailable and offline fallback is disabled." };
@@ -386,7 +474,7 @@ namespace pGina.Plugin.MySQLAuth
 
             try
             {
-                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                using (IUserDataSource dataSource = UserDataSourceFactory.Create())
                 {
                     m_mysqlAvailable = true;
 
@@ -445,7 +533,7 @@ namespace pGina.Plugin.MySQLAuth
                 string newHash = BCryptHasher.HashPassword(password, workFactor);
 
                 // Update database with new hash
-                using (MySqlUserDataSource dataSource = new MySqlUserDataSource())
+                using (IUserDataSource dataSource = UserDataSourceFactory.Create())
                 {
                     dataSource.UpdateUserHash(username, newHash, "BCRYPT");
                 }
@@ -457,6 +545,15 @@ namespace pGina.Plugin.MySQLAuth
                 // Log warning but don't fail authentication
                 m_logger.WarnFormat("Failed to migrate hash for user {0}: {1}", username, ex.Message);
             }
+        }
+
+        private static string FormatLockoutDisplay(DateTime blockedUntilUtc)
+        {
+            DateTime localTime = blockedUntilUtc.Kind == DateTimeKind.Utc
+                ? blockedUntilUtc.ToLocalTime()
+                : blockedUntilUtc;
+
+            return localTime.ToString("yyyy-MM-dd HH:mm:ss");
         }
     }
 }

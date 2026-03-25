@@ -42,6 +42,7 @@ TestResults/
 packages/
 .nuget/
 *.nupkg
+.dotnet-home/
 
 # Keep installer payloads under source control
 !Installer/bin/

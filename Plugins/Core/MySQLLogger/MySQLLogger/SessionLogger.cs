@@ -53,7 +53,8 @@ namespace pGina.Plugin.MySqlLogger
             if (properties != null)
             {
                 UserInformation ui = properties.GetTrackedSingle<UserInformation>();
-                username = Settings.GetUseModifiedName() ? ui.Username : ui.OriginalUsername;
+                if (ui != null)
+                    username = ResolveUsername(ui);
             }
 
             if (changeDescription.Reason == SessionChangeReason.SessionLogon)
@@ -61,10 +62,11 @@ namespace pGina.Plugin.MySqlLogger
                 if (m_conn.State != System.Data.ConnectionState.Open) m_conn.Open();
 
                 string table = Settings.Store.SessionTable;
-                string updatesql = string.Format("UPDATE `{0}` SET logoutstamp=NOW() WHERE logoutstamp IS NULL AND machine=@machine AND ipaddress=@ipaddress", table);
+                string updatesql = string.Format("UPDATE `{0}` SET logoutstamp=NOW() WHERE logoutstamp IS NULL AND username=@username AND machine=@machine AND ipaddress=@ipaddress", table);
 
                 using (var cmd = new MySqlCommand(updatesql, m_conn))
                 {
+                    cmd.Parameters.AddWithValue("@username", username);
                     cmd.Parameters.AddWithValue("@machine", Environment.MachineName);
                     cmd.Parameters.AddWithValue("@ipaddress", getIPAddress());
                     cmd.ExecuteNonQuery();
@@ -171,6 +173,15 @@ namespace pGina.Plugin.MySqlLogger
         }
 
         public void SetConnection(MySqlConnection conn) { this.m_conn = conn; }
+
+        private string ResolveUsername(UserInformation userInfo)
+        {
+            if (userInfo == null)
+                return "--UNKNOWN--";
+
+            string username = Settings.GetUseModifiedName() ? userInfo.Username : userInfo.OriginalUsername;
+            return string.IsNullOrWhiteSpace(username) ? "--UNKNOWN--" : username;
+        }
 
         private string getIPAddress()
         {

@@ -72,6 +72,12 @@ namespace pGina.Plugin.MySQLAuth
             this.userPrimaryKeyColTB.Text = Convert.ToString(Settings.Store.UserTablePrimaryKeyColumn);
             this.statusColTB.Text = Settings.GetUserStatusColumn();
             this.activeValueTB.Text = Settings.GetUserActiveValue();
+            this.lockoutEnabledCB.Checked = Settings.IsLoginLockoutEnabled();
+            this.failedAttemptsColTB.Text = Settings.GetFailedAttemptsColumn();
+            this.blockedUntilColTB.Text = Settings.GetBlockedUntilColumn();
+            this.lastAttemptColTB.Text = Settings.GetLastAttemptColumn();
+            this.maxFailedAttemptsTB.Text = Convert.ToString(Settings.GetMaxFailedAttempts());
+            this.lockoutMinutesTB.Text = Convert.ToString(Settings.GetLockoutMinutes());
 
             Settings.HashEncoding encoding = Settings.GetHashEncoding();
 
@@ -146,6 +152,8 @@ namespace pGina.Plugin.MySQLAuth
             int port = 0;
             int syncIntervalMinutes = 0;
             int healthCheckSeconds = 0;
+            int maxFailedAttempts = Settings.GetMaxFailedAttempts();
+            int lockoutMinutes = Settings.GetLockoutMinutes();
             try
             {
                 port = Convert.ToInt32(this.portTB.Text);
@@ -179,6 +187,49 @@ namespace pGina.Plugin.MySQLAuth
                 return false;
             }
 
+            if (this.lockoutEnabledCB.Checked)
+            {
+                try
+                {
+                    maxFailedAttempts = Convert.ToInt32(this.maxFailedAttemptsTB.Text);
+                    lockoutMinutes = Convert.ToInt32(this.lockoutMinutesTB.Text);
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("Login lockout values must be positive integers.");
+                    return false;
+                }
+
+                if (maxFailedAttempts < 1 || lockoutMinutes < 1)
+                {
+                    MessageBox.Show("Login lockout values must be at least 1.");
+                    return false;
+                }
+            }
+
+            if (this.enforceStatusCB.Checked &&
+                (string.IsNullOrWhiteSpace(this.statusColTB.Text) || string.IsNullOrWhiteSpace(this.activeValueTB.Text)))
+            {
+                MessageBox.Show("User status validation requires both status column and active value.");
+                return false;
+            }
+
+            if (this.lockoutEnabledCB.Checked &&
+                (string.IsNullOrWhiteSpace(this.failedAttemptsColTB.Text) ||
+                 string.IsNullOrWhiteSpace(this.blockedUntilColTB.Text) ||
+                 string.IsNullOrWhiteSpace(this.lastAttemptColTB.Text)))
+            {
+                MessageBox.Show("Login lockout requires attempts, blocked-until and last-attempt columns.");
+                return false;
+            }
+
+            MySqlSslMode sslMode;
+            if (!Enum.TryParse(this.sslModeCB.Text, true, out sslMode))
+            {
+                MessageBox.Show("Please select a valid TLS mode.");
+                return false;
+            }
+
             Settings.Store.Host = this.hostTB.Text.Trim();
             Settings.Store.Port = port;
             Settings.Store.User = this.userTB.Text.Trim();
@@ -190,12 +241,6 @@ namespace pGina.Plugin.MySQLAuth
             Settings.Store.SyncIntervalMinutes = syncIntervalMinutes;
             Settings.Store.HealthCheckSeconds = healthCheckSeconds;
             Settings.Store.LocalCachePath = this.cachePathTB.Text.Trim();
-            MySqlSslMode sslMode;
-            if (!Enum.TryParse(this.sslModeCB.Text, true, out sslMode))
-            {
-                MessageBox.Show("Please select a valid TLS mode.");
-                return false;
-            }
             Settings.Store.SslMode = sslMode.ToString();
             Settings.Store.UseSsl = sslMode != MySqlSslMode.None;
 
@@ -208,13 +253,12 @@ namespace pGina.Plugin.MySQLAuth
             Settings.Store.EnforceUserStatus = this.enforceStatusCB.Checked;
             Settings.Store.UserStatusColumn = this.statusColTB.Text.Trim();
             Settings.Store.UserActiveValue = this.activeValueTB.Text.Trim();
-
-            if (this.enforceStatusCB.Checked &&
-                (string.IsNullOrWhiteSpace(this.statusColTB.Text) || string.IsNullOrWhiteSpace(this.activeValueTB.Text)))
-            {
-                MessageBox.Show("User status validation requires both status column and active value.");
-                return false;
-            }
+            Settings.Store.EnableLoginLockout = this.lockoutEnabledCB.Checked;
+            Settings.Store.FailedAttemptsColumn = this.failedAttemptsColTB.Text.Trim();
+            Settings.Store.BlockedUntilColumn = this.blockedUntilColTB.Text.Trim();
+            Settings.Store.LastAttemptColumn = this.lastAttemptColTB.Text.Trim();
+            Settings.Store.MaxFailedAttempts = maxFailedAttempts;
+            Settings.Store.LockoutMinutes = lockoutMinutes;
 
             if (encHexRB.Checked)
                 Settings.Store.HashEncoding = (int)Settings.HashEncoding.HEX;
@@ -333,6 +377,8 @@ namespace pGina.Plugin.MySQLAuth
                 CheckTable(this.userGroupTableNameTB.Text.Trim(),
                     new string[] { this.userGroupUserFKColTB.Text.Trim(), this.userGroupGroupFKColTB.Text.Trim() },
                     infoDlg, conn);
+
+                infoDlg.AppendLine(Environment.NewLine + LocalUserCache.TestConfiguration());
             }
             catch (Exception ex)
             {
@@ -431,7 +477,10 @@ namespace pGina.Plugin.MySQLAuth
                         string unameCol = this.unameColTB.Text.Trim();
                         string hashMethodCol = this.hashMethodColTB.Text.Trim();
                         string passwdCol = this.passwdColTB.Text.Trim();
-                        string statusCol = Settings.GetUserStatusColumn();
+                        string statusCol = this.statusColTB.Text.Trim();
+                        string failedAttemptsCol = this.failedAttemptsColTB.Text.Trim();
+                        string blockedUntilCol = this.blockedUntilColTB.Text.Trim();
+                        string lastAttemptCol = this.lastAttemptColTB.Text.Trim();
 
                         // Is the primary key the same as the username?
                         bool pkIsUserName =
@@ -443,8 +492,14 @@ namespace pGina.Plugin.MySQLAuth
                             sql.AppendFormat(" {0} BIGINT auto_increment PRIMARY KEY, \r\n", pk);
                         sql.AppendFormat(" {0} VARCHAR(128) {1}, \r\n", unameCol, pkIsUserName ? "PRIMARY KEY" : "NOT NULL UNIQUE");
                         sql.AppendFormat(" {0} TEXT NOT NULL, \r\n", hashMethodCol);
-                        if (Settings.IsUserStatusValidationEnabled())
-                            sql.AppendFormat(" {0} VARCHAR(32) NOT NULL DEFAULT '{1}', \r\n", statusCol, Settings.GetUserActiveValue().Replace("'", "''"));
+                        if (this.enforceStatusCB.Checked)
+                            sql.AppendFormat(" {0} VARCHAR(32) NOT NULL DEFAULT '{1}', \r\n", statusCol, this.activeValueTB.Text.Trim().Replace("'", "''"));
+                        if (this.lockoutEnabledCB.Checked)
+                        {
+                            sql.AppendFormat(" {0} INT NOT NULL DEFAULT 0, \r\n", failedAttemptsCol);
+                            sql.AppendFormat(" {0} DATETIME NULL, \r\n", blockedUntilCol);
+                            sql.AppendFormat(" {0} DATETIME NULL, \r\n", lastAttemptCol);
+                        }
                         sql.AppendFormat(" {0} TEXT \r\n", passwdCol);
                         sql.Append(")");  // End create table.
 
@@ -604,8 +659,15 @@ namespace pGina.Plugin.MySQLAuth
                 this.userPrimaryKeyColTB.Text.Trim()
             };
 
-            if (Settings.IsUserStatusValidationEnabled())
-                columns.Add(Settings.GetUserStatusColumn());
+            if (this.enforceStatusCB.Checked)
+                columns.Add(this.statusColTB.Text.Trim());
+
+            if (this.lockoutEnabledCB.Checked)
+            {
+                columns.Add(this.failedAttemptsColTB.Text.Trim());
+                columns.Add(this.blockedUntilColTB.Text.Trim());
+                columns.Add(this.lastAttemptColTB.Text.Trim());
+            }
 
             return columns.ToArray();
         }

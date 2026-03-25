@@ -142,7 +142,9 @@
     <Compile Include="Configuration.Designer.cs">
       <DependentUpon>Configuration.cs</DependentUpon>
     </Compile>
+    <Compile Include="FailedAttemptResult.cs" />
     <Compile Include="GroupRules.cs" />
+    <Compile Include="IUserDataSource.cs" />
     <Compile Include="LocalUserCache.cs" />
     <Compile Include="MySqlUserDataSource.cs" />
     <Compile Include="PluginImpl.cs" />
@@ -151,6 +153,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="SQLiteNativeBootstrap.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="TextBoxInfoDialog.cs">
       <SubType>Form</SubType>
@@ -158,6 +161,7 @@
     <Compile Include="TextBoxInfoDialog.Designer.cs">
       <DependentUpon>TextBoxInfoDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="UserDataSourceFactory.cs" />
     <Compile Include="UserEntry.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -175,6 +179,14 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+    <Content Include="..\..\SQLiteNative\win-x64\native\e_sqlite3.dll">
+      <Link>runtimes\win-x64\native\e_sqlite3.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\SQLiteNative\win-x86\native\e_sqlite3.dll">
+      <Link>runtimes\win-x86\native\e_sqlite3.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="Resources\delete.png" />
     <None Include="Resources\UpArrowSolid.png" />
     <None Include="Resources\DownArrowSolid.png" />

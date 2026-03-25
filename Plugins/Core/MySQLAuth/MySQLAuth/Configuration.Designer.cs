@@ -62,6 +62,19 @@
             this.label8 = new System.Windows.Forms.Label();
             this.unameColTB = new System.Windows.Forms.TextBox();
             this.label7 = new System.Windows.Forms.Label();
+            this.groupBoxLockout = new System.Windows.Forms.GroupBox();
+            this.lockoutEnabledCB = new System.Windows.Forms.CheckBox();
+            this.maxFailedAttemptsTB = new System.Windows.Forms.TextBox();
+            this.label30 = new System.Windows.Forms.Label();
+            this.lockoutMinutesTB = new System.Windows.Forms.TextBox();
+            this.label31 = new System.Windows.Forms.Label();
+            this.failedAttemptsColTB = new System.Windows.Forms.TextBox();
+            this.label32 = new System.Windows.Forms.Label();
+            this.blockedUntilColTB = new System.Windows.Forms.TextBox();
+            this.label33 = new System.Windows.Forms.Label();
+            this.lastAttemptColTB = new System.Windows.Forms.TextBox();
+            this.label34 = new System.Windows.Forms.Label();
+            this.label35 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
             this.userTableTB = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
@@ -124,6 +137,7 @@
             this.tabControlDBSchema.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.groupBox3.SuspendLayout();
+            this.groupBoxLockout.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.groupBox4.SuspendLayout();
             this.tabPage3.SuspendLayout();
@@ -138,7 +152,7 @@
             // 
             // cancelButton
             // 
-            this.cancelButton.Location = new System.Drawing.Point(481, 346);
+            this.cancelButton.Location = new System.Drawing.Point(481, 429);
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(81, 25);
             this.cancelButton.TabIndex = 0;
@@ -148,7 +162,7 @@
             // 
             // saveButton
             // 
-            this.saveButton.Location = new System.Drawing.Point(375, 346);
+            this.saveButton.Location = new System.Drawing.Point(375, 429);
             this.saveButton.Name = "saveButton";
             this.saveButton.Size = new System.Drawing.Size(98, 25);
             this.saveButton.TabIndex = 1;
@@ -301,13 +315,15 @@
             this.tabControlDBSchema.Location = new System.Drawing.Point(6, 6);
             this.tabControlDBSchema.Name = "tabControlDBSchema";
             this.tabControlDBSchema.SelectedIndex = 0;
-            this.tabControlDBSchema.Size = new System.Drawing.Size(530, 291);
+            this.tabControlDBSchema.Size = new System.Drawing.Size(530, 374);
             this.tabControlDBSchema.TabIndex = 16;
             // 
             // tabPage1
             // 
             this.tabPage1.Controls.Add(this.encBase64RB);
             this.tabPage1.Controls.Add(this.encHexRB);
+            this.tabPage1.Controls.Add(this.label35);
+            this.tabPage1.Controls.Add(this.groupBoxLockout);
             this.tabPage1.Controls.Add(this.groupBox3);
             this.tabPage1.Controls.Add(this.label6);
             this.tabPage1.Controls.Add(this.userTableTB);
@@ -315,7 +331,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 22);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(522, 265);
+            this.tabPage1.Size = new System.Drawing.Size(522, 348);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "User Table";
             this.tabPage1.UseVisualStyleBackColor = true;
@@ -323,7 +339,7 @@
             // encBase64RB
             // 
             this.encBase64RB.AutoSize = true;
-            this.encBase64RB.Location = new System.Drawing.Point(206, 234);
+            this.encBase64RB.Location = new System.Drawing.Point(208, 323);
             this.encBase64RB.Name = "encBase64RB";
             this.encBase64RB.Size = new System.Drawing.Size(64, 17);
             this.encBase64RB.TabIndex = 6;
@@ -334,7 +350,7 @@
             // encHexRB
             // 
             this.encHexRB.AutoSize = true;
-            this.encHexRB.Location = new System.Drawing.Point(114, 234);
+            this.encHexRB.Location = new System.Drawing.Point(116, 323);
             this.encHexRB.Name = "encHexRB";
             this.encHexRB.Size = new System.Drawing.Size(86, 17);
             this.encHexRB.TabIndex = 5;
@@ -365,6 +381,125 @@
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Column Names";
             this.groupBox3.Enter += new System.EventHandler(this.groupBox3_Enter);
+            // 
+            // groupBoxLockout
+            // 
+            this.groupBoxLockout.Controls.Add(this.lastAttemptColTB);
+            this.groupBoxLockout.Controls.Add(this.label34);
+            this.groupBoxLockout.Controls.Add(this.blockedUntilColTB);
+            this.groupBoxLockout.Controls.Add(this.label33);
+            this.groupBoxLockout.Controls.Add(this.failedAttemptsColTB);
+            this.groupBoxLockout.Controls.Add(this.label32);
+            this.groupBoxLockout.Controls.Add(this.lockoutMinutesTB);
+            this.groupBoxLockout.Controls.Add(this.label31);
+            this.groupBoxLockout.Controls.Add(this.maxFailedAttemptsTB);
+            this.groupBoxLockout.Controls.Add(this.label30);
+            this.groupBoxLockout.Controls.Add(this.lockoutEnabledCB);
+            this.groupBoxLockout.Location = new System.Drawing.Point(3, 231);
+            this.groupBoxLockout.Name = "groupBoxLockout";
+            this.groupBoxLockout.Size = new System.Drawing.Size(513, 110);
+            this.groupBoxLockout.TabIndex = 9;
+            this.groupBoxLockout.TabStop = false;
+            this.groupBoxLockout.Text = "Login Lockout";
+            // 
+            // lockoutEnabledCB
+            // 
+            this.lockoutEnabledCB.AutoSize = true;
+            this.lockoutEnabledCB.Location = new System.Drawing.Point(20, 23);
+            this.lockoutEnabledCB.Name = "lockoutEnabledCB";
+            this.lockoutEnabledCB.Size = new System.Drawing.Size(128, 17);
+            this.lockoutEnabledCB.TabIndex = 0;
+            this.lockoutEnabledCB.Text = "Enable failed attempt lockout";
+            this.lockoutEnabledCB.UseVisualStyleBackColor = true;
+            // 
+            // maxFailedAttemptsTB
+            // 
+            this.maxFailedAttemptsTB.Location = new System.Drawing.Point(253, 21);
+            this.maxFailedAttemptsTB.Name = "maxFailedAttemptsTB";
+            this.maxFailedAttemptsTB.Size = new System.Drawing.Size(48, 20);
+            this.maxFailedAttemptsTB.TabIndex = 2;
+            // 
+            // label30
+            // 
+            this.label30.AutoSize = true;
+            this.label30.Location = new System.Drawing.Point(163, 24);
+            this.label30.Name = "label30";
+            this.label30.Size = new System.Drawing.Size(84, 13);
+            this.label30.TabIndex = 1;
+            this.label30.Text = "Max attempts:";
+            // 
+            // lockoutMinutesTB
+            // 
+            this.lockoutMinutesTB.Location = new System.Drawing.Point(402, 21);
+            this.lockoutMinutesTB.Name = "lockoutMinutesTB";
+            this.lockoutMinutesTB.Size = new System.Drawing.Size(48, 20);
+            this.lockoutMinutesTB.TabIndex = 4;
+            // 
+            // label31
+            // 
+            this.label31.AutoSize = true;
+            this.label31.Location = new System.Drawing.Point(319, 24);
+            this.label31.Name = "label31";
+            this.label31.Size = new System.Drawing.Size(77, 13);
+            this.label31.TabIndex = 3;
+            this.label31.Text = "Lockout min:";
+            // 
+            // failedAttemptsColTB
+            // 
+            this.failedAttemptsColTB.Location = new System.Drawing.Point(115, 50);
+            this.failedAttemptsColTB.Name = "failedAttemptsColTB";
+            this.failedAttemptsColTB.Size = new System.Drawing.Size(112, 20);
+            this.failedAttemptsColTB.TabIndex = 6;
+            // 
+            // label32
+            // 
+            this.label32.AutoSize = true;
+            this.label32.Location = new System.Drawing.Point(17, 53);
+            this.label32.Name = "label32";
+            this.label32.Size = new System.Drawing.Size(92, 13);
+            this.label32.TabIndex = 5;
+            this.label32.Text = "Attempts column:";
+            // 
+            // blockedUntilColTB
+            // 
+            this.blockedUntilColTB.Location = new System.Drawing.Point(335, 50);
+            this.blockedUntilColTB.Name = "blockedUntilColTB";
+            this.blockedUntilColTB.Size = new System.Drawing.Size(166, 20);
+            this.blockedUntilColTB.TabIndex = 8;
+            // 
+            // label33
+            // 
+            this.label33.AutoSize = true;
+            this.label33.Location = new System.Drawing.Point(238, 53);
+            this.label33.Name = "label33";
+            this.label33.Size = new System.Drawing.Size(91, 13);
+            this.label33.TabIndex = 7;
+            this.label33.Text = "Blocked-until col:";
+            // 
+            // lastAttemptColTB
+            // 
+            this.lastAttemptColTB.Location = new System.Drawing.Point(115, 76);
+            this.lastAttemptColTB.Name = "lastAttemptColTB";
+            this.lastAttemptColTB.Size = new System.Drawing.Size(166, 20);
+            this.lastAttemptColTB.TabIndex = 10;
+            // 
+            // label34
+            // 
+            this.label34.AutoSize = true;
+            this.label34.Location = new System.Drawing.Point(17, 79);
+            this.label34.Name = "label34";
+            this.label34.Size = new System.Drawing.Size(88, 13);
+            this.label34.TabIndex = 9;
+            this.label34.Text = "Last-attempt col:";
+            // 
+            // label35
+            // 
+            this.label35.AutoSize = true;
+            this.label35.Location = new System.Drawing.Point(21, 325);
+            this.label35.Name = "label35";
+            this.label35.Size = new System.Drawing.Size(89, 13);
+            this.label35.TabIndex = 10;
+            this.label35.Text = "Password format:";
             // 
             // activeValueTB
             // 
@@ -646,7 +781,7 @@
             // 
             // createTableBtn
             // 
-            this.createTableBtn.Location = new System.Drawing.Point(90, 346);
+            this.createTableBtn.Location = new System.Drawing.Point(90, 429);
             this.createTableBtn.Name = "createTableBtn";
             this.createTableBtn.Size = new System.Drawing.Size(100, 24);
             this.createTableBtn.TabIndex = 14;
@@ -656,7 +791,7 @@
             // 
             // testBtn
             // 
-            this.testBtn.Location = new System.Drawing.Point(8, 346);
+            this.testBtn.Location = new System.Drawing.Point(8, 429);
             this.testBtn.Name = "testBtn";
             this.testBtn.Size = new System.Drawing.Size(76, 24);
             this.testBtn.TabIndex = 15;
@@ -673,7 +808,7 @@
             this.tabControl1.Location = new System.Drawing.Point(12, 12);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(550, 331);
+            this.tabControl1.Size = new System.Drawing.Size(550, 414);
             this.tabControl1.TabIndex = 16;
             // 
             // tabPage4
@@ -682,7 +817,7 @@
             this.tabPage4.Location = new System.Drawing.Point(4, 22);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage4.Size = new System.Drawing.Size(542, 305);
+            this.tabPage4.Size = new System.Drawing.Size(542, 388);
             this.tabPage4.TabIndex = 0;
             this.tabPage4.Text = "Database Schema";
             this.tabPage4.UseVisualStyleBackColor = true;
@@ -1053,7 +1188,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(574, 384);
+            this.ClientSize = new System.Drawing.Size(574, 467);
             this.Controls.Add(this.tabControl1);
             this.Controls.Add(this.testBtn);
             this.Controls.Add(this.createTableBtn);
@@ -1068,6 +1203,8 @@
             this.tabPage1.PerformLayout();
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
+            this.groupBoxLockout.ResumeLayout(false);
+            this.groupBoxLockout.PerformLayout();
             this.tabPage2.ResumeLayout(false);
             this.tabPage2.PerformLayout();
             this.groupBox4.ResumeLayout(false);
@@ -1126,6 +1263,19 @@
         private System.Windows.Forms.TextBox passwdColTB;
         private System.Windows.Forms.TextBox hashMethodColTB;
         private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.GroupBox groupBoxLockout;
+        private System.Windows.Forms.CheckBox lockoutEnabledCB;
+        private System.Windows.Forms.TextBox maxFailedAttemptsTB;
+        private System.Windows.Forms.Label label30;
+        private System.Windows.Forms.TextBox lockoutMinutesTB;
+        private System.Windows.Forms.Label label31;
+        private System.Windows.Forms.TextBox failedAttemptsColTB;
+        private System.Windows.Forms.Label label32;
+        private System.Windows.Forms.TextBox blockedUntilColTB;
+        private System.Windows.Forms.Label label33;
+        private System.Windows.Forms.TextBox lastAttemptColTB;
+        private System.Windows.Forms.Label label34;
+        private System.Windows.Forms.Label label35;
         private System.Windows.Forms.TabControl tabControlDBSchema;
         private System.Windows.Forms.TabPage tabPage1;
         private System.Windows.Forms.TextBox userPrimaryKeyColTB;

@@ -65,13 +65,31 @@ namespace pGina.Plugin.MySQLAuth
         public PasswordHashAlgorithm HashAlg { get; private set; }
         public string Hash { get; private set; }
         public string StatusValue { get; private set; }
+        public int FailedAttempts { get; private set; }
+        public DateTime? BlockedUntilUtc { get; private set; }
+        public bool IsLockedByDatabase { get; private set; }
 
-        public UserEntry(string name, PasswordHashAlgorithm hashAlg, string hash, string statusValue = null)
+        public UserEntry(
+            string name,
+            PasswordHashAlgorithm hashAlg,
+            string hash,
+            string statusValue = null,
+            int failedAttempts = 0,
+            DateTime? blockedUntilUtc = null,
+            bool isLockedByDatabase = false)
         {
             Name = name;
             HashAlg = hashAlg;
             Hash = hash;
             StatusValue = statusValue;
+            FailedAttempts = failedAttempts;
+            BlockedUntilUtc = blockedUntilUtc;
+            IsLockedByDatabase = isLockedByDatabase;
+        }
+
+        public bool IsCurrentlyLocked()
+        {
+            return IsLockedByDatabase || (BlockedUntilUtc.HasValue && BlockedUntilUtc.Value > DateTime.UtcNow);
         }
 
         /// <summary>
@@ -157,7 +175,7 @@ namespace pGina.Plugin.MySQLAuth
         private bool VerifyMD5(string password)
         {
             string computedHash = ComputeMD5(password);
-            return StringEquals(computedHash, Hash);
+            return CompareHash(computedHash, Hash);
         }
 
         private bool VerifySMD5(string password)
@@ -168,7 +186,7 @@ namespace pGina.Plugin.MySQLAuth
         private bool VerifySHA1(string password)
         {
             string computedHash = ComputeSHA1(password);
-            return StringEquals(computedHash, Hash);
+            return CompareHash(computedHash, Hash);
         }
 
         private bool VerifySSHA1(string password)
@@ -179,7 +197,7 @@ namespace pGina.Plugin.MySQLAuth
         private bool VerifySHA256(string password)
         {
             string computedHash = ComputeSHA256(password);
-            return StringEquals(computedHash, Hash);
+            return CompareHash(computedHash, Hash);
         }
 
         private bool VerifySSHA256(string password)
@@ -190,7 +208,7 @@ namespace pGina.Plugin.MySQLAuth
         private bool VerifySHA384(string password)
         {
             string computedHash = ComputeSHA384(password);
-            return StringEquals(computedHash, Hash);
+            return CompareHash(computedHash, Hash);
         }
 
         private bool VerifySSHA384(string password)
@@ -201,7 +219,7 @@ namespace pGina.Plugin.MySQLAuth
         private bool VerifySHA512(string password)
         {
             string computedHash = ComputeSHA512(password);
-            return StringEquals(computedHash, Hash);
+            return CompareHash(computedHash, Hash);
         }
 
         private bool VerifySSHA512(string password)
@@ -307,6 +325,47 @@ namespace pGina.Plugin.MySQLAuth
                 sb.Append(b.ToString("x2"));
             }
             return sb.ToString();
+        }
+
+        private string BytesToBase64(byte[] bytes)
+        {
+            return Convert.ToBase64String(bytes);
+        }
+
+        private bool CompareHash(string hexHash, string storedHash)
+        {
+            if (string.IsNullOrEmpty(hexHash) || string.IsNullOrEmpty(storedHash))
+                return false;
+
+            if (Settings.GetHashEncoding() == Settings.HashEncoding.BASE_64)
+            {
+                try
+                {
+                    byte[] bytes = HexToBytes(hexHash);
+                    return string.Equals(BytesToBase64(bytes), storedHash, StringComparison.Ordinal);
+                }
+                catch (FormatException ex)
+                {
+                    m_logger.ErrorFormat("Invalid hash format for user {0}: {1}", Name, ex.Message);
+                    return false;
+                }
+            }
+
+            return StringEquals(hexHash, storedHash);
+        }
+
+        private byte[] HexToBytes(string hex)
+        {
+            if (string.IsNullOrEmpty(hex) || hex.Length % 2 != 0)
+                throw new FormatException("Hex hash has an invalid length.");
+
+            byte[] bytes = new byte[hex.Length / 2];
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+            }
+
+            return bytes;
         }
 
         private bool StringEquals(string a, string b)
