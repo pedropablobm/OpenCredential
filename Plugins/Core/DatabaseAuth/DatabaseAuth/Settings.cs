@@ -73,7 +73,7 @@ namespace pGina.Plugin.DatabaseAuth
             m_settings.SetDefault("SslMode", MySqlConnector.MySqlSslMode.None.ToString());
             m_settings.SetDefault("User", "pgina_user");
             m_settings.SetDefaultEncryptedSetting("Password", "secret");
-            m_settings.SetDefault("Database", "bdcontrolasistenciasalas");
+            m_settings.SetDefault("Database", "pgina_access_control");
 
             // Connection timeout settings (for MySQL 8/MariaDB)
             m_settings.SetDefault("ConnectionTimeout", 30);
@@ -82,19 +82,19 @@ namespace pGina.Plugin.DatabaseAuth
             // =============================================
             // User Table Configuration
             // =============================================
-            m_settings.SetDefault("Table", "estudiantes");
+            m_settings.SetDefault("Table", "users");
             m_settings.SetDefault("HashEncoding", (int)HashEncoding.HEX);
-            m_settings.SetDefault("UsernameColumn", "codigo");
-            m_settings.SetDefault("HashMethodColumn", "metodo_hash");
-            m_settings.SetDefault("PasswordColumn", "clave");
+            m_settings.SetDefault("UsernameColumn", "username");
+            m_settings.SetDefault("HashMethodColumn", "hash_method");
+            m_settings.SetDefault("PasswordColumn", "password_hash");
             m_settings.SetDefault("UserTablePrimaryKeyColumn", "id");
             m_settings.SetDefault("EnforceUserStatus", true);
-            m_settings.SetDefault("UserStatusColumn", "estado");
+            m_settings.SetDefault("UserStatusColumn", "status");
             m_settings.SetDefault("UserActiveValue", "1");
             m_settings.SetDefault("EnableLoginLockout", false);
-            m_settings.SetDefault("FailedAttemptsColumn", "intentos_fallidos");
-            m_settings.SetDefault("BlockedUntilColumn", "bloqueado_hasta");
-            m_settings.SetDefault("LastAttemptColumn", "ultimo_intento");
+            m_settings.SetDefault("FailedAttemptsColumn", "failed_attempts");
+            m_settings.SetDefault("BlockedUntilColumn", "locked_until");
+            m_settings.SetDefault("LastAttemptColumn", "last_attempt_at");
             m_settings.SetDefault("MaxFailedAttempts", 5);
             m_settings.SetDefault("LockoutMinutes", 15);
 
@@ -106,7 +106,7 @@ namespace pGina.Plugin.DatabaseAuth
             m_settings.SetDefault("GroupTablePrimaryKeyColumn", "group_id");
 
             // User-Group relationship table
-            m_settings.SetDefault("UserGroupTableName", "usergroup");
+            m_settings.SetDefault("UserGroupTableName", "user_groups");
             m_settings.SetDefault("UserForeignKeyColumn", "user_id");
             m_settings.SetDefault("GroupForeignKeyColumn", "group_id");
 

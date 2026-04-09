@@ -74,7 +74,8 @@ namespace pGina.Plugin.DatabaseLogger
 
             try
             {
-                if (!TableExists(Settings.Store.SessionTable))
+                string table = Convert.ToString(Settings.Store.SessionTable);
+                if (!TableExists(table))
                     return "Connection successful, but table does not exist. Click 'Create Table'.";
 
                 string[] columns = { "dbid", "loginstamp", "logoutstamp", "username", "machine", "ipaddress" };
@@ -82,9 +83,9 @@ namespace pGina.Plugin.DatabaseLogger
                 {
                     cmd.CommandText = IsPostgreSql
                         ? "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = @table ORDER BY ordinal_position"
-                        : "DESCRIBE " + Quote(Settings.Store.SessionTable);
+                        : "DESCRIBE " + Quote(table);
                     if (IsPostgreSql)
-                        AddParameter(cmd, "@table", Settings.Store.SessionTable);
+                        AddParameter(cmd, "@table", table);
 
                     using (var rdr = cmd.ExecuteReader())
                     {
@@ -112,7 +113,10 @@ namespace pGina.Plugin.DatabaseLogger
 
             try
             {
-                string table = Settings.Store.SessionTable;
+                string table = Convert.ToString(Settings.Store.SessionTable);
+                if (TableExists(table))
+                    return "Table already exists.";
+
                 string sql = IsPostgreSql
                     ? string.Format(
                         "CREATE TABLE {0} (\"dbid\" BIGSERIAL PRIMARY KEY, \"loginstamp\" TIMESTAMP NOT NULL, \"logoutstamp\" TIMESTAMP NULL, \"username\" VARCHAR(128) NOT NULL, \"machine\" VARCHAR(128) NOT NULL, \"ipaddress\" VARCHAR(45) NOT NULL)",

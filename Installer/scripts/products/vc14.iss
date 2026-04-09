@@ -30,23 +30,27 @@ end;
 
 procedure vc14();
 begin
-    if not IsVc14Installed('x86') then
+    if not IsVc14Installed('x86') then begin
+        ExtractTemporaryFile('VC_redist.x86.exe');
         AddProduct(
-            'vc_redist.x86.exe',
+            'VC_redist.x86.exe',
             '/install /quiet ' + {#vc14_passive} + '/norestart',
             CustomMessage('vc14x86_title'),
             CustomMessage('vc14x86_size'),
             vc14x86_url,
             false,
             false);
+    end;
 
-    if isX64 and (not IsVc14Installed('x64')) then
+    if isX64 and (not IsVc14Installed('x64')) then begin
+        ExtractTemporaryFile('VC_redist.x64.exe');
         AddProduct(
-            'vc_redist.x64.exe',
+            'VC_redist.x64.exe',
             '/install /quiet ' + {#vc14_passive} + '/norestart',
             CustomMessage('vc14x64_title'),
             CustomMessage('vc14x64_size'),
             vc14x64_url,
             false,
             false);
+    end;
 end;

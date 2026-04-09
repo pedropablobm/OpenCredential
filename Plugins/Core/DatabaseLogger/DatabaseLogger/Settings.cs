@@ -60,9 +60,9 @@ namespace pGina.Plugin.DatabaseLogger
             m_settings.SetDefault("DatabaseProvider", (int)DatabaseProvider.MySql);
             m_settings.SetDefault("User", "pGina");
             m_settings.SetDefaultEncryptedSetting("Password", "secret", null);
-            m_settings.SetDefault("Database", "pGinaDB");
-            m_settings.SetDefault("SessionTable", "");
-            m_settings.SetDefault("EventTable", "pGinaLog");
+            m_settings.SetDefault("Database", "pgina_access_control");
+            m_settings.SetDefault("SessionTable", "login_sessions");
+            m_settings.SetDefault("EventTable", "login_events");
 
             m_settings.SetDefault("EvtLogon", true);
             m_settings.SetDefault("EvtLogoff", true);

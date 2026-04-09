@@ -51,7 +51,7 @@ namespace pGina.Plugin.DatabaseLogger
         {
             m_providerLabel = new Label();
             m_providerLabel.AutoSize = true;
-            m_providerLabel.Location = new Point(205, 48);
+            m_providerLabel.Location = new Point(206, 48);
             m_providerLabel.Name = "providerLabel";
             m_providerLabel.Size = new Size(49, 13);
             m_providerLabel.Text = "Provider:";
@@ -62,11 +62,14 @@ namespace pGina.Plugin.DatabaseLogger
             m_providerCB.Location = new Point(260, 45);
             m_providerCB.Name = "providerCB";
             m_providerCB.Size = new Size(139, 21);
+            m_providerCB.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             m_providerCB.Items.Add(Settings.DatabaseProvider.MySql.ToString());
             m_providerCB.Items.Add(Settings.DatabaseProvider.PostgreSql.ToString());
 
-            this.Controls.Add(m_providerLabel);
-            this.Controls.Add(m_providerCB);
+            this.groupBox2.Controls.Add(m_providerLabel);
+            this.groupBox2.Controls.Add(m_providerCB);
+            m_providerLabel.BringToFront();
+            m_providerCB.BringToFront();
         }
 
         private void InitUI()

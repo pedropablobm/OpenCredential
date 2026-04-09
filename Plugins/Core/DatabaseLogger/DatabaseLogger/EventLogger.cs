@@ -66,7 +66,7 @@ namespace pGina.Plugin.DatabaseLogger
 
             try
             {
-                string table = Settings.Store.EventTable;
+                string table = Convert.ToString(Settings.Store.EventTable);
                 if (!TableExists(table))
                     return "Connection successful, but table does not exist. Click 'Create Table'.";
 
@@ -106,13 +106,17 @@ namespace pGina.Plugin.DatabaseLogger
 
             try
             {
+                string table = Convert.ToString(Settings.Store.EventTable);
+                if (TableExists(table))
+                    return "Table already exists.";
+
                 string sql = IsPostgreSql
                     ? string.Format(
                         "CREATE TABLE {0} (\"TimeStamp\" TIMESTAMP NULL, \"Host\" VARCHAR(128) NULL, \"Ip\" VARCHAR(45) NULL, \"Machine\" VARCHAR(128) NULL, \"Message\" TEXT NULL)",
-                        Quote(Settings.Store.EventTable))
+                        Quote(table))
                     : string.Format(
                         "CREATE TABLE {0} (TimeStamp DATETIME, Host TINYTEXT, Ip VARCHAR(45), Machine TINYTEXT, Message TEXT) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-                        Quote(Settings.Store.EventTable));
+                        Quote(table));
 
                 using (var cmd = m_conn.CreateCommand())
                 {
@@ -136,10 +140,11 @@ namespace pGina.Plugin.DatabaseLogger
         private void LogToServer(string message)
         {
             EnsureConnection();
+            string table = Convert.ToString(Settings.Store.EventTable);
 
             string sql = string.Format(
                 "INSERT INTO {0}({1}, {2}, {3}, {4}, {5}) VALUES ({6}, @host, @ip, @machine, @message)",
-                Quote(Settings.Store.EventTable),
+                Quote(table),
                 QuoteColumn("TimeStamp"),
                 QuoteColumn("Host"),
                 QuoteColumn("Ip"),
