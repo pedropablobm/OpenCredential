@@ -1,4 +1,4 @@
-﻿/*
+/*
         Copyright (c) 2013, pGina Team
         All rights reserved.
 
@@ -30,7 +30,7 @@ using System.Linq;
 using System.Text;
 using log4net;
 
-namespace pGina.Plugin.DatabaseAuth
+namespace OpenCredential.Plugin.DatabaseAuth
 {
     /// <summary>
     /// Wrapper class for BCrypt password hashing.

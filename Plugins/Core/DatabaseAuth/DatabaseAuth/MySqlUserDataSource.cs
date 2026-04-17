@@ -1,4 +1,4 @@
-﻿/*
+/*
         Copyright (c) 2013, pGina Team
         All rights reserved.
 
@@ -36,7 +36,7 @@ using log4net;
 // Updated to use MySqlConnector for MySQL 8.x and MariaDB compatibility
 using MySqlConnector;
 
-namespace pGina.Plugin.DatabaseAuth
+namespace OpenCredential.Plugin.DatabaseAuth
 {
     /// <summary>
     /// Provides access to user data stored in MySQL/MariaDB database.

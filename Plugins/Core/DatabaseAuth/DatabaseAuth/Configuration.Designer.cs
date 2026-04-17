@@ -1,4 +1,4 @@
-﻿namespace pGina.Plugin.DatabaseAuth
+namespace OpenCredential.Plugin.DatabaseAuth
 {
     partial class Configuration
     {
@@ -856,7 +856,7 @@
             // 
             // btnAuthzGroupRuleDown
             // 
-            this.btnAuthzGroupRuleDown.Image = global::pGina.Plugin.DatabaseAuth.Properties.Resources.DownArrowSolid;
+            this.btnAuthzGroupRuleDown.Image = global::OpenCredential.Plugin.DatabaseAuth.Properties.Resources.DownArrowSolid;
             this.btnAuthzGroupRuleDown.Location = new System.Drawing.Point(508, 169);
             this.btnAuthzGroupRuleDown.Name = "btnAuthzGroupRuleDown";
             this.btnAuthzGroupRuleDown.Size = new System.Drawing.Size(29, 30);
@@ -866,7 +866,7 @@
             // 
             // btnAuthzGroupRuleDelete
             // 
-            this.btnAuthzGroupRuleDelete.Image = global::pGina.Plugin.DatabaseAuth.Properties.Resources.delete;
+            this.btnAuthzGroupRuleDelete.Image = global::OpenCredential.Plugin.DatabaseAuth.Properties.Resources.delete;
             this.btnAuthzGroupRuleDelete.Location = new System.Drawing.Point(508, 119);
             this.btnAuthzGroupRuleDelete.Name = "btnAuthzGroupRuleDelete";
             this.btnAuthzGroupRuleDelete.Size = new System.Drawing.Size(29, 30);
@@ -876,7 +876,7 @@
             // 
             // btnAuthzGroupRuleUp
             // 
-            this.btnAuthzGroupRuleUp.Image = global::pGina.Plugin.DatabaseAuth.Properties.Resources.UpArrowSolid;
+            this.btnAuthzGroupRuleUp.Image = global::OpenCredential.Plugin.DatabaseAuth.Properties.Resources.UpArrowSolid;
             this.btnAuthzGroupRuleUp.Location = new System.Drawing.Point(507, 69);
             this.btnAuthzGroupRuleUp.Name = "btnAuthzGroupRuleUp";
             this.btnAuthzGroupRuleUp.Size = new System.Drawing.Size(29, 30);
@@ -995,7 +995,7 @@
             // 
             // gtwRuleDeleteBtn
             // 
-            this.gtwRuleDeleteBtn.Image = global::pGina.Plugin.DatabaseAuth.Properties.Resources.delete;
+            this.gtwRuleDeleteBtn.Image = global::OpenCredential.Plugin.DatabaseAuth.Properties.Resources.delete;
             this.gtwRuleDeleteBtn.Location = new System.Drawing.Point(505, 93);
             this.gtwRuleDeleteBtn.Name = "gtwRuleDeleteBtn";
             this.gtwRuleDeleteBtn.Size = new System.Drawing.Size(31, 33);

@@ -1,13 +1,26 @@
-﻿using System;
+// OpenCredential - Source code
+// https://github.com/pedropablobm/OpenCredential
+//
+// Copyright (c) 2024, Pedro Bermudez
+// All rights reserved.
+//
+// This file is part of OpenCredential, an unofficial fork of pGina.
+// It is distributed under the BSD-3-Clause license terms used by the
+// original pGina project unless stated otherwise.
+//
+// For more details, see the LICENSE and NOTICE files included with
+// this distribution.
+
+using System;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Net;
 using log4net;
 using Npgsql;
-using pGina.Shared.Types;
+using OpenCredential.Shared.Types;
 
-namespace pGina.Plugin.DatabaseLogger
+namespace OpenCredential.Plugin.DatabaseLogger
 {
     class EventLogger : ILoggerMode
     {
@@ -287,4 +300,5 @@ namespace pGina.Plugin.DatabaseLogger
         }
     }
 }
+
 

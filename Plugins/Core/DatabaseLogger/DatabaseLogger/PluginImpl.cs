@@ -1,4 +1,4 @@
-﻿/*
+/*
 	Copyright (c) 2011, pGina Team
 	All rights reserved.
 
@@ -31,14 +31,14 @@ using System.Text;
 using System.ComponentModel;
 using System.Threading;
 
-using pGina.Shared.Interfaces;
-using pGina.Shared.Settings;
-using pGina.Shared.Types;
+using OpenCredential.Shared.Interfaces;
+using OpenCredential.Shared.Settings;
+using OpenCredential.Shared.Types;
 
 using Abstractions.WindowsApi;
 using log4net;
 
-namespace pGina.Plugin.DatabaseLogger
+namespace OpenCredential.Plugin.DatabaseLogger
 {
     enum LoggerMode { EVENT, SESSION };
 
@@ -79,7 +79,7 @@ namespace pGina.Plugin.DatabaseLogger
             dlg.ShowDialog();
         }
 
-        public void SessionChange(System.ServiceProcess.SessionChangeDescription changeDescription, pGina.Shared.Types.SessionProperties properties)
+        public void SessionChange(System.ServiceProcess.SessionChangeDescription changeDescription, OpenCredential.Shared.Types.SessionProperties properties)
         {
             m_logger.DebugFormat("SessionChange({0}) - ID: {1}", changeDescription.Reason.ToString(), changeDescription.SessionId);
 

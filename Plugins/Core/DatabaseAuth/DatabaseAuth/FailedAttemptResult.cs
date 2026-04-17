@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace pGina.Plugin.DatabaseAuth
+namespace OpenCredential.Plugin.DatabaseAuth
 {
     class FailedAttemptResult
     {

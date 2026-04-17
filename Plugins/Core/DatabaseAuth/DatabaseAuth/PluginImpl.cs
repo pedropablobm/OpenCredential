@@ -1,4 +1,4 @@
-﻿/*
+/*
         Copyright (c) 2013, pGina Team
         All rights reserved.
 
@@ -31,12 +31,12 @@ using System.Text;
 using System.Threading;
 using log4net;
 
-using pGina.Shared.Interfaces;
-using pGina.Shared.Types;
+using OpenCredential.Shared.Interfaces;
+using OpenCredential.Shared.Types;
 using MySqlConnector;
 using Npgsql;
 
-namespace pGina.Plugin.DatabaseAuth
+namespace OpenCredential.Plugin.DatabaseAuth
 {
     /// <summary>
     /// Database authentication plugin for pGina.

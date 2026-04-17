@@ -1,4 +1,4 @@
-﻿namespace pGina.Plugin.DatabaseAuth
+namespace OpenCredential.Plugin.DatabaseAuth
 {
     partial class TextBoxInfoDialog
     {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SQLite;
@@ -8,9 +8,9 @@ using System.Net;
 using System.Text;
 using log4net;
 using Npgsql;
-using pGina.Shared.Types;
+using OpenCredential.Shared.Types;
 
-namespace pGina.Plugin.DatabaseLogger
+namespace OpenCredential.Plugin.DatabaseLogger
 {
     class OfflineLogQueue
     {

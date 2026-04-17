@@ -1,4 +1,4 @@
-﻿/*
+/*
 	Copyright (c) 2013, pGina Team
 	All rights reserved.
 
@@ -24,6 +24,15 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+/*
+	OpenCredential fork note:
+	Based on original pGina source code.
+	Further modifications Copyright (c) 2024, Pedro Bermudez.
+
+	This file is part of OpenCredential, an unofficial fork of pGina.
+	It remains subject to the BSD-3-Clause license terms of the original
+	pGina project. See LICENSE and NOTICE for details.
+*/
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -36,7 +45,7 @@ using System.Windows.Forms;
 using MySqlConnector;
 using Npgsql;
 
-namespace pGina.Plugin.DatabaseAuth
+namespace OpenCredential.Plugin.DatabaseAuth
 {
     public partial class Configuration : Form
     {
@@ -1461,4 +1470,5 @@ namespace pGina.Plugin.DatabaseAuth
         }
     }
 }
+
 

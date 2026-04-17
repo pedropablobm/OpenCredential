@@ -1,14 +1,14 @@
-# pGina - MySQL / MariaDB / PostgreSQL Edition
+# OpenCredential - MySQL / MariaDB / PostgreSQL Edition
 
-[![GitHub release](https://img.shields.io/github/release/pedropablobm/pgina-mysql8.svg)](https://github.com/pedropablobm/pgina-mysql8/releases)
+[![GitHub release](https://img.shields.io/github/release/pedropablobm/OpenCredential.svg)](https://github.com/pedropablobm/OpenCredential/releases)
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey.svg)](https://github.com/pedropablobm/pgina-mysql8)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey.svg)](https://github.com/pedropablobm/OpenCredential)
 
 ## Overview
 
-pGina is a pluggable Open Source Credential Provider (and GINA) replacement for Windows. Plugins are written in managed code and allow user authentication, authorization, session management, and login-time actions.
+OpenCredential is a pluggable open source Credential Provider (and GINA) replacement for Windows. Plugins are written in managed code and allow user authentication, authorization, session management, and login-time actions.
 
-This repository is a fork of the original [pGina](https://github.com/pgina/pgina) project, updated for modern Windows and modern database backends.
+This repository is an unofficial fork of the original [pGina](https://github.com/pgina/pgina) project, updated and rebranded for modern Windows and modern database backends.
 
 Current branch status:
 
@@ -56,19 +56,19 @@ Install these runtimes on target machines:
 
 ## Installation
 
-1. Download the latest release from [Releases](https://github.com/pedropablobm/pgina-mysql8/releases).
+1. Download the latest release from [Releases](https://github.com/pedropablobm/OpenCredential/releases).
 2. Run the generated installer as Administrator.
 3. Complete the setup wizard.
-4. Let `pGina.InstallUtil.exe post-install` finish successfully.
-5. Open the pGina configuration tool and configure your authentication plugin.
+4. Let `OpenCredential.InstallUtil.exe post-install` finish successfully.
+5. Open the OpenCredential configuration tool and configure your authentication plugin.
 
 Note:
 
-- In current local builds, the installer filename is `pGinaSetup-4.0.0.0.exe`.
+- In current local builds, the installer filename is `OpenCredentialSetup-1.0.0.0.exe`.
 
 ## Database Provider Configuration
 
-The database plugins are now presented in pGina as:
+The database plugins are now presented in OpenCredential as:
 
 - `Database Auth`
 - `Database Logger`
@@ -274,8 +274,8 @@ Typical settings:
 Provider: PostgreSql
 Host: 192.168.1.100
 Port: 5432
-Database: pgina_access_control
-User: pgina_client
+Database: opencredential_access_control
+User: opencredential_client
 Password: your_db_password
 ```
 
@@ -308,8 +308,8 @@ Typical settings:
 Provider: PostgreSql
 Host: 192.168.1.100
 Port: 5432
-Database: pgina_access_control
-User: pgina_client
+Database: opencredential_access_control
+User: opencredential_client
 Password: your_db_password
 Event Table: login_events
 Session Table: login_sessions
@@ -336,15 +336,18 @@ Important note:
 ### Build Steps
 
 ```powershell
-git clone https://github.com/pedropablobm/pgina-mysql8.git
-cd pgina-mysql8
+git clone https://github.com/pedropablobm/OpenCredential.git
+cd OpenCredential
 
 # Open and build the main solution
-# pGina\src\pGina-4.0.0.0.sln
+# OpenCredential\src\OpenCredential-1.0.0.0.sln
 
 # Example MSBuild commands
-msbuild pGina\src\pGina-4.0.0.0.sln /p:Configuration=Release /p:Platform=x64
-msbuild pGina\src\pGina-4.0.0.0.sln /p:Configuration=Release /p:Platform=Win32
+msbuild OpenCredential\src\OpenCredential-1.0.0.0.sln /p:Configuration=Release /p:Platform=x64
+msbuild OpenCredential\src\OpenCredential-1.0.0.0.sln /p:Configuration=Release /p:Platform=Win32
+
+# Recommended wrapper when the machine has duplicated Path/PATH variables
+powershell -ExecutionPolicy Bypass -File .\Build-OpenCredential.ps1 -Configuration Release -Platform "Mixed Platforms"
 
 # Plugin-only builds
 msbuild Plugins\Core\DatabaseAuth\DatabaseAuth.sln /p:Configuration=Release /p:Platform="Any CPU"
@@ -354,6 +357,8 @@ msbuild Plugins\Core\DatabaseLogger\DatabaseLogger.sln /p:Configuration=Release 
 ### Installer
 
 Open `Installer\installer.iss` with Inno Setup and compile the package.
+
+If command-line C++ builds fail with a `Path` / `PATH` duplication error from `CL.exe`, use `Build-OpenCredential.ps1`. It normalizes the process environment before invoking MSBuild.
 
 ## Current Validation Status
 
@@ -379,7 +384,7 @@ Still pending:
 ### Login screen does not appear
 
 - Ensure the required Visual C++ Redistributables are installed
-- Run `pGina.InstallUtil.exe post-install` as Administrator
+- Run `OpenCredential.InstallUtil.exe post-install` as Administrator
 - Check Windows Event Viewer
 
 ### Database connection fails
@@ -405,8 +410,8 @@ Still pending:
 
 ### Logs Location
 
-- Windows Event Viewer -> Application -> pGina
-- Log files under `C:\ProgramData\pGina\`
+- Windows Event Viewer -> Application -> OpenCredential
+- Log files under `C:\ProgramData\OpenCredential\` or migrated legacy paths under `C:\ProgramData\pGina\`
 
 ## Changes from Original pGina
 
@@ -422,7 +427,16 @@ Still pending:
 
 ## License
 
-BSD 3-Clause License. See [LICENSE](LICENSE) for details.
+This repository is an unofficial fork of pGina.
+
+- The original pGina-derived code remains under the BSD-3-Clause license in
+  [LICENSE](LICENSE).
+- OpenCredential fork attribution and redistribution notice are described in
+  [NOTICE](NOTICE).
+- The installer shows a combined fork notice and original license text from
+  [Installer/OpenCredential-License.txt](Installer/OpenCredential-License.txt).
+- Recommended source file header templates for new and heavily modified files
+  are documented in [SOURCE_HEADER_TEMPLATES.md](SOURCE_HEADER_TEMPLATES.md).
 
 ## Credits
 
@@ -433,4 +447,4 @@ BSD 3-Clause License. See [LICENSE](LICENSE) for details.
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/pedropablobm/pgina-mysql8/issues)
-- **Original Project**: https://pgina.org
+- **Original Project**: https://github.com/pgina/pgina

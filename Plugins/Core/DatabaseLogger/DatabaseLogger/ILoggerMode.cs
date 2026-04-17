@@ -1,13 +1,13 @@
-﻿using System;
+using System;
 using System.Data.Common;
 using MySqlConnector;
 using Npgsql;
 
-namespace pGina.Plugin.DatabaseLogger
+namespace OpenCredential.Plugin.DatabaseLogger
 {
     interface ILoggerMode
     {
-        bool Log(System.ServiceProcess.SessionChangeDescription changeDescription, pGina.Shared.Types.SessionProperties properties);
+        bool Log(System.ServiceProcess.SessionChangeDescription changeDescription, OpenCredential.Shared.Types.SessionProperties properties);
         string TestTable();
         string CreateTable();
         void SetConnection(DbConnection connection);

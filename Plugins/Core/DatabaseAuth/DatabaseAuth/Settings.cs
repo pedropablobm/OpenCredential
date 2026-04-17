@@ -1,4 +1,4 @@
-﻿/*
+/*
         Copyright (c) 2013, pGina Team
         All rights reserved.
 
@@ -31,7 +31,7 @@ using System.Text;
 using System.IO;
 using System.Reflection;
 
-namespace pGina.Plugin.DatabaseAuth
+namespace OpenCredential.Plugin.DatabaseAuth
 {
     /// <summary>
     /// Settings management class for the database authentication plugin.
@@ -51,7 +51,7 @@ namespace pGina.Plugin.DatabaseAuth
         /// </summary>
         public enum HashEncoding { HEX = 0, BASE_64 = 1 };
 
-        private static dynamic m_settings = new pGina.Shared.Settings.pGinaDynamicSettings(PluginImpl.PluginUuid);
+        private static dynamic m_settings = new OpenCredential.Shared.Settings.OpenCredentialDynamicSettings(PluginImpl.PluginUuid);
         
         /// <summary>
         /// Dynamic settings store for accessing configuration values.

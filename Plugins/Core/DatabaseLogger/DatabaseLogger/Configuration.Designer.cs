@@ -1,4 +1,4 @@
-﻿namespace pGina.Plugin.DatabaseLogger
+namespace OpenCredential.Plugin.DatabaseLogger
 {
     partial class Configuration
     {

@@ -1,4 +1,4 @@
-﻿/*
+/*
         Copyright (c) 2013, pGina Team
         All rights reserved.
 
@@ -31,7 +31,7 @@ using System.Text;
 using System.Security.Cryptography;
 using log4net;
 
-namespace pGina.Plugin.DatabaseAuth
+namespace OpenCredential.Plugin.DatabaseAuth
 {
     /// <summary>
     /// Enumeration of supported password hash algorithms.

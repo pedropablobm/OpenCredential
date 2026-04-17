@@ -1,9 +1,9 @@
-#define MyAppName "pGina"
-#define MyAppVersion "4.0.0.0"
-#define MyAppPublisher "Fork pGina Team"
-#define MyAppURL "http://www.pgina.org/"
-#define MyAppExeName "pGina.Configuration.exe"
-#define MyAppSetupName 'pGina'
+#define MyAppName "OpenCredential"
+#define MyAppVersion "1.0.0.0"
+#define MyAppPublisher "OpenCredential Project"
+#define MyAppURL "https://github.com/pedropablobm/OpenCredential"
+#define MyAppExeName "OpenCredential.Configuration.exe"
+#define MyAppSetupName 'OpenCredential'
 #define SetupScriptVersion '0'
 
 
@@ -34,12 +34,12 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={commonpf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=true
-LicenseFile=..\LICENSE
-OutputBaseFilename=pGinaSetup-{#MyAppVersion}
-SetupIconFile=..\pGina\src\Configuration\Resources\pginaicon_redcircle.ico
+LicenseFile=OpenCredential-License.txt
+OutputBaseFilename=OpenCredentialInstaller-{#MyAppVersion}
+SetupIconFile=..\OpenCredential\src\Configuration\Resources\OpenCredentialApp.ico
 Compression=lzma/Max
 SolidCompression=true
-AppCopyright=Fork pGina Team
+AppCopyright=OpenCredential Project
 ExtraDiskSpaceRequired=6
 DisableDirPage=auto
 AlwaysShowDirOnReadyPage=yes
@@ -53,31 +53,47 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 ;Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Registry]
-; Eliminar claves de registro al desinstalar
+; Remove legacy registry keys from earlier pGina-based installs
 Root: HKLM; Subkey: "SOFTWARE\pGina"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "SOFTWARE\pGina"; Flags: uninsdeletekey
-; También limpiar claves de versiones anteriores si existen
+; Also remove older compatibility keys if they exist
 Root: HKLM; Subkey: "SOFTWARE\pGina3"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "SOFTWARE\pGina3"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "SOFTWARE\OpenCredential"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "SOFTWARE\OpenCredential"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "SOFTWARE\OpenCredential3"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "SOFTWARE\OpenCredential3"; Flags: uninsdeletekey
 
 [InstallDelete]
-; Eliminar configuraciones previas al instalar (instalación limpia)
+; Remove previous configuration before installing (clean install)
 Type: filesandordirs; Name: "{commonappdata}\pGina"
 Type: filesandordirs; Name: "{commonappdata}\pGina3"
 Type: filesandordirs; Name: "{userappdata}\pGina"
 Type: filesandordirs; Name: "{userappdata}\pGina3"
 Type: filesandordirs; Name: "{localappdata}\pGina"
 Type: filesandordirs; Name: "{localappdata}\pGina3"
+Type: filesandordirs; Name: "{commonappdata}\OpenCredential"
+Type: filesandordirs; Name: "{commonappdata}\OpenCredential3"
+Type: filesandordirs; Name: "{userappdata}\OpenCredential"
+Type: filesandordirs; Name: "{userappdata}\OpenCredential3"
+Type: filesandordirs; Name: "{localappdata}\OpenCredential"
+Type: filesandordirs; Name: "{localappdata}\OpenCredential3"
 
 [UninstallDelete]
-; Eliminar configuraciones al desinstalar
+; Remove configuration during uninstall
 Type: filesandordirs; Name: "{commonappdata}\pGina"
 Type: filesandordirs; Name: "{commonappdata}\pGina3"
 Type: filesandordirs; Name: "{userappdata}\pGina"
 Type: filesandordirs; Name: "{userappdata}\pGina3"
 Type: filesandordirs; Name: "{localappdata}\pGina"
 Type: filesandordirs; Name: "{localappdata}\pGina3"
-; Eliminar carpeta de instalación completamente
+Type: filesandordirs; Name: "{commonappdata}\OpenCredential"
+Type: filesandordirs; Name: "{commonappdata}\OpenCredential3"
+Type: filesandordirs; Name: "{userappdata}\OpenCredential"
+Type: filesandordirs; Name: "{userappdata}\OpenCredential3"
+Type: filesandordirs; Name: "{localappdata}\OpenCredential"
+Type: filesandordirs; Name: "{localappdata}\OpenCredential3"
+; Remove installation directory completely
 Type: filesandordirs; Name: "{app}"
 
 [Tasks]
@@ -86,14 +102,14 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "bin\VC_redist.x86.exe"; DestDir: "{tmp}"; Flags: dontcopy
 Source: "bin\VC_redist.x64.exe"; DestDir: "{tmp}"; Flags: dontcopy
-Source: "..\pGina\src\bin\pGina.Configuration.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\pGina\src\bin\*.exe"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\pGina\src\bin\*.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\pGina\src\bin\*.xml"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\pGina\src\bin\*.config"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\OpenCredential\src\bin\OpenCredential.Configuration.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\OpenCredential\src\bin\*.exe"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "pGina*,FakeWinlogon.exe,NativeLibTest.exe"
+Source: "..\OpenCredential\src\bin\*.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "pGina*"
+Source: "..\OpenCredential\src\bin\*.xml"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\OpenCredential\src\bin\*.config"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "pGina*"
 ; Keep wildcard packaging for core dependencies, but exclude legacy plugin binaries
 ; that may still be present in bin from older builds and would duplicate PluginUuid.
-Source: "..\Plugins\Core\bin\*.dll"; DestDir: "{app}\Plugins\Core"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "pGina.Plugin.MySQLAuth.dll,pGina.Plugin.MySqlLogger.dll"
+Source: "..\Plugins\Core\bin\*.dll"; DestDir: "{app}\Plugins\Core"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "pGina.Plugin.*,pGina.Shared.dll,Abstractions.dll"
 Source: "..\Plugins\Core\bin\*.xml"; DestDir: "{app}\Plugins\Core"; Flags: ignoreversion recursesubdirs createallsubdirs
 ;Source: "..\Plugins\Contrib\bin\*.dll"; DestDir: "{app}\Plugins\Contrib"; Flags: ignoreversion recursesubdirs createallsubdirs
 
@@ -103,11 +119,11 @@ Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\pGina.InstallUtil.exe"; Parameters: "post-install"; StatusMsg: "Installing service, CP/GINA, and setting permissions..."; WorkingDir: "{app}"; Flags: runhidden
+Filename: "{app}\OpenCredential.InstallUtil.exe"; Parameters: "post-install"; StatusMsg: "Installing OpenCredential service, credential provider, and permissions..."; WorkingDir: "{app}"; Flags: runhidden
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, "&", "&&")}}"; Flags: nowait postinstall skipifsilent runascurrentuser
 
 [UninstallRun]
-Filename: "{app}\pGina.InstallUtil.exe"; Parameters: "post-uninstall"; StatusMsg: "Removing service and CP/GINA..."; WorkingDir: "{app}"; Flags: runhidden; RunOnceId: "UninstallService"
+Filename: "{app}\OpenCredential.InstallUtil.exe"; Parameters: "post-uninstall"; StatusMsg: "Removing OpenCredential service, credential provider, and permissions..."; WorkingDir: "{app}"; Flags: runhidden; RunOnceId: "UninstallService"
 
 ; More custom stuff from [] for ensuring user gets everything needed
 #include "scripts\products.iss"
@@ -163,10 +179,12 @@ end;
 
 procedure DoPreInstall();
 begin
-  // If our service is already installed, stop it!
-  if IsServiceInstalled('pGina') = true then begin
-        StopService('pGina');		
-    end
+  // Stop either the current OpenCredential service or a legacy pGina service.
+  if IsServiceInstalled('OpenCredential') = true then begin
+        StopService('OpenCredential');
+  end else if IsServiceInstalled('pGina') = true then begin
+        StopService('pGina');
+  end;
 end;
 
 procedure DoPostInstall();

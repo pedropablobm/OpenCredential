@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.0.0] - 2026-03-09
+## [1.0.0] - 2026-03-09
 
 ### Added
 - **MySQL 8.x and MariaDB 10.x/11.x Support**
@@ -127,7 +127,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - First stable release for 3.1
 - Re-add support for the CredUI scenario (#195)
-- Option to make pGina the default tile (#182)
+- Option to make the credential tile the default option (#182)
 - Service is now dependent on RPC, improves startup time
 
 ### Fixed
@@ -155,7 +155,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Support for filtering in CredUI scenario
-- Simulator explains lack of logging when using pGina service
+- Simulator explains lack of logging when using OpenCredential service
 - Support for using original username in the unlock scenario (CP only, #154)
 
 ### Fixed

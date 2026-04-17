@@ -1,4 +1,4 @@
-﻿/*
+/*
 	Copyright (c) 2011, pGina Team
 	All rights reserved.
 
@@ -31,9 +31,9 @@ using System.Text;
 using System.IO;
 using System.Reflection;
 
-using pGina.Shared.Settings;
+using OpenCredential.Shared.Settings;
 
-namespace pGina.Plugin.DatabaseLogger
+namespace OpenCredential.Plugin.DatabaseLogger
 {
     class Settings
     {
@@ -43,7 +43,7 @@ namespace pGina.Plugin.DatabaseLogger
             PostgreSql = 1
         }
 
-        private static dynamic m_settings = new pGinaDynamicSettings(PluginImpl.PluginUuid);
+        private static dynamic m_settings = new OpenCredentialDynamicSettings(PluginImpl.PluginUuid);
         public static dynamic Store
         {
             get { return m_settings; }
