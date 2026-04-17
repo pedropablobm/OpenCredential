@@ -149,14 +149,14 @@ namespace OpenCredential.CredentialProvider.Registration
 
         public override void Disable()
         {
-            dynamic pGinaSettings = new OpenCredentialDynamicSettings();
-            pGinaSettings.GinaPassthru = true;
+            dynamic openCredentialSettings = new OpenCredentialDynamicSettings();
+            openCredentialSettings.GinaPassthru = true;
         }
 
         public override void Enable()
         {
-            dynamic pGinaSettings = new OpenCredentialDynamicSettings();
-            pGinaSettings.GinaPassthru = false;
+            dynamic openCredentialSettings = new OpenCredentialDynamicSettings();
+            openCredentialSettings.GinaPassthru = false;
         }
 
         public override bool Registered()
@@ -182,8 +182,8 @@ namespace OpenCredential.CredentialProvider.Registration
 
         public override bool Enabled()
         {
-            dynamic pGinaSettings = new OpenCredentialDynamicSettings();
-            bool passthru = pGinaSettings.GetSetting("GinaPassthru", false);
+            dynamic openCredentialSettings = new OpenCredentialDynamicSettings();
+            bool passthru = openCredentialSettings.GetSetting("GinaPassthru", false);
             return !passthru;
         }
 

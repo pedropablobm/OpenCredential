@@ -43,8 +43,8 @@ namespace OpenCredential.InstallUtil
 {
     class Program
     {
-        static readonly string PGINA_SERVICE_NAME = "OpenCredential";
-        static readonly string PGINA_SERVICE_EXE = "OpenCredential.Service.ServiceHost.exe";
+        static readonly string OPENCREDENTIAL_SERVICE_NAME = "OpenCredential";
+        static readonly string OPENCREDENTIAL_SERVICE_EXE = "OpenCredential.Service.ServiceHost.exe";
         
         // Initalized in the static constructor
         static readonly SecurityIdentifier ADMIN_GROUP;
@@ -52,7 +52,7 @@ namespace OpenCredential.InstallUtil
         static readonly SecurityIdentifier SYSTEM_ACCT;
         static readonly SecurityIdentifier AUTHED_USERS;
         private static readonly string INSTALL_UTIL_PATH;
-        private static readonly string PGINA_SERVICE_FULL_PATH;
+        private static readonly string OPENCREDENTIAL_SERVICE_FULL_PATH;
         
         static Program()
         {
@@ -61,8 +61,8 @@ namespace OpenCredential.InstallUtil
             
             // Intialize readonly variables
 
-            PGINA_SERVICE_FULL_PATH = Path.Combine(
-               Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), PGINA_SERVICE_EXE);
+            OPENCREDENTIAL_SERVICE_FULL_PATH = Path.Combine(
+               Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), OPENCREDENTIAL_SERVICE_EXE);
             INSTALL_UTIL_PATH = Path.Combine(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory(),
                 "installutil.exe");
 
@@ -133,9 +133,9 @@ namespace OpenCredential.InstallUtil
 
         private static void SetRegistryAcls()
         {
-            string pGinaSubKey = OpenCredential.Shared.Settings.OpenCredentialDynamicSettings.pGinaRoot;
+            string openCredentialSubKey = OpenCredential.Shared.Settings.OpenCredentialDynamicSettings.OpenCredentialRoot;
 
-            using (RegistryKey key = Registry.LocalMachine.CreateSubKey(pGinaSubKey))
+            using (RegistryKey key = Registry.LocalMachine.CreateSubKey(openCredentialSubKey))
             {
                 if (key != null)
                 {
@@ -210,7 +210,7 @@ namespace OpenCredential.InstallUtil
 
         private static void InstallAndStartService()
         {
-            if (!File.Exists(PGINA_SERVICE_EXE))
+            if (!File.Exists(OPENCREDENTIAL_SERVICE_EXE))
             {
                 throw new Exception("The service executable was not found.");
             }
@@ -228,22 +228,22 @@ namespace OpenCredential.InstallUtil
 
         private static bool ServiceInstalled()
         {
-            using (ServiceController pGinaService = GetServiceController())
+            using (ServiceController openCredentialService = GetServiceController())
             {
-                return pGinaService != null;
+                return openCredentialService != null;
             }
         }
 
         private static void StopService()
         {
-            using (ServiceController pGinaService = GetServiceController())
+            using (ServiceController openCredentialService = GetServiceController())
             {
-                if (pGinaService != null)
+                if (openCredentialService != null)
                 {
-                    if (pGinaService.Status == ServiceControllerStatus.Running)
+                    if (openCredentialService.Status == ServiceControllerStatus.Running)
                     {
                         m_logger.InfoFormat("Stopping OpenCredential service...");
-                        pGinaService.Stop();
+                        openCredentialService.Stop();
                     }
                 }
                 else
@@ -253,14 +253,14 @@ namespace OpenCredential.InstallUtil
 
         private static void StartService()
         {
-            using (ServiceController pGinaService = GetServiceController())
+            using (ServiceController openCredentialService = GetServiceController())
             {
-                if (pGinaService != null)
+                if (openCredentialService != null)
                 {
-                    if ( pGinaService.Status != ServiceControllerStatus.Running )
+                    if ( openCredentialService.Status != ServiceControllerStatus.Running )
                     {
                         m_logger.InfoFormat("Starting OpenCredential service...");
-                        pGinaService.Start();
+                        openCredentialService.Start();
                     }
                 }
                 else
@@ -277,14 +277,14 @@ namespace OpenCredential.InstallUtil
             if (File.Exists(INSTALL_UTIL_PATH))
             {
                 // Need quotes around the path when calling installutil.exe
-                string[] args = { "/u", string.Format("\"{0}\"", PGINA_SERVICE_FULL_PATH) };
+                string[] args = { "/u", string.Format("\"{0}\"", OPENCREDENTIAL_SERVICE_FULL_PATH) };
                 // Call the .NET installutil.exe
                 CallInstallUtil(args);   
             }
             else
             {
                 m_logger.DebugFormat("Can't find .NET installutil.exe ({0}), trying ManagedInstallerClass.InstallHelper", INSTALL_UTIL_PATH);
-                ManagedInstallerClass.InstallHelper(new string[] { "/u", PGINA_SERVICE_FULL_PATH });
+                ManagedInstallerClass.InstallHelper(new string[] { "/u", OPENCREDENTIAL_SERVICE_FULL_PATH });
             }
         }
 
@@ -297,31 +297,31 @@ namespace OpenCredential.InstallUtil
             if (File.Exists(INSTALL_UTIL_PATH))
             {
                 // Need quotes around the path when calling installutil.exe
-                string[] args = { string.Format( "\"{0}\"", PGINA_SERVICE_FULL_PATH ) };
+                string[] args = { string.Format( "\"{0}\"", OPENCREDENTIAL_SERVICE_FULL_PATH ) };
                 // Call the .NET installutil.exe
                 CallInstallUtil(args);
             }
             else
             {
                 m_logger.DebugFormat("Can't find .NET installutil.exe ({0}), trying ManagedInstallerClass.InstallHelper", INSTALL_UTIL_PATH);
-                ManagedInstallerClass.InstallHelper(new string[] {PGINA_SERVICE_FULL_PATH});
+                ManagedInstallerClass.InstallHelper(new string[] {OPENCREDENTIAL_SERVICE_FULL_PATH});
             }
         }
 
         private static ServiceController GetServiceController()
         {
-            ServiceController pGinaService = null;
+            ServiceController openCredentialService = null;
 
             foreach (ServiceController ctrl in ServiceController.GetServices())
             {
-                if (ctrl.ServiceName == PGINA_SERVICE_NAME)
+                if (ctrl.ServiceName == OPENCREDENTIAL_SERVICE_NAME)
                 {
-                    pGinaService = ctrl;
+                    openCredentialService = ctrl;
                     break;
                 }
             }
 
-            return pGinaService;
+            return openCredentialService;
         }
 
         private static void ShowSecurity(RegistrySecurity security)

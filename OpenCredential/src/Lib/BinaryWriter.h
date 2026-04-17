@@ -30,7 +30,7 @@
 #include <string>
 #include <Buffer.h>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Memory
 	{

@@ -33,7 +33,7 @@
 #include "MessageProperty.h"
 #include "Buffer.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Messaging
 	{				
@@ -45,9 +45,9 @@ namespace pGina
 			Message();
 			~Message();
 
-			static Message * Demarshal(pGina::Memory::Buffer &buffer);
-			static Message * Demarshal(pGina::Memory::Buffer *buffer);
-			static pGina::Memory::Buffer *  Marshal(Message *);
+			static Message * Demarshal(OpenCredential::Memory::Buffer &buffer);
+			static Message * Demarshal(OpenCredential::Memory::Buffer *buffer);
+			static OpenCredential::Memory::Buffer *  Marshal(Message *);
 
 			template<typename T>
 			bool Exists(std::wstring const& propertyName)
@@ -55,7 +55,7 @@ namespace pGina
 				PropertyMap::iterator itr = m_properties.find(propertyName);
 				if(itr != m_properties.end())
 				{
-					pGina::Messaging::Property<T> * prop = dynamic_cast<pGina::Messaging::Property<T> *>(itr->second);
+					OpenCredential::Messaging::Property<T> * prop = dynamic_cast<OpenCredential::Messaging::Property<T> *>(itr->second);
 					return prop != 0;
 				}
 
@@ -68,7 +68,7 @@ namespace pGina
 				PropertyMap::iterator itr = m_properties.find(propertyName);
 				if(itr != m_properties.end())
 				{
-					pGina::Messaging::Property<T> * prop = static_cast<pGina::Messaging::Property<T> *>(itr->second);
+					OpenCredential::Messaging::Property<T> * prop = static_cast<OpenCredential::Messaging::Property<T> *>(itr->second);
 					return prop->Value();
 				}
 
@@ -79,7 +79,7 @@ namespace pGina
 			void Property(std::wstring const& propertyName, T const& value, PropertyType type)
 			{				
 				// Create a new property to be inserted
-				pGina::Messaging::Property<T> * prop = new pGina::Messaging::Property<T>(propertyName, value, type);
+				OpenCredential::Messaging::Property<T> * prop = new OpenCredential::Messaging::Property<T>(propertyName, value, type);
 
 				// If we already have a property by this name, we need to clean it up
 				PropertyMap::iterator itr = m_properties.find(propertyName);
@@ -97,7 +97,7 @@ namespace pGina
 			PropertyMap& Properties() { return m_properties; }
 						
 		private:			
-			static int MarshalToBuffer(Message *msg, pGina::Memory::Buffer * buffer);			
+			static int MarshalToBuffer(Message *msg, OpenCredential::Memory::Buffer * buffer);			
 			PropertyMap m_properties;			
 		};
 	}

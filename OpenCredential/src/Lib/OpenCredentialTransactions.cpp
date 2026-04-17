@@ -34,7 +34,7 @@
 #include "Registry.h"
 #include "Helpers.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Transactions
 	{			
@@ -99,35 +99,35 @@ namespace pGina
 			OutputDebugString(ods_buffer);
 
 			// Write a log message to the service
-			std::wstring pipeName = pGina::Registry::GetString(L"ServicePipeName", L"Unknown");
+			std::wstring pipeName = OpenCredential::Registry::GetString(L"ServicePipeName", L"Unknown");
 			std::wstring pipePath = L"\\\\.\\pipe\\";
 			pipePath += pipeName;
 						
-			pGina::NamedPipes::PipeClient pipeClient(pipePath, 100);
+			OpenCredential::NamedPipes::PipeClient pipeClient(pipePath, 100);
 			if(pipeClient.Connect())
 			{
 				// Start a cleanup pool for messages we collect along the way
-				pGina::Memory::ObjectCleanupPool cleanup;
+				OpenCredential::Memory::ObjectCleanupPool cleanup;
 
 				// Always send hello first, expect hello in return
-				pGina::Protocol::HelloMessage hello;
-				pGina::Protocol::MessageBase * reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, hello);		
+				OpenCredential::Protocol::HelloMessage hello;
+				OpenCredential::Protocol::MessageBase * reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, hello);		
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::Hello)
+				if(reply && reply->Type() != OpenCredential::Protocol::Hello)
 					return;
 				
 				// Then send a log message, expect ack in return
-				pGina::Protocol::LogMessage log(L"NativeLib", level, message);				
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, log);
+				OpenCredential::Protocol::LogMessage log(L"NativeLib", level, message);				
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, log);
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::Ack)
+				if(reply && reply->Type() != OpenCredential::Protocol::Ack)
 					return;
 								
 				// Send disconnect, expect ack, then close
-				pGina::Protocol::DisconnectMessage disconnect;
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
+				OpenCredential::Protocol::DisconnectMessage disconnect;
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
 				cleanup.Add(reply);		
 
 				// We close regardless, no need to check reply type..
@@ -138,27 +138,27 @@ namespace pGina
 		/* static */
 		bool Service::Ping()
 		{
-			std::wstring pipeName = pGina::Registry::GetString(L"ServicePipeName", L"Unknown");
+			std::wstring pipeName = OpenCredential::Registry::GetString(L"ServicePipeName", L"Unknown");
 			std::wstring pipePath = L"\\\\.\\pipe\\";
 			pipePath += pipeName;
 						
-			pGina::NamedPipes::PipeClient pipeClient(pipePath, 100);
+			OpenCredential::NamedPipes::PipeClient pipeClient(pipePath, 100);
 			if(pipeClient.Connect())
 			{
 				// Start a cleanup pool for messages we collect along the way
-				pGina::Memory::ObjectCleanupPool cleanup;
+				OpenCredential::Memory::ObjectCleanupPool cleanup;
 
 				// Always send hello first, expect hello in return
-				pGina::Protocol::HelloMessage hello;
-				pGina::Protocol::MessageBase * reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, hello);		
+				OpenCredential::Protocol::HelloMessage hello;
+				OpenCredential::Protocol::MessageBase * reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, hello);		
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::Hello)
+				if(reply && reply->Type() != OpenCredential::Protocol::Hello)
 					return false;
 												
 				// Send disconnect, expect ack, then close
-				pGina::Protocol::DisconnectMessage disconnect;
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
+				OpenCredential::Protocol::DisconnectMessage disconnect;
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
 				cleanup.Add(reply);		
 
 				// We close regardless, no need to check reply type..
@@ -170,41 +170,41 @@ namespace pGina
 		}
 
 		/* static */
-		User::LoginResult User::ProcessLoginForUser(const wchar_t *username, const wchar_t *domain, const wchar_t *password, pGina::Protocol::LoginRequestMessage::LoginReason reason)
+		User::LoginResult User::ProcessLoginForUser(const wchar_t *username, const wchar_t *domain, const wchar_t *password, OpenCredential::Protocol::LoginRequestMessage::LoginReason reason)
 		{			
 			// Write a log message to the service
-			std::wstring pipeName = pGina::Registry::GetString(L"ServicePipeName", L"Unknown");
+			std::wstring pipeName = OpenCredential::Registry::GetString(L"ServicePipeName", L"Unknown");
 			std::wstring pipePath = L"\\\\.\\pipe\\";
 			pipePath += pipeName;					
 
 			// Start a cleanup pool for messages we collect along the way
-			pGina::Memory::ObjectCleanupPool cleanup;
+			OpenCredential::Memory::ObjectCleanupPool cleanup;
 
-			pGina::NamedPipes::PipeClient pipeClient(pipePath, 100);			
+			OpenCredential::NamedPipes::PipeClient pipeClient(pipePath, 100);			
 			if(pipeClient.Connect())
 			{				
 				// Always send hello first, expect hello in return
-				pGina::Protocol::HelloMessage hello;
-				pGina::Protocol::MessageBase * reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, hello);		
+				OpenCredential::Protocol::HelloMessage hello;
+				OpenCredential::Protocol::MessageBase * reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, hello);		
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::Hello)
+				if(reply && reply->Type() != OpenCredential::Protocol::Hello)
 					return LoginResult();
 				
 				// Then send a loging request message, expect a loginresult message
-				pGina::Protocol::LoginRequestMessage request(username, domain, password, reason);
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, request);
+				OpenCredential::Protocol::LoginRequestMessage request(username, domain, password, reason);
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, request);
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::LoginResponse)
+				if(reply && reply->Type() != OpenCredential::Protocol::LoginResponse)
 					return LoginResult();
 
 				// Did they login?
-				pGina::Protocol::LoginResponseMessage * responseMsg = static_cast<pGina::Protocol::LoginResponseMessage *>(reply);
+				OpenCredential::Protocol::LoginResponseMessage * responseMsg = static_cast<OpenCredential::Protocol::LoginResponseMessage *>(reply);
 				
 				// Send disconnect, expect ack, then close
-				pGina::Protocol::DisconnectMessage disconnect;
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
+				OpenCredential::Protocol::DisconnectMessage disconnect;
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
 				cleanup.Add(reply);		
 
 				// We close regardless, no need to check reply type..
@@ -214,7 +214,7 @@ namespace pGina
 				if(responseMsg->Domain().length() == 0)
 				{
 					Log::Warn(L"Plugins did not set a domain name, assuming local machine!");
-					responseMsg->Domain(pGina::Helpers::GetMachineName());
+					responseMsg->Domain(OpenCredential::Helpers::GetMachineName());
 				}
 
 				// If we failed, and the 'LocalAdminFallback' option is on, try this with LogonUser iff the username is an 
@@ -222,16 +222,16 @@ namespace pGina
 				//  even..  woah!
 				if(!responseMsg->Result())					
 				{
-					if(pGina::Registry::GetBool(L"LocalAdminFallback", true))
+					if(OpenCredential::Registry::GetBool(L"LocalAdminFallback", true))
 					{
 						Log::Warn(L"Unable to authenticate %s, checking to see if local admin fallback applies", request.Username().c_str());
-						if(pGina::Helpers::IsUserLocalAdmin(request.Username()))
+						if(OpenCredential::Helpers::IsUserLocalAdmin(request.Username()))
 						{
 							Log::Info(L"%s is a local admin, falling back to system auth", request.Username().c_str());
 							if(LocalLoginForUser(request.Username().c_str(), request.Password().c_str()))
 							{
 								Log::Info(L"Local login succeeded");
-								return LoginResult(true, request.Username(), request.Password(), pGina::Helpers::GetMachineName(), L"");
+								return LoginResult(true, request.Username(), request.Password(), OpenCredential::Helpers::GetMachineName(), L"");
 							}
 							else
 							{
@@ -245,9 +245,9 @@ namespace pGina
 			}
 			else
 			{
-				Log::Warn(L"Unable to connect to pGina service pipe - LastError: 0x%08x, falling back on LogonUser()", GetLastError());
+				Log::Warn(L"Unable to connect to OpenCredential service pipe - LastError: 0x%08x, falling back on LogonUser()", GetLastError());
 				if(LocalLoginForUser(username, password))
-					return LoginResult(true, username ? username : L"", password ? password : L"", pGina::Helpers::GetMachineName(), L"");					
+					return LoginResult(true, username ? username : L"", password ? password : L"", OpenCredential::Helpers::GetMachineName(), L"");					
 			}
 
 			return LoginResult();
@@ -256,7 +256,7 @@ namespace pGina
 		/* static */
 		bool User::LocalLoginForUser(const wchar_t *username, const wchar_t *password)
 		{
-			std::wstring domainName = pGina::Helpers::GetMachineName();				
+			std::wstring domainName = OpenCredential::Helpers::GetMachineName();				
 			Log::Debug(L"Using LogonUser(%s, %s, *****)", username, domainName.c_str());
 			HANDLE token = NULL;
 			if(LogonUser(username, domainName.c_str(), password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &token) == TRUE)				
@@ -272,42 +272,42 @@ namespace pGina
 		std::wstring TileUi::GetDynamicLabel(const wchar_t *labelName)
 		{
 			// Write a log message to the service
-			std::wstring pipeName = pGina::Registry::GetString(L"ServicePipeName", L"Unknown");
+			std::wstring pipeName = OpenCredential::Registry::GetString(L"ServicePipeName", L"Unknown");
 			std::wstring pipePath = L"\\\\.\\pipe\\";
 			pipePath += pipeName;
 
-			pGina::NamedPipes::PipeClient pipeClient(pipePath, 100);	
+			OpenCredential::NamedPipes::PipeClient pipeClient(pipePath, 100);	
 			std::wstring labelText = L"";
 
 			if( pipeClient.Connect() )
 			{
 				// Start a cleanup pool for messages we collect along the way
-				pGina::Memory::ObjectCleanupPool cleanup;
+				OpenCredential::Memory::ObjectCleanupPool cleanup;
 
 				// Always send hello first, expect hello in return
-				pGina::Protocol::HelloMessage hello;
-				pGina::Protocol::MessageBase * reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, hello);		
+				OpenCredential::Protocol::HelloMessage hello;
+				OpenCredential::Protocol::MessageBase * reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, hello);		
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::Hello)
+				if(reply && reply->Type() != OpenCredential::Protocol::Hello)
 					return labelText;
 
 				// Then send a label request message, expect a labelresponse message
-				pGina::Protocol::DynamicLabelRequestMessage request(labelName);
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, request);
+				OpenCredential::Protocol::DynamicLabelRequestMessage request(labelName);
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, request);
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::DynLabelResponse)
+				if(reply && reply->Type() != OpenCredential::Protocol::DynLabelResponse)
 					return labelText;
 
 				// Get the reply
-				pGina::Protocol::DynamicLabelResponseMessage * responseMsg = 
-					static_cast<pGina::Protocol::DynamicLabelResponseMessage *>(reply);
+				OpenCredential::Protocol::DynamicLabelResponseMessage * responseMsg = 
+					static_cast<OpenCredential::Protocol::DynamicLabelResponseMessage *>(reply);
 				labelText = responseMsg->Text();
 
 				// Send disconnect, expect ack, then close
-				pGina::Protocol::DisconnectMessage disconnect;
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
+				OpenCredential::Protocol::DisconnectMessage disconnect;
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
 				cleanup.Add(reply);		
 
 				// We close regardless, no need to check reply type..
@@ -315,7 +315,7 @@ namespace pGina
 			}
 			else
 			{
-				Log::Warn(L"Unable to connect to pGina service pipe - LastError: 0x%08x, giving up.", GetLastError());
+				Log::Warn(L"Unable to connect to the OpenCredential service pipe - LastError: 0x%08x, giving up.", GetLastError());
 			}
 
 			return labelText;
@@ -325,40 +325,40 @@ namespace pGina
 		LoginInfo::UserInformation LoginInfo::GetUserInformation(int session_id)
 		{
 			// Write a log message to the service
-			std::wstring pipeName = pGina::Registry::GetString(L"ServicePipeName", L"Unknown");
+			std::wstring pipeName = OpenCredential::Registry::GetString(L"ServicePipeName", L"Unknown");
 			std::wstring pipePath = L"\\\\.\\pipe\\";
 			pipePath += pipeName;
 
-			pGina::NamedPipes::PipeClient pipeClient(pipePath, 100);	
+			OpenCredential::NamedPipes::PipeClient pipeClient(pipePath, 100);	
 			
 			if( pipeClient.Connect() )
 			{
 				// Start a cleanup pool for messages we collect along the way
-				pGina::Memory::ObjectCleanupPool cleanup;
+				OpenCredential::Memory::ObjectCleanupPool cleanup;
 
 				// Always send hello first, expect hello in return
-				pGina::Protocol::HelloMessage hello;
-				pGina::Protocol::MessageBase * reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, hello);		
+				OpenCredential::Protocol::HelloMessage hello;
+				OpenCredential::Protocol::MessageBase * reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, hello);		
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::Hello)
+				if(reply && reply->Type() != OpenCredential::Protocol::Hello)
 					return UserInformation();
 
 				// Then send a request message, expect a response message
-				pGina::Protocol::UserInformationRequestMessage request(session_id);
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, request);
+				OpenCredential::Protocol::UserInformationRequestMessage request(session_id);
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, request);
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::UserInfoResponse)
+				if(reply && reply->Type() != OpenCredential::Protocol::UserInfoResponse)
 					return UserInformation();
 
 				// Get the reply
-				pGina::Protocol::UserInformationResponseMessage * responseMsg = 
-					static_cast<pGina::Protocol::UserInformationResponseMessage *>(reply);
+				OpenCredential::Protocol::UserInformationResponseMessage * responseMsg = 
+					static_cast<OpenCredential::Protocol::UserInformationResponseMessage *>(reply);
 
 				// Send disconnect, expect ack, then close
-				pGina::Protocol::DisconnectMessage disconnect;
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
+				OpenCredential::Protocol::DisconnectMessage disconnect;
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
 				cleanup.Add(reply);		
 
 				// We close regardless, no need to check reply type..
@@ -368,7 +368,7 @@ namespace pGina
 			}
 			else
 			{
-				Log::Warn(L"Unable to connect to pGina service pipe - LastError: 0x%08x, giving up.", GetLastError());
+				Log::Warn(L"Unable to connect to the OpenCredential service pipe - LastError: 0x%08x, giving up.", GetLastError());
 			}
 
 			return UserInformation();
@@ -377,39 +377,39 @@ namespace pGina
 		/* static */
 		void LoginInfo::Move(const wchar_t *username, const wchar_t *domain, const wchar_t *password, int old_session, int new_session)
 		{
-			std::wstring pipeName = pGina::Registry::GetString(L"ServicePipeName", L"Unknown");
+			std::wstring pipeName = OpenCredential::Registry::GetString(L"ServicePipeName", L"Unknown");
 			std::wstring pipePath = L"\\\\.\\pipe\\";
 			pipePath += pipeName;
 
-			pGina::NamedPipes::PipeClient pipeClient(pipePath, 100);	
+			OpenCredential::NamedPipes::PipeClient pipeClient(pipePath, 100);	
 			std::wstring labelText = L"";
 
 			if( pipeClient.Connect() )
 			{
 				// Start a cleanup pool for messages we collect along the way
-				pGina::Memory::ObjectCleanupPool cleanup;
+				OpenCredential::Memory::ObjectCleanupPool cleanup;
 
 				// Always send hello first, expect hello in return
-				pGina::Protocol::HelloMessage hello;
-				pGina::Protocol::MessageBase * reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, hello);		
+				OpenCredential::Protocol::HelloMessage hello;
+				OpenCredential::Protocol::MessageBase * reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, hello);		
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::Hello)
+				if(reply && reply->Type() != OpenCredential::Protocol::Hello)
 					return;
 
-				pGina::Protocol::LoginInfoChangeMessage request(username, domain, password);
+				OpenCredential::Protocol::LoginInfoChangeMessage request(username, domain, password);
 				request.FromSession(old_session);
 				request.ToSession(new_session);
 
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, request);
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, request);
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::Ack)
+				if(reply && reply->Type() != OpenCredential::Protocol::Ack)
 					return;
 
 				// Send disconnect, expect ack, then close
-				pGina::Protocol::DisconnectMessage disconnect;
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
+				OpenCredential::Protocol::DisconnectMessage disconnect;
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
 				cleanup.Add(reply);		
 
 				// We close regardless, no need to check reply type..
@@ -417,7 +417,7 @@ namespace pGina
 			}
 			else
 			{
-				Log::Warn(L"Unable to connect to pGina service pipe - LastError: 0x%08x, giving up.", GetLastError());
+				Log::Warn(L"Unable to connect to OpenCredential service pipe - LastError: 0x%08x, giving up.", GetLastError());
 			}		
 		}	
 
@@ -446,7 +446,7 @@ namespace pGina
 				}
 
 				SetServiceRunning(runningNow);
-				Sleep(pGina::Registry::GetDword(L"PingSleepTime", 5000));
+				Sleep(OpenCredential::Registry::GetDword(L"PingSleepTime", 5000));
 			}
 
 			return 0;
@@ -454,13 +454,13 @@ namespace pGina
 
 		void ServiceStateThread::SetServiceRunning(bool b)
 		{
-			pGina::Threading::ScopedLock lock(m_mutex);
+			OpenCredential::Threading::ScopedLock lock(m_mutex);
 			m_serviceRunning = b;
 		}
 
 		bool ServiceStateThread::IsServiceRunning()
 		{
-			pGina::Threading::ScopedLock lock(m_mutex);
+			OpenCredential::Threading::ScopedLock lock(m_mutex);
 			return m_serviceRunning;
 		}	
 
@@ -469,38 +469,38 @@ namespace pGina
 				const wchar_t *oldPassword, const wchar_t *newPassword)
 		{			
 			// Write a log message to the service
-			std::wstring pipeName = pGina::Registry::GetString(L"ServicePipeName", L"Unknown");
+			std::wstring pipeName = OpenCredential::Registry::GetString(L"ServicePipeName", L"Unknown");
 			std::wstring pipePath = L"\\\\.\\pipe\\";
 			pipePath += pipeName;					
 
 			// Start a cleanup pool for messages we collect along the way
-			pGina::Memory::ObjectCleanupPool cleanup;
+			OpenCredential::Memory::ObjectCleanupPool cleanup;
 
-			pGina::NamedPipes::PipeClient pipeClient(pipePath, 100);			
+			OpenCredential::NamedPipes::PipeClient pipeClient(pipePath, 100);			
 			if(pipeClient.Connect())
 			{				
 				// Always send hello first, expect hello in return
-				pGina::Protocol::HelloMessage hello;
-				pGina::Protocol::MessageBase * reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, hello);		
+				OpenCredential::Protocol::HelloMessage hello;
+				OpenCredential::Protocol::MessageBase * reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, hello);		
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::Hello)
+				if(reply && reply->Type() != OpenCredential::Protocol::Hello)
 					return LoginResult();
 				
 				// Then send a change password request message, expect a loginresult message
-				pGina::Protocol::ChangePasswordRequestMessage request(username, domain, oldPassword, newPassword);
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, request);
+				OpenCredential::Protocol::ChangePasswordRequestMessage request(username, domain, oldPassword, newPassword);
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, request);
 				cleanup.Add(reply);
 
-				if(reply && reply->Type() != pGina::Protocol::ChangePasswordResponse)
+				if(reply && reply->Type() != OpenCredential::Protocol::ChangePasswordResponse)
 					return LoginResult();
 
-				pGina::Protocol::ChangePasswordResponseMessage * responseMsg = 
-					static_cast<pGina::Protocol::ChangePasswordResponseMessage *>(reply);
+				OpenCredential::Protocol::ChangePasswordResponseMessage * responseMsg = 
+					static_cast<OpenCredential::Protocol::ChangePasswordResponseMessage *>(reply);
 				
 				// Send disconnect, expect ack, then close
-				pGina::Protocol::DisconnectMessage disconnect;
-				reply = pGina::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
+				OpenCredential::Protocol::DisconnectMessage disconnect;
+				reply = OpenCredential::Protocol::SendRecvPipeMessage(pipeClient, disconnect);
 				cleanup.Add(reply);		
 
 				// We close regardless, no need to check reply type..
@@ -510,7 +510,7 @@ namespace pGina
 				if(responseMsg->Domain().length() == 0)
 				{
 					Log::Warn(L"Plugins did not set a domain name, assuming local machine!");
-					responseMsg->Domain(pGina::Helpers::GetMachineName());
+					responseMsg->Domain(OpenCredential::Helpers::GetMachineName());
 				}
 
 				// Password is ignored by credential provider.
@@ -522,10 +522,11 @@ namespace pGina
 			}
 			else
 			{
-				Log::Warn(L"Unable to connect to pGina service pipe - LastError: 0x%08x, giving up.", GetLastError());
+				Log::Warn(L"Unable to connect to OpenCredential service pipe - LastError: 0x%08x, giving up.", GetLastError());
 			}
 
 			return LoginResult();
 		}
 	}
 }
+

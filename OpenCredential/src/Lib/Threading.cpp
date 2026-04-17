@@ -26,7 +26,7 @@
 */
 #include "Threading.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Threading
 	{

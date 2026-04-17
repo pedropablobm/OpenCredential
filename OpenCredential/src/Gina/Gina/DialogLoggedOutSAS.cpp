@@ -34,7 +34,7 @@
 #define IDC_MSGINA_USERNAME 1502
 #define IDC_MSGINA_PASSWORD 1503
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{				
@@ -45,22 +45,22 @@ namespace pGina
 			ApplyLogoImage();
 			SetFocusItem(IDC_USERNAME_TXT);
 
-			bool specialActionEnabled = pGina::Registry::GetBool(L"EnableSpecialActionButton", false);
+			bool specialActionEnabled = OpenCredential::Registry::GetBool(L"EnableSpecialActionButton", false);
 			if(specialActionEnabled)
 			{
 				EnableItem(IDC_SPECIAL);
-				SetItemText(IDC_SPECIAL, pGina::Registry::GetString(L"SpecialAction", L"Shutdown").c_str());
+				SetItemText(IDC_SPECIAL, OpenCredential::Registry::GetString(L"SpecialAction", L"Shutdown").c_str());
 			}
 			else
 				DisableItem(IDC_SPECIAL);			
 
 			// Service status
-			if( pGina::Registry::GetBool(L"ShowServiceStatusInLogonUi", true) )
+			if( OpenCredential::Registry::GetBool(L"ShowServiceStatusInLogonUi", true) )
 			{
 				SetServiceStatus();
 
 				// Start a timer to update service status
-				m_statusTimerId = StartTimer(pGina::Registry::GetDword(L"PingSleepTime", 5000));
+				m_statusTimerId = StartTimer(OpenCredential::Registry::GetDword(L"PingSleepTime", 5000));
 			}
 			else
 			{
@@ -68,9 +68,9 @@ namespace pGina
 			}
 
 			// MOTD
-			if( pGina::Registry::GetBool(L"EnableMotd", true) )
+			if( OpenCredential::Registry::GetBool(L"EnableMotd", true) )
 			{
-				std::wstring motd = pGina::Transactions::TileUi::GetDynamicLabel(L"MOTD");
+				std::wstring motd = OpenCredential::Transactions::TileUi::GetDynamicLabel(L"MOTD");
 				SetItemText(IDC_MOTD, motd.c_str());
 			}
 			else
@@ -95,7 +95,7 @@ namespace pGina
 
 			case IDC_SPECIAL:
 				{
-					std::wstring action = pGina::Registry::GetString(L"SpecialAction", L"Shutdown");
+					std::wstring action = OpenCredential::Registry::GetString(L"SpecialAction", L"Shutdown");
 					if(_wcsicmp(action.c_str(), L"Shutdown") == 0)
 						FinishWithResult(SAS_ACTION_SHUTDOWN_POWER_OFF);
 					else if(_wcsicmp(action.c_str(), L"Reboot") == 0)
@@ -113,9 +113,9 @@ namespace pGina
 		
 		void DialogLoggedOutSAS::SetServiceStatus()
 		{
-			if( pGina::Registry::GetBool(L"ShowServiceStatusInLogonUi", true) )
+			if( OpenCredential::Registry::GetBool(L"ShowServiceStatusInLogonUi", true) )
 			{
-				bool up = pGina::Transactions::Service::Ping();
+				bool up = OpenCredential::Transactions::Service::Ping();
 				if(up)
 				{
 					SetItemText(IDC_STATUS, L"Service Status: Connected");
@@ -147,7 +147,7 @@ namespace pGina
 		{
 			if(m_bitmap == NULL)
 			{
-				std::wstring tileImage = pGina::Registry::GetString(L"TileImage", L"");
+				std::wstring tileImage = OpenCredential::Registry::GetString(L"TileImage", L"");
 				if(tileImage.empty() || tileImage.length() == 1)
 				{
 					// Use builtin
@@ -167,3 +167,4 @@ namespace pGina
 		}
 	}
 }
+

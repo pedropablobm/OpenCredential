@@ -33,7 +33,7 @@
 #include "Winlogon.h"
 #include "Themes.h"
 
-#define pGINA_FROM_CTX(context) pGina::GINA::Gina * pGina = static_cast<pGina::GINA::Gina *>(context)
+#define OPENCREDENTIAL_FROM_CTX(context) OpenCredential::GINA::Gina * openCredentialGina = static_cast<OpenCredential::GINA::Gina *>(context)
 
 /**
   Winlogon and a GINA DLL use this function to determine which version of the interface each
@@ -56,7 +56,7 @@ BOOL WINAPI WlxNegotiate(DWORD dwWinlogonVersion, DWORD *pdwDllVersion)
 	*pdwDllVersion = dwWinlogonVersion;
 
 	// Record winlogon version
-	pGina::GINA::WinlogonInterface::Version(dwWinlogonVersion);
+	OpenCredential::GINA::WinlogonInterface::Version(dwWinlogonVersion);
 	return true;
 }
 
@@ -77,7 +77,7 @@ BOOL WINAPI WlxNegotiate(DWORD dwWinlogonVersion, DWORD *pdwDllVersion)
 	@param pWinlogonFunctions Receives a pointer to a Winlogon function dispatch table. Thecontents of the table is dependent upon 
 		the GINA DLL version returned from the WlxNegotiate() call. The table does not change, so the        
 		GINA DLL can reference the table rather than copying it.                                             
-	@param pWlxContext This is an OUT parameter. It allows GINA to return a 32­bit context value that will be provided in all
+	@param pWlxContext This is an OUT parameter. It allows GINA to return a 32ï¿½bit context value that will be provided in all
 		future calls related to this window station. Generally the value returned will be something likea
 		pointer to a context structure allocated by GINA for this window station.
 	
@@ -90,8 +90,8 @@ BOOL WINAPI WlxNegotiate(DWORD dwWinlogonVersion, DWORD *pdwDllVersion)
 BOOL WINAPI WlxInitialize(LPWSTR lpWinsta, HANDLE hWlx, PVOID pvReserved, PVOID pWinlogonFunctions, PVOID * pWlxContext) 
 {
 	pDEBUG(L"WlxInitialize(%s, 0x%08x, 0x%08x, 0x%08x, ...)", lpWinsta, hWlx, pvReserved, pWinlogonFunctions);
-	pGina::GINA::Themes::Init();
-	return (pGina::GINA::Gina::InitializeFactory(hWlx, pWinlogonFunctions, (pGina::GINA::Gina **) pWlxContext) ? TRUE : FALSE);
+	OpenCredential::GINA::Themes::Init();
+	return (OpenCredential::GINA::Gina::InitializeFactory(hWlx, pWinlogonFunctions, (OpenCredential::GINA::Gina **) pWlxContext) ? TRUE : FALSE);
 }
 
 
@@ -109,8 +109,8 @@ BOOL WINAPI WlxInitialize(LPWSTR lpWinsta, HANDLE hWlx, PVOID pvReserved, PVOID 
 VOID WINAPI WlxDisplaySASNotice(PVOID pWlxContext) 
 {
 	pDEBUG(L"WlxDisplaySASNotice");
-	pGINA_FROM_CTX(pWlxContext);
-	pGina->DisplaySASNotice();
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	openCredentialGina->DisplaySASNotice();
 }
 
 /**
@@ -162,22 +162,22 @@ int WINAPI WlxLoggedOutSAS(PVOID pWlxContext, DWORD dwSasType, PLUID pAuthentica
 						   PDWORD pdwOptions, PHANDLE phToken, PWLX_MPR_NOTIFY_INFO pMprNotifyInfo, PVOID *pProfile) 
 {
 	pDEBUG(L"WlxLoggedOutSAS");
-	pGINA_FROM_CTX(pWlxContext);
-	return pGina->LoggedOutSAS(dwSasType, pAuthenticationId, pLogonSid, pdwOptions, phToken, pMprNotifyInfo, pProfile);	
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return openCredentialGina->LoggedOutSAS(dwSasType, pAuthenticationId, pLogonSid, pdwOptions, phToken, pMprNotifyInfo, pProfile);	
 }
 
 /**
 	Winlogon calls this function following a successful logon. Itspurpose is to request GINA to activate
 		the user shell program(s). Note that the user shell should be activated in this routine ratherthan in
 		WlxLoggedOffSas() so that Winlogon has a chance to update its state, including setting workstation
-		and desktop protections, before any logged­on user processes are allowed to run. The pszDesktop parameter 
+		and desktop protections, before any loggedï¿½on user processes are allowed to run. The pszDesktop parameter 
 		should be passed to the CreateProcess API through the field lpDesktop in the STARTUPINFO structure. This 
 		field is designated "Reserved forfuture use. Must be NULL." in the Win32 documentation, but pass this parameter in.
 
 	@param pWlxContext (IN parameter) Context value associated with this window station that GINA returned in the
 		WlxInitialize() call.
 	@param pszDesktopName (IN parameter) Name of the desktop on which to start the shell. This should be supplied to
-		CreateProcess() in the lpStartupInfo­>lpDesktop field (q.v).
+		CreateProcess() in the lpStartupInfoï¿½>lpDesktop field (q.v).
 	@param pszMprLogonScripts (IN parameter) Script names returned from the provider DLLs. Provider DLLs may return scripts to
 		be executed during logon. The GINA may reject these, but Winlogon will provide them ifthey are
 		there.
@@ -195,8 +195,8 @@ int WINAPI WlxLoggedOutSAS(PVOID pWlxContext, DWORD dwSasType, PLUID pAuthentica
 BOOL WINAPI WlxActivateUserShell(PVOID pWlxContext, PWSTR pszDesktopName, PWSTR pszMprLogonScript, PVOID pEnvironment) 
 {
 	pDEBUG(L"WlxActivateUserShell");
-	pGINA_FROM_CTX(pWlxContext);
-	return (pGina->ActivateUserShell(pszDesktopName, pszMprLogonScript, pEnvironment) ? TRUE : FALSE);	
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return (openCredentialGina->ActivateUserShell(pszDesktopName, pszMprLogonScript, pEnvironment) ? TRUE : FALSE);	
 }
 
 /**
@@ -231,8 +231,8 @@ BOOL WINAPI WlxActivateUserShell(PVOID pWlxContext, PWSTR pszDesktopName, PWSTR 
 int WINAPI WlxLoggedOnSAS(PVOID pWlxContext, DWORD dwSasType, PVOID pReserved) 
 {
 	pDEBUG(L"WlxLoggedOnSAS");
-	pGINA_FROM_CTX(pWlxContext);
-	return pGina->LoggedOnSAS(dwSasType, pReserved);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return openCredentialGina->LoggedOnSAS(dwSasType, pReserved);
 }
 
 /**
@@ -248,8 +248,8 @@ int WINAPI WlxLoggedOnSAS(PVOID pWlxContext, DWORD dwSasType, PVOID pReserved)
 VOID WINAPI WlxDisplayLockedNotice(PVOID pWlxContext) 
 {
 	pDEBUG(L"WlxDisplayLockedNotice");
-	pGINA_FROM_CTX(pWlxContext);
-	pGina->DisplayLockedNotice();
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	openCredentialGina->DisplayLockedNotice();
 }
 
 /**
@@ -265,13 +265,13 @@ VOID WINAPI WlxDisplayLockedNotice(PVOID pWlxContext)
 BOOL WINAPI WlxIsLockOk(PVOID pWlxContext) 
 {	
 	pDEBUG(L"WlxIsLockOk");
-	pGINA_FROM_CTX(pWlxContext);
-	return (pGina->IsLockOk() ? TRUE : FALSE);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return (openCredentialGina->IsLockOk() ? TRUE : FALSE);
 }
 
 /**
 	Winlogon calls this function when it receives an SAS and theworkstation is locked. GINA may return
-		indicating the workstation is to remain locked, the workstation is to be unlocked, or the logged­on
+		indicating the workstation is to remain locked, the workstation is to be unlocked, or the loggedï¿½on
 		user is being forced to log off (whichleaves the workstation locked until the logoff is completed).
 	
 	@param pWlxContext (IN parameter) Context value associated with this window station that GINA returned in the
@@ -290,8 +290,8 @@ BOOL WINAPI WlxIsLockOk(PVOID pWlxContext)
 int WINAPI WlxWkstaLockedSAS(PVOID pWlxContext, DWORD dwSasType) 
 {
 	pDEBUG(L"WlxWkstaLockedSAS");
-	pGINA_FROM_CTX(pWlxContext);
-	return pGina->WkstaLockedSAS(dwSasType);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return openCredentialGina->WkstaLockedSAS(dwSasType);
 }
 
 /**
@@ -306,8 +306,8 @@ int WINAPI WlxWkstaLockedSAS(PVOID pWlxContext, DWORD dwSasType)
 */
 BOOL WINAPI WlxIsLogoffOk(PVOID pWlxContext) 
 {	
-	pGINA_FROM_CTX(pWlxContext);
-	return (pGina->IsLogoffOk() ? TRUE : FALSE);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return (openCredentialGina->IsLogoffOk() ? TRUE : FALSE);
 }
 
 /**
@@ -323,8 +323,8 @@ BOOL WINAPI WlxIsLogoffOk(PVOID pWlxContext)
 */
 VOID WINAPI WlxLogoff(PVOID pWlxContext) 
 {
-	pGINA_FROM_CTX(pWlxContext);
-	pGina->Logoff();
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	openCredentialGina->Logoff();
 }
 
 /**
@@ -342,8 +342,8 @@ VOID WINAPI WlxLogoff(PVOID pWlxContext)
 */
 VOID WINAPI WlxShutdown(PVOID pWlxContext, DWORD ShutdownType) 
 {
-	pGINA_FROM_CTX(pWlxContext);
-	pGina->Shutdown(ShutdownType);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	openCredentialGina->Shutdown(ShutdownType);
 
 	// As noted by Keith Brown in his article, it turns out we can still get calls even after this is done,
 	//	so we leak our Gina * class JIC.  We're on our way out anyway, so this isn't a concern in the long term.
@@ -365,8 +365,8 @@ VOID WINAPI WlxShutdown(PVOID pWlxContext, DWORD ShutdownType)
 */
 BOOL WINAPI WlxScreenSaverNotify(PVOID  pWlxContext, BOOL * pSecure) 
 {
-	pGINA_FROM_CTX(pWlxContext);
-	return (pGina->ScreenSaverNotify(pSecure) ? TRUE: FALSE);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return (openCredentialGina->ScreenSaverNotify(pSecure) ? TRUE: FALSE);
 }
 
 /**
@@ -397,8 +397,8 @@ BOOL WINAPI WlxScreenSaverNotify(PVOID  pWlxContext, BOOL * pSecure)
 */
 BOOL WINAPI WlxStartApplication(PVOID pWlxContext, PWSTR pszDesktopName, PVOID pEnvironment, PWSTR pszCmdLine) 
 {
-	pGINA_FROM_CTX(pWlxContext);
-	return (pGina->StartApplication(pszDesktopName, pEnvironment, pszCmdLine) ? TRUE : FALSE);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return (openCredentialGina->StartApplication(pszDesktopName, pEnvironment, pszCmdLine) ? TRUE : FALSE);
 }
 
 /**
@@ -418,8 +418,8 @@ BOOL WINAPI WlxStartApplication(PVOID pWlxContext, PWSTR pszDesktopName, PVOID p
 */
 BOOL WINAPI WlxNetworkProviderLoad(PVOID pWlxContext, PWLX_MPR_NOTIFY_INFO pNprNotifyInfo) 
 {
-	pGINA_FROM_CTX(pWlxContext);
-	return (pGina->NetworkProviderLoad(pNprNotifyInfo) ? TRUE : FALSE);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return (openCredentialGina->NetworkProviderLoad(pNprNotifyInfo) ? TRUE : FALSE);
 }
 
 /**
@@ -440,8 +440,8 @@ BOOL WINAPI WlxNetworkProviderLoad(PVOID pWlxContext, PWLX_MPR_NOTIFY_INFO pNprN
 */
 BOOL WINAPI WlxDisplayStatusMessage(PVOID pWlxContext, HDESK hDesktop, DWORD dwOptions, PWSTR pTitle, PWSTR pMessage) 
 {
-	pGINA_FROM_CTX(pWlxContext);
-	return (pGina->DisplayStatusMessage(hDesktop, dwOptions, pTitle, pMessage) ? TRUE : FALSE);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return (openCredentialGina->DisplayStatusMessage(hDesktop, dwOptions, pTitle, pMessage) ? TRUE : FALSE);
 }
 
 /**
@@ -459,8 +459,8 @@ BOOL WINAPI WlxDisplayStatusMessage(PVOID pWlxContext, HDESK hDesktop, DWORD dwO
 */
 BOOL WINAPI WlxGetStatusMessage(PVOID   pWlxContext, DWORD * pdwOptions, PWSTR   pMessage, DWORD   dwBufferSize) 
 {
-	pGINA_FROM_CTX(pWlxContext);
-	return (pGina->GetStatusMessage(pdwOptions, pMessage, dwBufferSize) ? TRUE : FALSE);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return (openCredentialGina->GetStatusMessage(pdwOptions, pMessage, dwBufferSize) ? TRUE : FALSE);
 }
 
 /**
@@ -475,8 +475,8 @@ BOOL WINAPI WlxGetStatusMessage(PVOID   pWlxContext, DWORD * pdwOptions, PWSTR  
 */
 BOOL WINAPI WlxRemoveStatusMessage(PVOID pWlxContext) 
 {
-	pGINA_FROM_CTX(pWlxContext);
-	return (pGina->RemoveStatusMessage() ? TRUE : FALSE);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	return (openCredentialGina->RemoveStatusMessage() ? TRUE : FALSE);
 }
 
 /**
@@ -484,8 +484,8 @@ BOOL WINAPI WlxRemoveStatusMessage(PVOID pWlxContext)
 */
 VOID WINAPI WlxReconnectNotify(PVOID pWlxContext) 
 {
-	pGINA_FROM_CTX(pWlxContext);
-	pGina->ReconnectNotify();
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	openCredentialGina->ReconnectNotify();
 }
 
 /**
@@ -493,8 +493,8 @@ VOID WINAPI WlxReconnectNotify(PVOID pWlxContext)
 */
 VOID WINAPI WlxDisconnectNotify(PVOID pWlxContext) 
 {	
-	pGINA_FROM_CTX(pWlxContext);
-	pGina->DisconnectNotify();
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);
+	openCredentialGina->DisconnectNotify();
 }
 
 /**
@@ -508,8 +508,8 @@ VOID WINAPI WlxDisconnectNotify(PVOID pWlxContext)
 */
 BOOL WINAPI WlxGetConsoleSwitchCredentials(PVOID  pWlxContext, PVOID  pCredInfo) 
 {
-	pGINA_FROM_CTX(pWlxContext);	
-	return (pGina->GetConsoleSwitchCredentials(pCredInfo) ? TRUE : FALSE);
+	OPENCREDENTIAL_FROM_CTX(pWlxContext);	
+	return (openCredentialGina->GetConsoleSwitchCredentials(pCredInfo) ? TRUE : FALSE);
 }
 
 VOID WINAPI zDebugEntryPoint()

@@ -32,7 +32,7 @@
 
 #define CURRENT_MESSAGE_FORMAT_VERSION 0x01
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Messaging
 	{
@@ -52,7 +52,7 @@ namespace pGina
 		}
 							
 		/* static */
-		Message * Message::Demarshal(pGina::Memory::Buffer *buffer)
+		Message * Message::Demarshal(OpenCredential::Memory::Buffer *buffer)
 		{
 			if(buffer == 0)
 				return 0;
@@ -61,13 +61,13 @@ namespace pGina
 		}
 
 		/* static */
-		Message * Message::Demarshal(pGina::Memory::Buffer &buffer)
+		Message * Message::Demarshal(OpenCredential::Memory::Buffer &buffer)
 		{
 			// Cannot be empty
 			if(buffer.Raw() == 0 || buffer.Length() == 0)
 				return 0;
 			
-			pGina::Memory::BinaryReader reader(buffer);
+			OpenCredential::Memory::BinaryReader reader(buffer);
 
 			unsigned char messageFormatVersion = reader.ReadByte();
 			if(messageFormatVersion != CURRENT_MESSAGE_FORMAT_VERSION)
@@ -102,10 +102,10 @@ namespace pGina
 		}
 		
 		/* static */
-		pGina::Memory::Buffer *  Message::Marshal(Message *msg)
+		OpenCredential::Memory::Buffer *  Message::Marshal(Message *msg)
 		{
 			int length = MarshalToBuffer(msg, 0);
-			pGina::Memory::Buffer * buffer = new pGina::Memory::Buffer(length);
+			OpenCredential::Memory::Buffer * buffer = new OpenCredential::Memory::Buffer(length);
 			
 			if(MarshalToBuffer(msg, buffer) != length)
 				assert(0);
@@ -114,9 +114,9 @@ namespace pGina
 		}
 
 		/* static */
-		int Message::MarshalToBuffer(Message * msg, pGina::Memory::Buffer * buffer)
+		int Message::MarshalToBuffer(Message * msg, OpenCredential::Memory::Buffer * buffer)
 		{
-			pGina::Memory::BinaryWriter writer(buffer);
+			OpenCredential::Memory::BinaryWriter writer(buffer);
 
 			writer.Write((unsigned char) CURRENT_MESSAGE_FORMAT_VERSION);
 
@@ -133,7 +133,7 @@ namespace pGina
 				//	nothing for value
 				if(propBase->Type() == String)
 				{
-					pGina::Messaging::Property<std::wstring> * prop = static_cast<pGina::Messaging::Property<std::wstring> *>(propBase);
+					OpenCredential::Messaging::Property<std::wstring> * prop = static_cast<OpenCredential::Messaging::Property<std::wstring> *>(propBase);
 					if(prop->Value().empty())
 						propBase->Type(EmptyString);
 				}
@@ -146,13 +146,13 @@ namespace pGina
 				{
 				case Boolean:				
 					{
-						pGina::Messaging::Property<bool> * prop = static_cast<pGina::Messaging::Property<bool> *>(propBase);
+						OpenCredential::Messaging::Property<bool> * prop = static_cast<OpenCredential::Messaging::Property<bool> *>(propBase);
 						writer.Write(prop->Value());
 					}
 					break;
 				case Byte:
 					{
-						pGina::Messaging::Property<unsigned char> * prop = static_cast<pGina::Messaging::Property<unsigned char> *>(propBase);
+						OpenCredential::Messaging::Property<unsigned char> * prop = static_cast<OpenCredential::Messaging::Property<unsigned char> *>(propBase);
 						writer.Write(prop->Value());
 					}
 					break;
@@ -161,13 +161,13 @@ namespace pGina
 					break;
 				case Integer:					
 					{
-						pGina::Messaging::Property<int> * prop = static_cast<pGina::Messaging::Property<int> *>(propBase);
+						OpenCredential::Messaging::Property<int> * prop = static_cast<OpenCredential::Messaging::Property<int> *>(propBase);
 						writer.Write(prop->Value());
 					}
 					break;
 				case String:					
 					{
-						pGina::Messaging::Property<std::wstring> * prop = static_cast<pGina::Messaging::Property<std::wstring> *>(propBase);
+						OpenCredential::Messaging::Property<std::wstring> * prop = static_cast<OpenCredential::Messaging::Property<std::wstring> *>(propBase);
 						writer.Write(prop->Value());
 					}
 					break;

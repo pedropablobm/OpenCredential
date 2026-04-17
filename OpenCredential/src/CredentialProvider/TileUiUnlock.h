@@ -28,7 +28,7 @@
 
 #include "TileUiTypes.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace CredProv
 	{

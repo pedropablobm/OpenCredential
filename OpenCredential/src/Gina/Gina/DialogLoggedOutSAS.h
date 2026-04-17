@@ -33,7 +33,7 @@
 #include "DialogBase.h"
 #include "resource.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{

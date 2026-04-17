@@ -34,7 +34,7 @@
 #include "ClassFactory.h"
 #include "TileUiTypes.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace CredProv
 	{
@@ -98,7 +98,7 @@ namespace pGina
 			ICredentialProviderCredentialEvents * m_logonUiCallback;
 			UI_FIELDS *m_fields;			
 			DWORD	m_usageFlags;
-			pGina::Transactions::User::LoginResult m_loginResult;
+			OpenCredential::Transactions::User::LoginResult m_loginResult;
 			bool m_logonCancelled;
 		};
 	}

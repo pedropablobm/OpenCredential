@@ -29,7 +29,7 @@
 #include <Windows.h>
 #include <vector>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Memory
 	{

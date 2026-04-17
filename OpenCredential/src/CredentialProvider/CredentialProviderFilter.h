@@ -28,7 +28,7 @@
 
 #include "credentialprovider.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace CredProv
 	{
@@ -63,3 +63,4 @@ namespace pGina
 		};
 	}
 }
+

@@ -62,13 +62,13 @@ namespace OpenCredential.Configuration
             }
         }
 
-        private static readonly string PGINA_SERVICE_NAME = "OpenCredential";
+        private static readonly string OPENCREDENTIAL_SERVICE_NAME = "OpenCredential";
 
         // Plugin information keyed by Guid
         private Dictionary<string, IPluginBase> m_plugins = new Dictionary<string, IPluginBase>();
         private ILog m_logger = LogManager.GetLogger("ConfigurationUI");
 
-        private ServiceController m_pGinaServiceController = null;
+        private ServiceController m_openCredentialServiceController = null;
         private System.Timers.Timer m_serviceTimer = new System.Timers.Timer();
         
         // Plugin data grid view
@@ -122,7 +122,7 @@ namespace OpenCredential.Configuration
             try
             {
                 using (RegistryKey key = Registry.LocalMachine.CreateSubKey(
-                    OpenCredential.Shared.Settings.OpenCredentialDynamicSettings.pGinaRoot))
+                    OpenCredential.Shared.Settings.OpenCredentialDynamicSettings.OpenCredentialRoot))
                 {
                     string name = "___test_name___";
                     key.SetValue(name, "...");
@@ -244,7 +244,7 @@ namespace OpenCredential.Configuration
 
         private void LoadGeneralSettings()
         {
-            m_pginaVersionLbl.Text = "OpenCredential " +
+            m_openCredentialVersionLbl.Text = "OpenCredential " +
                 System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
             m_tileImageTxt.Text = Settings.Get.GetSetting("TileImage", null);
@@ -259,9 +259,9 @@ namespace OpenCredential.Configuration
             // Make sure that the OpenCredential service is installed
             foreach( ServiceController ctrl in ServiceController.GetServices() )
             {
-                if (ctrl.ServiceName == PGINA_SERVICE_NAME)
+                if (ctrl.ServiceName == OPENCREDENTIAL_SERVICE_NAME)
                 {
-                    m_pGinaServiceController = ctrl;
+                    m_openCredentialServiceController = ctrl;
                     break;
                 }
             }
@@ -272,7 +272,7 @@ namespace OpenCredential.Configuration
             this.cpEnabledTB.BackColor = Color.GhostWhite;
             this.cpRegisteredTB.BackColor = Color.GhostWhite;
 
-            if (m_pGinaServiceController != null)
+            if (m_openCredentialServiceController != null)
             {
                 // Setup the timer that checks the service status periodically
                 m_serviceTimer.Interval = 1500;
@@ -343,8 +343,8 @@ namespace OpenCredential.Configuration
 
         private void UpdateServiceStatus()
         {
-            m_pGinaServiceController.Refresh();
-            ServiceControllerStatus stat = m_pGinaServiceController.Status;
+            m_openCredentialServiceController.Refresh();
+            ServiceControllerStatus stat = m_openCredentialServiceController.Status;
             string statusStr = stat.ToString();
             switch (stat)
             {
@@ -1391,24 +1391,24 @@ namespace OpenCredential.Configuration
 
         private void serviceStartBtn_Click(object sender, EventArgs e)
         {
-            if (m_pGinaServiceController.Status == ServiceControllerStatus.Stopped)
+            if (m_openCredentialServiceController.Status == ServiceControllerStatus.Stopped)
             {
                 // Disable this right away, otherwise it isn't disabled until the
                 // service controller shows it as "Start pending"
                 serviceStartBtn.Enabled = false;
-                m_pGinaServiceController.Start();
+                m_openCredentialServiceController.Start();
                 UpdateServiceStatus();
             }
         }
 
         private void serviceStopBtn_Click(object sender, EventArgs e)
         {
-            if (m_pGinaServiceController.Status == ServiceControllerStatus.Running)
+            if (m_openCredentialServiceController.Status == ServiceControllerStatus.Running)
             {
                 // Disable this right away, otherwise it isn't disabled until the
                 // service controller shows it as "Stop pending"
                 serviceStopBtn.Enabled = false;
-                m_pGinaServiceController.Stop();
+                m_openCredentialServiceController.Stop();
                 UpdateServiceStatus();
             }
         }

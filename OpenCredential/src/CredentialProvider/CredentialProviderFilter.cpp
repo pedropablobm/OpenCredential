@@ -38,7 +38,7 @@
 
 #include <wincred.h>
 
-namespace pGina {
+namespace OpenCredential {
 	namespace CredProv {
 
 		IFACEMETHODIMP CredentialProviderFilter::QueryInterface(__in REFIID riid, __deref_out void **ppv)
@@ -75,7 +75,7 @@ namespace pGina {
 
 			// Retrieve the registry settings
 			std::vector<std::wstring> rawFilterSettings = 
-				pGina::Registry::GetStringArray(L"CredentialProviderFilters");
+				OpenCredential::Registry::GetStringArray(L"CredentialProviderFilters");
 
 			// If there's nothing there, there's nothing to do.
 			if( rawFilterSettings.size() == 0 ) return S_OK;
@@ -148,7 +148,7 @@ namespace pGina {
 				&& (pcpcsOut->rgbSerialization = (BYTE *)CoTaskMemAlloc(pcpcsIn->cbSerialization)) != NULL )
 			{
 				pcpcsOut->ulAuthenticationPackage = pcpcsIn->ulAuthenticationPackage;
-				pcpcsOut->clsidCredentialProvider = CLSID_CpGinaProvider;
+	pcpcsOut->clsidCredentialProvider = CLSID_OpenCredentialProvider;
 				pcpcsOut->cbSerialization = pcpcsIn->cbSerialization;
 				CopyMemory(pcpcsOut->rgbSerialization, pcpcsIn->rgbSerialization, pcpcsIn->cbSerialization);
 				result = S_OK;

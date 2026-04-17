@@ -32,7 +32,7 @@
 
 #include "Helpers.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Helpers
 	{

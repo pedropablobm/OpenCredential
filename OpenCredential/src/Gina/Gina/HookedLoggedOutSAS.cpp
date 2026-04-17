@@ -32,13 +32,13 @@
 #define IDC_MSGINA_USERNAME 1502
 #define IDC_MSGINA_PASSWORD 1503
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{
 		/* static */ DLGPROC HookedLoggedOutSAS::s_hookedDlgProc = 0;
 		/* static */ bool    HookedLoggedOutSAS::s_hookingEnabled = false;
-		/* static */ pGina::Transactions::User::LoginResult HookedLoggedOutSAS::s_loginResult;
+		/* static */ OpenCredential::Transactions::User::LoginResult HookedLoggedOutSAS::s_loginResult;
 
 		/* static */
 		INT_PTR HookedLoggedOutSAS::MicrosoftDialogProcWrapper(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)

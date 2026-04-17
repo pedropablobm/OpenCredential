@@ -27,14 +27,14 @@
 
 #include "ServiceStateHelper.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Service
 	{
-		/* static */ pGina::Threading::Mutex StateHelper::s_mutex;
-		/* static */ pGina::Transactions::ServiceStateThread StateHelper::s_serviceStateThread;
-		/* static */ std::list<pGina::CredProv::Provider *> StateHelper::s_providers;
-		/* static */ std::list<pGina::CredProv::Credential *> StateHelper::s_creds;
+		/* static */ OpenCredential::Threading::Mutex StateHelper::s_mutex;
+		/* static */ OpenCredential::Transactions::ServiceStateThread StateHelper::s_serviceStateThread;
+		/* static */ std::list<OpenCredential::CredProv::Provider *> StateHelper::s_providers;
+		/* static */ std::list<OpenCredential::CredProv::Credential *> StateHelper::s_creds;
 
 		/* static */
 		void StateHelper::Start()
@@ -63,50 +63,51 @@ namespace pGina
 		}			
 
 		/* static */
-		void StateHelper::AddTarget(pGina::CredProv::Provider *ptr)
+		void StateHelper::AddTarget(OpenCredential::CredProv::Provider *ptr)
 		{
-			pGina::Threading::ScopedLock lock(s_mutex);
+			OpenCredential::Threading::ScopedLock lock(s_mutex);
 			s_providers.push_back(ptr);
 		}
 
 		/* static */
-		void StateHelper::RemoveTarget(pGina::CredProv::Provider *ptr)
+		void StateHelper::RemoveTarget(OpenCredential::CredProv::Provider *ptr)
 		{
-			pGina::Threading::ScopedLock lock(s_mutex);
+			OpenCredential::Threading::ScopedLock lock(s_mutex);
 			s_providers.remove(ptr);
 		}
 
 		/* static */
-		void StateHelper::AddTarget(pGina::CredProv::Credential *ptr)
+		void StateHelper::AddTarget(OpenCredential::CredProv::Credential *ptr)
 		{
-			pGina::Threading::ScopedLock lock(s_mutex);
+			OpenCredential::Threading::ScopedLock lock(s_mutex);
 			s_creds.push_back(ptr);
 		}
 
 		/* static */
-		void StateHelper::RemoveTarget(pGina::CredProv::Credential *ptr)
+		void StateHelper::RemoveTarget(OpenCredential::CredProv::Credential *ptr)
 		{
-			pGina::Threading::ScopedLock lock(s_mutex);
+			OpenCredential::Threading::ScopedLock lock(s_mutex);
 			s_creds.remove(ptr);
 		}
 
 		/* static */
 		void StateHelper::NotifyStateChanged(bool newState)
 		{
-			pGina::Threading::ScopedLock lock(s_mutex);
-			for(std::list<pGina::CredProv::Credential *>::iterator itr = s_creds.begin();
+			OpenCredential::Threading::ScopedLock lock(s_mutex);
+			for(std::list<OpenCredential::CredProv::Credential *>::iterator itr = s_creds.begin();
 				itr != s_creds.end(); ++itr)
 			{
-				pGina::CredProv::Credential * ptr = *itr;
+				OpenCredential::CredProv::Credential * ptr = *itr;
 				ptr->ServiceStateChanged(newState);
 			}
 
-			for(std::list<pGina::CredProv::Provider *>::iterator itr = s_providers.begin();
+			for(std::list<OpenCredential::CredProv::Provider *>::iterator itr = s_providers.begin();
 				itr != s_providers.end(); ++itr)
 			{
-				pGina::CredProv::Provider * ptr = *itr;
+				OpenCredential::CredProv::Provider * ptr = *itr;
 				ptr->ServiceStateChanged(newState);
 			}
 		}
 	}
 }
+

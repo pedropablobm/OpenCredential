@@ -30,7 +30,7 @@
 #include "WinlogonReal.h"
 #include "GinaChain.h"	// Currently this is the only GINA type supported
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{

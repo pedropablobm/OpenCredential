@@ -36,7 +36,7 @@
 #pragma warning(push)
 #pragma warning(disable : 4200)	// Cannot generate copy-ctor or copy-assignment operator when UDT contains a zero-sized array
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace CredProv
 	{		
@@ -86,5 +86,6 @@ namespace pGina
 }
 
 #pragma warning(pop)
+
 
 

@@ -28,7 +28,7 @@
 
 #include "TileUiTypes.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace CredProv
 	{
@@ -56,7 +56,7 @@ namespace pGina
 			{
 				//  when to display,               style,             field id,        type,               name           data source     value			callback
 				{ { CPFS_DISPLAY_IN_BOTH,          CPFIS_NONE },    { CPUIFI_TILEIMAGE, CPFT_TILE_IMAGE,    L"Image" },    SOURCE_NONE,    NULL,			NULL },	
-			    { { CPFS_DISPLAY_IN_BOTH,          CPFIS_NONE },    { CPUIFI_MOTD,      CPFT_SMALL_TEXT,    L"MOTD" },     SOURCE_DYNAMIC, L"pGina",     NULL }, 
+		{ { CPFS_DISPLAY_IN_BOTH,          CPFIS_NONE },    { CPUIFI_MOTD,      CPFT_SMALL_TEXT,    L"MOTD" },     SOURCE_DYNAMIC, L"OpenCredential",     NULL },
 				{ { CPFS_DISPLAY_IN_SELECTED_TILE, CPFIS_FOCUSED }, { CPUIFI_USERNAME,  CPFT_EDIT_TEXT,     L"Username" }, SOURCE_NONE,    NULL,			NULL },	
 				{ { CPFS_DISPLAY_IN_SELECTED_TILE, CPFIS_NONE },	{ CPUIFI_OLD_PASSWORD,  CPFT_PASSWORD_TEXT, L"Old Password" }, SOURCE_NONE,    NULL,			NULL }, 
 				{ { CPFS_DISPLAY_IN_SELECTED_TILE, CPFIS_NONE },	{ CPUIFI_NEW_PASSWORD,  CPFT_PASSWORD_TEXT, L"New Password" }, SOURCE_NONE,    NULL,			NULL }, 

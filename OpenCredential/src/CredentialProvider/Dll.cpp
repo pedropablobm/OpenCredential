@@ -89,9 +89,9 @@ HRESULT WINAPI DllGetClassObject(__in REFCLSID rclsid, __in REFIID riid, __deref
 	*ppv = NULL;
 
 	// We provide class factory support for our provider only
-	if (rclsid == CLSID_CpGinaProvider)
+	if (rclsid == CLSID_OpenCredentialProvider)
     {
-		pGina::COM::CClassFactory * factory = new pGina::COM::CClassFactory();        
+		OpenCredential::COM::CClassFactory * factory = new OpenCredential::COM::CClassFactory();        
         if (factory)
         {
             hr = factory->QueryInterface(riid, ppv);
@@ -105,4 +105,5 @@ HRESULT WINAPI DllGetClassObject(__in REFCLSID rclsid, __in REFIID riid, __deref
     
     return hr;
 }
+
 

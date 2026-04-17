@@ -29,7 +29,7 @@
 #include <Windows.h>
 #include <string>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Messaging
 	{

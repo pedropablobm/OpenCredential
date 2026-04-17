@@ -30,7 +30,7 @@
 typedef DWORD (WINAPI *pThemeWait)(DWORD dwTimeout);
 typedef BOOL (WINAPI *pThemeWatch)(void);
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{

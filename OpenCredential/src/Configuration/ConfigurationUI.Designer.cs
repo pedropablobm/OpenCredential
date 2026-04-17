@@ -155,7 +155,7 @@ namespace OpenCredential.Configuration
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.btnApply = new System.Windows.Forms.Button();
             this.btnOkay = new System.Windows.Forms.Button();
-            this.m_pginaVersionLbl = new System.Windows.Forms.Label();
+            this.m_openCredentialVersionLbl = new System.Windows.Forms.Label();
             this.btnSaveAndClose = new System.Windows.Forms.Button();
             this.m_tabs.SuspendLayout();
             this.m_generalConfigTab.SuspendLayout();
@@ -1762,16 +1762,16 @@ namespace OpenCredential.Configuration
             this.btnOkay.UseVisualStyleBackColor = true;
             this.btnOkay.Click += new System.EventHandler(this.btnOkay_Click);
             // 
-            // m_pginaVersionLbl
+            // m_openCredentialVersionLbl
             // 
-            this.m_pginaVersionLbl.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.m_pginaVersionLbl.AutoSize = true;
-            this.m_pginaVersionLbl.Location = new System.Drawing.Point(16, 757);
-            this.m_pginaVersionLbl.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.m_pginaVersionLbl.Name = "m_pginaVersionLbl";
-            this.m_pginaVersionLbl.Size = new System.Drawing.Size(90, 16);
-            this.m_pginaVersionLbl.TabIndex = 5;
-            this.m_pginaVersionLbl.Text = "OpenCredential version";
+            this.m_openCredentialVersionLbl.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.m_openCredentialVersionLbl.AutoSize = true;
+            this.m_openCredentialVersionLbl.Location = new System.Drawing.Point(16, 757);
+            this.m_openCredentialVersionLbl.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.m_openCredentialVersionLbl.Name = "m_openCredentialVersionLbl";
+            this.m_openCredentialVersionLbl.Size = new System.Drawing.Size(90, 16);
+            this.m_openCredentialVersionLbl.TabIndex = 5;
+            this.m_openCredentialVersionLbl.Text = "OpenCredential version";
             // 
             // btnSaveAndClose
             // 
@@ -1792,7 +1792,7 @@ namespace OpenCredential.Configuration
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1096, 784);
             this.Controls.Add(this.btnSaveAndClose);
-            this.Controls.Add(this.m_pginaVersionLbl);
+            this.Controls.Add(this.m_openCredentialVersionLbl);
             this.Controls.Add(this.btnApply);
             this.Controls.Add(this.btnOkay);
             this.Controls.Add(this.m_tabs);
@@ -1958,7 +1958,7 @@ namespace OpenCredential.Configuration
         private System.Windows.Forms.GroupBox groupBox9;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.CheckBox showTextResultPasswordCB;
-        private System.Windows.Forms.Label m_pginaVersionLbl;
+        private System.Windows.Forms.Label m_openCredentialVersionLbl;
         private System.Windows.Forms.GroupBox groupBox10;
         private System.Windows.Forms.PictureBox simGatewayResultPB;
         private System.Windows.Forms.PictureBox simAuthzResultPB;

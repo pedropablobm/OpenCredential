@@ -31,7 +31,7 @@
 
 #include <Buffer.h>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace NamedPipes
 	{
@@ -45,11 +45,11 @@ namespace pGina
 			bool Connect();
 			bool Connect(int timeout);
 
-			pGina::Memory::Buffer * ReadLengthEncodedBuffer();
-			bool WriteLengthEncodedBuffer(pGina::Memory::Buffer *buffer);
+			OpenCredential::Memory::Buffer * ReadLengthEncodedBuffer();
+			bool WriteLengthEncodedBuffer(OpenCredential::Memory::Buffer *buffer);
 
-			pGina::Memory::Buffer * ReadBuffer(int size);
-			bool WriteBuffer(pGina::Memory::Buffer *buffer);
+			OpenCredential::Memory::Buffer * ReadBuffer(int size);
+			bool WriteBuffer(OpenCredential::Memory::Buffer *buffer);
 
 			int Read(unsigned char * buffer, int len);
 			int Write(unsigned char * buffer, int len);

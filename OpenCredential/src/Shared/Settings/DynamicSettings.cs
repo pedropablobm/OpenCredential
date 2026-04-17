@@ -35,19 +35,19 @@ namespace OpenCredential.Shared.Settings
 {
     public class OpenCredentialDynamicSettings : Abstractions.Settings.DynamicSettings
     {    
-        public const string pGinaRoot = @"SOFTWARE\OpenCredential3";
+        public const string OpenCredentialRoot = @"SOFTWARE\OpenCredential3";
         public OpenCredentialDynamicSettings() :
-            base(pGinaRoot)
+            base(OpenCredentialRoot)
         {
         }
 
         public OpenCredentialDynamicSettings(Guid pluginGuid) :
-            base(string.Format(@"{0}\Plugins\{1}", pGinaRoot, pluginGuid.ToString()))
+            base(string.Format(@"{0}\Plugins\{1}", OpenCredentialRoot, pluginGuid.ToString()))
         {            
         }
 
         public OpenCredentialDynamicSettings(Guid pluginGuid, string subKey) :
-            base(string.Format(@"{0}\Plugins\{1}\{2}", pGinaRoot, pluginGuid.ToString(), subKey))
+            base(string.Format(@"{0}\Plugins\{1}\{2}", OpenCredentialRoot, pluginGuid.ToString(), subKey))
         {
         }
 
@@ -62,7 +62,7 @@ namespace OpenCredential.Shared.Settings
         {
             Dictionary<string, dynamic> result = new Dictionary<string, dynamic>();
 
-            string subKey = string.Format(@"{0}\Plugins\{1}", pGinaRoot, pluginGuid.ToString());
+            string subKey = string.Format(@"{0}\Plugins\{1}", OpenCredentialRoot, pluginGuid.ToString());
             using( RegistryKey key = Registry.LocalMachine.OpenSubKey(subKey, false) )
             {
                 if (key != null)
@@ -85,7 +85,7 @@ namespace OpenCredential.Shared.Settings
         /// <param name="toKeep">The list of sub-keys to keep, all others are deleted.</param>
         public static void CleanSubSettings(Guid pluginGuid, List<string> toKeep)
         {
-            string subKey = string.Format(@"{0}\Plugins\{1}", pGinaRoot, pluginGuid.ToString());
+            string subKey = string.Format(@"{0}\Plugins\{1}", OpenCredentialRoot, pluginGuid.ToString());
             using (RegistryKey key = Registry.LocalMachine.OpenSubKey(subKey, true))
             {
                 if (key != null)

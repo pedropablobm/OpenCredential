@@ -31,7 +31,7 @@
 #include <OpenCredentialMessages.h>
 #include <Threading.h>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Transactions
 	{
@@ -92,7 +92,7 @@ namespace pGina
 					bool m_result;
 			};			
 
-			static LoginResult ProcessLoginForUser(const wchar_t *username, const wchar_t *domain, const wchar_t *password, pGina::Protocol::LoginRequestMessage::LoginReason reason);
+			static LoginResult ProcessLoginForUser(const wchar_t *username, const wchar_t *domain, const wchar_t *password, OpenCredential::Protocol::LoginRequestMessage::LoginReason reason);
 			static bool LocalLoginForUser(const wchar_t *username, const wchar_t *password);
 
 			static LoginResult ProcessChangePasswordForUser( const wchar_t *username, const wchar_t *domain,
@@ -136,7 +136,7 @@ namespace pGina
 			static void Move(const wchar_t *username, const wchar_t *domain, const wchar_t *password, int old_session, int new_session);
 		};
 		
-		class ServiceStateThread : public pGina::Threading::Thread
+		class ServiceStateThread : public OpenCredential::Threading::Thread
 		{
 		public:
 			typedef void (*NOTIFY_STATE_CHANGE_CALLBACK)(bool newState);

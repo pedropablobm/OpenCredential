@@ -29,7 +29,7 @@
 #include <windows.h>
 #include <unknwn.h>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace COM
 	{

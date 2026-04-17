@@ -28,7 +28,7 @@
 
 #include <Windows.h>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Threading
 	{

@@ -29,7 +29,7 @@
 #include <Windows.h>
 #include <WinWlx.h>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{

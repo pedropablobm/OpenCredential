@@ -30,7 +30,7 @@
 
 #include <OpenCredentialNativeLib.h>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{
@@ -41,12 +41,12 @@ namespace pGina
 			static DLGPROC GetDlgHookProc() { return (DLGPROC) MicrosoftDialogProcWrapper; }
 			static bool Enabled() { return s_hookingEnabled; }
 			static void Enabled(bool v) { s_hookingEnabled = v; }
-			static void SetLoginInfo(pGina::Transactions::User::LoginResult result) { s_loginResult = result; }
+			static void SetLoginInfo(OpenCredential::Transactions::User::LoginResult result) { s_loginResult = result; }
 
 		private:
 			static DLGPROC s_hookedDlgProc;			
 			static bool    s_hookingEnabled;
-			static pGina::Transactions::User::LoginResult s_loginResult;
+			static OpenCredential::Transactions::User::LoginResult s_loginResult;
 
 			static INT_PTR MicrosoftDialogProcWrapper(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 		};

@@ -33,7 +33,7 @@
 #define BOUNDS_CHECK(size)
 #endif
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Memory
 	{

@@ -41,14 +41,14 @@ namespace OpenCredential.Shared.Interfaces
         Guid Uuid { get; }
 
         /// <summary>
-        /// Called when pGina service starts.  Intended for 'startup' time processing.  This is 
+        /// Called when the OpenCredential service starts.  Intended for 'startup' time processing.  This is 
         /// not called during simulation so plugins should not do anything here that would
         /// be necessary for logon processing.
         /// </summary>
         void Starting();
 
         /// <summary>
-        /// Called when the pGina service is shutting down, for 'stopping' time processing.  This 
+        /// Called when the OpenCredential service is shutting down, for 'stopping' time processing.  This 
         /// is not called during simulation.  Plugins should not depend on this to clean up
         /// post logon.
         /// </summary>
@@ -56,7 +56,7 @@ namespace OpenCredential.Shared.Interfaces
     }
     
     /// <summary>
-    /// Plugins which wish to integrate with the pGina configuration/Plugin
+    /// Plugins which wish to integrate with the OpenCredential configuration/plugin
     /// management UI must implement this interface 
     /// </summary>
     public interface IPluginConfiguration : IPluginBase
@@ -112,13 +112,13 @@ namespace OpenCredential.Shared.Interfaces
     public interface IPluginEventNotifications : IPluginBase
     {        
         /// <summary>
-        /// Default System session notification (as provided to pGina service
+        /// Default System session notification (as provided to the OpenCredential service
         ///  via http://msdn.microsoft.com/en-us/library/system.serviceprocess.servicebase.onsessionchange.aspx) 
         /// </summary>
         /// <param name="changeDescription">See MSDN, includes session id and change reason (login, logout etc)</param>
         /// <param name="properties">
-        /// If the session is a pGina session, this is the properties instance used by the plugins at auth time.
-        /// This value is null if the session is not a pGina session.
+        /// If the session is an OpenCredential session, this is the properties instance used by the plugins at auth time.
+        /// This value is null if the session is not an OpenCredential session.
         /// </param>
         void SessionChange(SessionChangeDescription changeDescription, Types.SessionProperties properties);                
     }

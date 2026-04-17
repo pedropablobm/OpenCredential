@@ -33,7 +33,7 @@
 #include "Winlogon.h"
 #include "WinlogonProxy.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{

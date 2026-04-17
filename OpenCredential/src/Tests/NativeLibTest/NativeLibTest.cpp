@@ -28,7 +28,7 @@
 #include "stdafx.h"
 #include <OpenCredentialNativeLib.h>
 
-class ThreadTest : public pGina::Threading::Thread
+class ThreadTest : public OpenCredential::Threading::Thread
 {
 	virtual DWORD ThreadMain()
 	{
@@ -45,14 +45,14 @@ class ThreadTest : public pGina::Threading::Thread
 int __cdecl _tmain(int argc, _TCHAR* argv[])
 {			
 	// And auth, all in one...
-	pGina::Transactions::User::LoginResult result = pGina::Transactions::User::ProcessLoginForUser(L"Administrator", L"", L"password", pGina::Protocol::LoginRequestMessage::Login);
+	OpenCredential::Transactions::User::LoginResult result = OpenCredential::Transactions::User::ProcessLoginForUser(L"Administrator", L"", L"password", OpenCredential::Protocol::LoginRequestMessage::Login);
 	if(result.Result())
 	{
-		pGina::Transactions::Log::Info(L"User: %s login successful!", result.Username().c_str());
+		OpenCredential::Transactions::Log::Info(L"User: %s login successful!", result.Username().c_str());
 	}
 	
-	std::wstring str = pGina::Transactions::TileUi::GetDynamicLabel(L"MOTD");
-	pGina::Transactions::Log::Info(L"TileUi::GetDynamicLabel(\"MOTD\") received: %s", str.c_str());
+	std::wstring str = OpenCredential::Transactions::TileUi::GetDynamicLabel(L"MOTD");
+	OpenCredential::Transactions::Log::Info(L"TileUi::GetDynamicLabel(\"MOTD\") received: %s", str.c_str());
 	
 	ThreadTest ping;
 	ping.Start();
@@ -60,4 +60,5 @@ int __cdecl _tmain(int argc, _TCHAR* argv[])
 	ping.Stop();
 	return 0;
 }
+
 

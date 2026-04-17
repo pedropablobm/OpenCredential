@@ -26,27 +26,27 @@
 */
 #include "OpenCredentialMessages.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Protocol
 	{						
-		MessageBase * SendRecvPipeMessage(pGina::NamedPipes::PipeClient &client, MessageBase &msg)
+		MessageBase * SendRecvPipeMessage(OpenCredential::NamedPipes::PipeClient &client, MessageBase &msg)
 		{
 			return SendRecvPipeMessage(client, &msg);
 		}
 
-		MessageBase * SendRecvPipeMessage(pGina::NamedPipes::PipeClient &client, MessageBase *msg)
+		MessageBase * SendRecvPipeMessage(OpenCredential::NamedPipes::PipeClient &client, MessageBase *msg)
 		{
 			MessageBase * reply = 0;
-			pGina::Messaging::Message * dynamicMsg = msg->ToDynamicMessage();			
-			pGina::Memory::Buffer * msgBuffer = pGina::Messaging::Message::Marshal(dynamicMsg);
+			OpenCredential::Messaging::Message * dynamicMsg = msg->ToDynamicMessage();			
+			OpenCredential::Memory::Buffer * msgBuffer = OpenCredential::Messaging::Message::Marshal(dynamicMsg);
 
 			if(client.WriteLengthEncodedBuffer(msgBuffer))
 			{
-				pGina::Memory::Buffer * replyBuffer = client.ReadLengthEncodedBuffer();
+				OpenCredential::Memory::Buffer * replyBuffer = client.ReadLengthEncodedBuffer();
 				if(replyBuffer)
 				{
-					pGina::Messaging::Message * replyMsg = pGina::Messaging::Message::Demarshal(replyBuffer);
+					OpenCredential::Messaging::Message * replyMsg = OpenCredential::Messaging::Message::Demarshal(replyBuffer);
 
 					if(replyMsg->Exists<unsigned char>(L"MessageType"))
 					{

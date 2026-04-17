@@ -48,7 +48,7 @@
 
 #include <wincred.h>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace CredProv
 	{
@@ -169,7 +169,7 @@ namespace pGina
 				return E_INVALIDARG;
 
 			HBITMAP bitmap = NULL;
-			std::wstring tileImage = pGina::Registry::GetString(L"TileImage", L"");
+			std::wstring tileImage = OpenCredential::Registry::GetString(L"TileImage", L"");
 			if(tileImage.empty() || tileImage.length() == 1)
 			{
 				// Use builtin
@@ -319,7 +319,7 @@ namespace pGina
 			// in m_loginResult. So now we pack it up and provide it back to
 			// LogonUI/Winlogon as a serialized/packed structure.
 
-			pGina::Memory::ObjectCleanupPool cleanup;
+			OpenCredential::Memory::ObjectCleanupPool cleanup;
 
 			PWSTR username = m_loginResult.Username().length() > 0 ? _wcsdup(m_loginResult.Username().c_str()) : NULL;
 			PWSTR password = m_loginResult.Password().length() > 0 ? _wcsdup(m_loginResult.Password().c_str()) : NULL;
@@ -334,7 +334,7 @@ namespace pGina
 			if(!SUCCEEDED(result))
 				return result;
 
-			cleanup.Add(new pGina::Memory::CoTaskMemFreeCleanup(protectedPassword));			
+			cleanup.Add(new OpenCredential::Memory::CoTaskMemFreeCleanup(protectedPassword));			
 
 			// CredUI we use CredPackAuthenticationBuffer
 			if(m_usageScenario == CPUS_CREDUI)
@@ -390,7 +390,7 @@ namespace pGina
 				return result;
 						
 			pcpcs->ulAuthenticationPackage = authPackage;
-			pcpcs->clsidCredentialProvider = CLSID_CpGinaProvider;
+			pcpcs->clsidCredentialProvider = CLSID_OpenCredentialProvider;
 			*pcpgsr = CPGSR_RETURN_CREDENTIAL_FINISHED;            
             
 			return S_OK;
@@ -416,12 +416,12 @@ namespace pGina
 		{
 			AddDllReference();
 
-			pGina::Service::StateHelper::AddTarget(this);
+			OpenCredential::Service::StateHelper::AddTarget(this);
 		}
 		
 		Credential::~Credential()
 		{
-			pGina::Service::StateHelper::RemoveTarget(this);
+			OpenCredential::Service::StateHelper::RemoveTarget(this);
 			ClearZeroAndFreeAnyTextFields(false);	// Free memory used to back text fields, no ui update
 			ReleaseDllReference();
 		}
@@ -474,15 +474,15 @@ namespace pGina
 			}
 			else if(m_usageScenario == CPUS_UNLOCK_WORKSTATION)
 			{
-				DWORD mySession = pGina::Helpers::GetCurrentSessionId();
+				DWORD mySession = OpenCredential::Helpers::GetCurrentSessionId();
 				std::wstring sessionUname, domain;    // Username and domain to be determined
 				std::wstring usernameFieldValue;  // The value for the username field
-				std::wstring machineName = pGina::Helpers::GetMachineName();
+				std::wstring machineName = OpenCredential::Helpers::GetMachineName();
 
 				// Get user information from service (if available)
 				pDEBUG(L"Retrieving user information from service.");
-				pGina::Transactions::LoginInfo::UserInformation userInfo = 
-					pGina::Transactions::LoginInfo::GetUserInformation(mySession);
+				OpenCredential::Transactions::LoginInfo::UserInformation userInfo = 
+					OpenCredential::Transactions::LoginInfo::GetUserInformation(mySession);
 				pDEBUG(L"Received: original uname: '%s' uname: '%s' domain: '%s'", 
 					userInfo.OriginalUsername().c_str(), userInfo.Username().c_str(), userInfo.Domain().c_str());
 
@@ -491,16 +491,16 @@ namespace pGina
 					domain = userInfo.Domain();
 
 				// Are we configured to use the original username?
-				if( pGina::Registry::GetBool(L"UseOriginalUsernameInUnlockScenario", false) )
+				if( OpenCredential::Registry::GetBool(L"UseOriginalUsernameInUnlockScenario", false) )
 					sessionUname = userInfo.OriginalUsername();
 				else
 					sessionUname = userInfo.Username();
 
 				// If we didn't get a username/domain from the service, try to get it from WTS
 				if( sessionUname.empty() )
-					sessionUname = pGina::Helpers::GetSessionUsername(mySession);
+					sessionUname = OpenCredential::Helpers::GetSessionUsername(mySession);
 				if( domain.empty() )
-					domain = pGina::Helpers::GetSessionDomainName(mySession);
+					domain = OpenCredential::Helpers::GetSessionDomainName(mySession);
 					
 
 				if(!domain.empty() && _wcsicmp(domain.c_str(), machineName.c_str()) != 0)
@@ -513,9 +513,9 @@ namespace pGina
 				
 				SHStrDupW(usernameFieldValue.c_str(), &(m_fields->fields[m_fields->usernameFieldIdx].wstr));
 			} else if( CPUS_CHANGE_PASSWORD == m_usageScenario ) {
-				DWORD mySession = pGina::Helpers::GetCurrentSessionId();
+				DWORD mySession = OpenCredential::Helpers::GetCurrentSessionId();
 
-				std::wstring sessionUname = pGina::Helpers::GetSessionUsername(mySession);
+				std::wstring sessionUname = OpenCredential::Helpers::GetSessionUsername(mySession);
 
 				SHStrDupW(sessionUname.c_str(), &(m_fields->fields[m_fields->usernameFieldIdx].wstr));
 			}
@@ -526,13 +526,13 @@ namespace pGina
 			}
 
 			// Hide service status if configured to do so
-			if( ! pGina::Registry::GetBool(L"ShowServiceStatusInLogonUi", true) )
+			if( ! OpenCredential::Registry::GetBool(L"ShowServiceStatusInLogonUi", true) )
 			{
 				m_fields->fields[m_fields->statusFieldIdx].fieldStatePair.fieldState = CPFS_HIDDEN;
 			}
 
 			// If the service is not available, we initially hide username/password
-			if (!pGina::Transactions::Service::Ping()) 
+			if (!OpenCredential::Transactions::Service::Ping()) 
 			{
 				m_fields->fields[m_fields->usernameFieldIdx].fieldStatePair.fieldState = CPFS_HIDDEN;
 				m_fields->fields[m_fields->passwordFieldIdx].fieldStatePair.fieldState = CPFS_HIDDEN;
@@ -549,8 +549,8 @@ namespace pGina
 			}
 
 			// If the user has requested to hide the username and/or password fields.
-			bool hideUsername = pGina::Registry::GetBool(L"HideUsernameField", false);
-			bool hidePassword = pGina::Registry::GetBool(L"HidePasswordField", false);
+			bool hideUsername = OpenCredential::Registry::GetBool(L"HideUsernameField", false);
+			bool hidePassword = OpenCredential::Registry::GetBool(L"HidePasswordField", false);
 			if (hideUsername)
 				m_fields->fields[m_fields->usernameFieldIdx].fieldStatePair.fieldState = CPFS_HIDDEN;
 			if (hidePassword) {
@@ -648,7 +648,7 @@ namespace pGina
 			// Retrieve data for dynamic fields
 			if( m_fields->fields[dwFieldID].fieldDataSource == SOURCE_DYNAMIC )
 			{
-				return pGina::Transactions::TileUi::GetDynamicLabel( m_fields->fields[dwFieldID].fieldDescriptor.pszLabel );				
+				return OpenCredential::Transactions::TileUi::GetDynamicLabel( m_fields->fields[dwFieldID].fieldDescriptor.pszLabel );				
 			}
 			else if(m_fields->fields[dwFieldID].fieldDataSource == SOURCE_CALLBACK && m_fields->fields[dwFieldID].labelCallback != NULL)
 			{
@@ -656,7 +656,7 @@ namespace pGina
 			}
 			else if(m_fields->fields[dwFieldID].fieldDataSource == SOURCE_STATUS)
 			{
-				return pGina::Service::StateHelper::GetStateText();
+				return OpenCredential::Service::StateHelper::GetStateText();
 			}
 
 			return L"";
@@ -674,8 +674,8 @@ namespace pGina
 			if (m_fields) {
 				if (newState) {
 					pDEBUG(L"Service is now available, revealing fields");
-					bool hideUsername = pGina::Registry::GetBool(L"HideUsernameField", false);
-					bool hidePassword = pGina::Registry::GetBool(L"HidePasswordField", false);
+					bool hideUsername = OpenCredential::Registry::GetBool(L"HideUsernameField", false);
+					bool hidePassword = OpenCredential::Registry::GetBool(L"HidePasswordField", false);
 
 					m_fields->fields[m_fields->statusFieldIdx].fieldStatePair.fieldState = CPFS_HIDDEN;
 					if (m_logonUiCallback)
@@ -754,16 +754,16 @@ namespace pGina
 			PWSTR password = FindPasswordValue();
 			PWSTR domain = NULL;
 
-			pGina::Protocol::LoginRequestMessage::LoginReason reason = pGina::Protocol::LoginRequestMessage::Login;
+			OpenCredential::Protocol::LoginRequestMessage::LoginReason reason = OpenCredential::Protocol::LoginRequestMessage::Login;
 			switch(m_usageScenario)
 			{
 			case CPUS_LOGON:
 				break;
 			case CPUS_UNLOCK_WORKSTATION:
-				reason = pGina::Protocol::LoginRequestMessage::Unlock;
+				reason = OpenCredential::Protocol::LoginRequestMessage::Unlock;
 				break;
 			case CPUS_CREDUI:
-				reason = pGina::Protocol::LoginRequestMessage::CredUI;
+				reason = OpenCredential::Protocol::LoginRequestMessage::CredUI;
 				break;
 			}
 
@@ -772,7 +772,7 @@ namespace pGina
 			// Set the status message
 			if (pqcws && username)
 			{
-				std::wstring message = pGina::Registry::GetString(L"LogonProgressMessage", L"Logging on...");
+				std::wstring message = OpenCredential::Registry::GetString(L"LogonProgressMessage", L"Logging on...");
 
 				// Replace occurences of %u with the username
 				std::wstring unameCopy = username;
@@ -791,7 +791,7 @@ namespace pGina
 			}
 
 			// Execute plugins
-			m_loginResult = pGina::Transactions::User::ProcessLoginForUser(username, NULL, password, reason);
+			m_loginResult = OpenCredential::Transactions::User::ProcessLoginForUser(username, NULL, password, reason);
 			
 			if( pqcws )
 			{
@@ -842,7 +842,7 @@ namespace pGina
 			}
 
 			m_loginResult = 
-				pGina::Transactions::User::ProcessChangePasswordForUser( username, L"", oldPassword, newPassword );
+				OpenCredential::Transactions::User::ProcessChangePasswordForUser( username, L"", oldPassword, newPassword );
 
 			if( m_loginResult.Message().empty() ) {
 				if( m_loginResult.Result() )
@@ -853,3 +853,4 @@ namespace pGina
 		}
 	}
 }
+

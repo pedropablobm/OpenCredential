@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Registry 
 	{

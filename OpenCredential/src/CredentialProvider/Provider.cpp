@@ -45,7 +45,7 @@
 
 #include <wincred.h>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace CredProv
 	{
@@ -85,15 +85,15 @@ namespace pGina
 			AddDllReference();
 
 			pDEBUG(L"Starting service state helper thread");
-			pGina::Service::StateHelper::AddTarget(this);
-			pGina::Service::StateHelper::Start();
+			OpenCredential::Service::StateHelper::AddTarget(this);
+			OpenCredential::Service::StateHelper::Start();
 		}
 
 		Provider::~Provider()
 		{
 			pDEBUG(L"Stopping service state helper thread (if necessary)");
-			pGina::Service::StateHelper::RemoveTarget(this);
-			pGina::Service::StateHelper::Stop();
+			OpenCredential::Service::StateHelper::RemoveTarget(this);
+			OpenCredential::Service::StateHelper::Stop();
 
 			UnAdvise();
 			ReleaseDllReference();
@@ -140,7 +140,7 @@ namespace pGina
 
 		IFACEMETHODIMP Provider::SetSerialization(__in const CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION* pcpcs)
 		{			
-			/*if ((CLSID_CpGinaProvider != pcpcs->clsidCredentialProvider) && (m_usageScenario == CPUS_CREDUI))
+	/*if ((CLSID_OpenCredentialProvider != pcpcs->clsidCredentialProvider) && (m_usageScenario == CPUS_CREDUI))
 				return E_INVALIDARG;*/
 			pDEBUG(L"SetSerialization(%p)", pcpcs);
 			HRESULT result = E_NOTIMPL;
@@ -301,7 +301,7 @@ namespace pGina
 			// We currently always support only a single tile
 			*pdwCount = 1;
 
-			bool defaultTile = pGina::Registry::GetBool(L"CredentialProviderDefaultTile", true);
+			bool defaultTile = OpenCredential::Registry::GetBool(L"CredentialProviderDefaultTile", true);
 			if(defaultTile)
 				*pdwDefault = 0;
 			else
@@ -326,14 +326,14 @@ namespace pGina
 			{
 				m_credential = new Credential();
 
-				pGina::Memory::ObjectCleanupPool cleanup;
+				OpenCredential::Memory::ObjectCleanupPool cleanup;
 				
 				PWSTR serializedUser, serializedPass;
 				GetSerializedCredentials(&serializedUser, &serializedPass, NULL);
 				if(serializedUser != NULL)
-					cleanup.Add(new pGina::Memory::LocalFreeCleanup(serializedUser));
+					cleanup.Add(new OpenCredential::Memory::LocalFreeCleanup(serializedUser));
 				if(serializedPass != NULL)
-					cleanup.Add(new pGina::Memory::LocalFreeCleanup(serializedPass));					
+					cleanup.Add(new OpenCredential::Memory::LocalFreeCleanup(serializedPass));					
 
 				switch(m_usageScenario)
 				{

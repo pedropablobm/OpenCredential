@@ -27,7 +27,7 @@
 #include "DialogBase.h"
 #include "Dll.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{

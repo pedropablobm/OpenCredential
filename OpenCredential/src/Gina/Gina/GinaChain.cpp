@@ -42,7 +42,7 @@
 // Dialog ID's for MSGINA's WlxLoggedOutSAS Dialog
 #define IDD_WLXLOGGEDOUTSAS_DIALOG 1500 
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{
@@ -50,7 +50,7 @@ namespace pGina
 			Gina(pWinLogonIface), WinlogonProxy(pWinLogonIface), m_passthru(false)
 		{
 			// Are we in passthru mode?
-			m_passthru = pGina::Registry::GetBool(L"GinaPassthru", false);
+			m_passthru = OpenCredential::Registry::GetBool(L"GinaPassthru", false);
 
 			// When we use the winlogon router table, we want it to 
 			//	direct all winlogon calls to us (via our WinlogonProxy 
@@ -62,7 +62,7 @@ namespace pGina
 			WinlogonRouter::Interface(this);
 
 			// Init and load our chained/wrapped gina
-			std::wstring ginaName = pGina::Registry::GetString(L"ChainedGinaPath", L"MSGINA.DLL");
+			std::wstring ginaName = OpenCredential::Registry::GetString(L"ChainedGinaPath", L"MSGINA.DLL");
 			pDEBUG(L"Wrapping gina: %s", ginaName.c_str());
 
 			m_wrappedGina = new GinaWrapper(ginaName.c_str());
@@ -190,7 +190,7 @@ namespace pGina
 				}				
 				
 				int msresult = m_wrappedGina->LoggedOutSAS(dwSasType, pAuthenticationId, pLogonSid, pdwOptions, phToken, pMprNotifyInfo, pProfile);
-				//pGina::Transactions::LoginInfo::Add(pMprNotifyInfo->pszUserName, pMprNotifyInfo->pszDomain, pMprNotifyInfo->pszPassword);
+				//OpenCredential::Transactions::LoginInfo::Add(pMprNotifyInfo->pszUserName, pMprNotifyInfo->pszDomain, pMprNotifyInfo->pszPassword);
 				return msresult;
 			}
 
@@ -202,7 +202,7 @@ namespace pGina
 						
 			bool showDialog = true;
 
-			if(pGina::Helpers::UserIsRemote())
+			if(OpenCredential::Helpers::UserIsRemote())
 			{
 				WLX_CLIENT_CREDENTIALS_INFO_V2_0 creds;
 				creds.dwType = WLX_CREDENTIAL_TYPE_V2_0;				
@@ -245,7 +245,7 @@ namespace pGina
 
 			// We now have the login info, let's give it a shot!
 			pDEBUG(L"GinaChain::LoggedOutSAS: Processing login for %s", username.c_str());
-			pGina::Transactions::User::LoginResult result = pGina::Transactions::User::ProcessLoginForUser(username.c_str(), NULL, password.c_str(), pGina::Protocol::LoginRequestMessage::Login);
+			OpenCredential::Transactions::User::LoginResult result = OpenCredential::Transactions::User::ProcessLoginForUser(username.c_str(), NULL, password.c_str(), OpenCredential::Protocol::LoginRequestMessage::Login);
 			if(!result.Result())
 			{
 				std::wstring failureMsg = result.Message();
@@ -319,8 +319,8 @@ namespace pGina
 
 			// We look for the values "AutoAdminLogon" and "ForceAutoLogon".  If either of them exist
 			// and are non-zero, we return true.
-			if( pGina::Registry::StringValueExistsAndIsNonZero(HKEY_LOCAL_MACHINE, subKeyName.c_str(), L"AutoAdminLogon") ||
-				pGina::Registry::StringValueExistsAndIsNonZero(HKEY_LOCAL_MACHINE, subKeyName.c_str(), L"ForceAutoLogon") )
+			if( OpenCredential::Registry::StringValueExistsAndIsNonZero(HKEY_LOCAL_MACHINE, subKeyName.c_str(), L"AutoAdminLogon") ||
+				OpenCredential::Registry::StringValueExistsAndIsNonZero(HKEY_LOCAL_MACHINE, subKeyName.c_str(), L"ForceAutoLogon") )
 				return true;
 
 			return false;

@@ -28,35 +28,35 @@ namespace OpenCredential.Service.Service
         /// </summary>
         private void InitializeComponent()
         {
-            this.pGinaServiceProcessInstaller = new System.ServiceProcess.ServiceProcessInstaller();
-            this.pGinaServiceProjectInstaller = new System.ServiceProcess.ServiceInstaller();
+            this.openCredentialServiceProcessInstaller = new System.ServiceProcess.ServiceProcessInstaller();
+            this.openCredentialServiceInstaller = new System.ServiceProcess.ServiceInstaller();
             // 
-            // pGinaServiceProcessInstaller
+            // openCredentialServiceProcessInstaller
             // 
-            this.pGinaServiceProcessInstaller.Account = System.ServiceProcess.ServiceAccount.LocalSystem;
-            this.pGinaServiceProcessInstaller.Password = null;
-            this.pGinaServiceProcessInstaller.Username = null;
+            this.openCredentialServiceProcessInstaller.Account = System.ServiceProcess.ServiceAccount.LocalSystem;
+            this.openCredentialServiceProcessInstaller.Password = null;
+            this.openCredentialServiceProcessInstaller.Username = null;
             // 
-            // pGinaServiceProjectInstaller
+            // openCredentialServiceInstaller
             // 
-            this.pGinaServiceProjectInstaller.Description = "The OpenCredential management service.";
-            this.pGinaServiceProjectInstaller.DisplayName = "OpenCredential Service";
-            this.pGinaServiceProjectInstaller.ServiceName = "OpenCredential";
-            this.pGinaServiceProjectInstaller.ServicesDependedOn = new string[] {
+            this.openCredentialServiceInstaller.Description = "The OpenCredential management service.";
+            this.openCredentialServiceInstaller.DisplayName = "OpenCredential Service";
+            this.openCredentialServiceInstaller.ServiceName = "OpenCredential";
+            this.openCredentialServiceInstaller.ServicesDependedOn = new string[] {
         "RpcSs"};
-            this.pGinaServiceProjectInstaller.StartType = System.ServiceProcess.ServiceStartMode.Automatic;
+            this.openCredentialServiceInstaller.StartType = System.ServiceProcess.ServiceStartMode.Automatic;
             // 
             // ProjectInstaller
             // 
             this.Installers.AddRange(new System.Configuration.Install.Installer[] {
-            this.pGinaServiceProcessInstaller,
-            this.pGinaServiceProjectInstaller});
+            this.openCredentialServiceProcessInstaller,
+            this.openCredentialServiceInstaller});
 
         }
 
         #endregion
 
-        private System.ServiceProcess.ServiceProcessInstaller pGinaServiceProcessInstaller;
-        private System.ServiceProcess.ServiceInstaller pGinaServiceProjectInstaller;
+        private System.ServiceProcess.ServiceProcessInstaller openCredentialServiceProcessInstaller;
+        private System.ServiceProcess.ServiceInstaller openCredentialServiceInstaller;
     }
 }

@@ -35,7 +35,7 @@
 #include <shlwapi.h>
 #pragma warning(pop)
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace COM
 	{
@@ -78,7 +78,7 @@ namespace pGina
 			{				
 				if( IID_ICredentialProvider == riid )
 				{
-					pGina::CredProv::Provider* pProvider = new pGina::CredProv::Provider();
+					OpenCredential::CredProv::Provider* pProvider = new OpenCredential::CredProv::Provider();
 
 					if (pProvider)
 					{
@@ -92,8 +92,8 @@ namespace pGina
 				}
 				else if( IID_ICredentialProviderFilter == riid )
 				{
-					pGina::CredProv::CredentialProviderFilter* pFilter = 
-						new pGina::CredProv::CredentialProviderFilter();
+					OpenCredential::CredProv::CredentialProviderFilter* pFilter = 
+						new OpenCredential::CredProv::CredentialProviderFilter();
 
 					if (pFilter)
 					{

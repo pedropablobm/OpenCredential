@@ -32,7 +32,7 @@
 #include <Message.h>
 #include <PipeClient.h>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Protocol
 	{
@@ -57,7 +57,7 @@ namespace pGina
 		class MessageBase 
 		{
 		public:			
-			virtual void FromDynamicMessage(pGina::Messaging::Message * msg)
+			virtual void FromDynamicMessage(OpenCredential::Messaging::Message * msg)
 			{
 				if(msg->Exists<unsigned char>(L"MessageType"))
 				{
@@ -65,10 +65,10 @@ namespace pGina
 				}
 			}
 
-			virtual pGina::Messaging::Message * ToDynamicMessage()
+			virtual OpenCredential::Messaging::Message * ToDynamicMessage()
 			{				
-				pGina::Messaging::Message * msg = new pGina::Messaging::Message();
-				msg->Property<unsigned char>(L"MessageType", (unsigned char) Type(), pGina::Messaging::Byte);
+				OpenCredential::Messaging::Message * msg = new OpenCredential::Messaging::Message();
+				msg->Property<unsigned char>(L"MessageType", (unsigned char) Type(), OpenCredential::Messaging::Byte);
 				return msg;
 			}
 
@@ -79,8 +79,8 @@ namespace pGina
 			MessageType m_type;
 		};
 
-		MessageBase * SendRecvPipeMessage(pGina::NamedPipes::PipeClient &client, MessageBase *msg);		
-		MessageBase * SendRecvPipeMessage(pGina::NamedPipes::PipeClient &client, MessageBase &msg);		
+		MessageBase * SendRecvPipeMessage(OpenCredential::NamedPipes::PipeClient &client, MessageBase *msg);		
+		MessageBase * SendRecvPipeMessage(OpenCredential::NamedPipes::PipeClient &client, MessageBase &msg);		
 
 		class HelloMessage : public MessageBase
 		{
@@ -134,7 +134,7 @@ namespace pGina
 			std::wstring const& Level() { return m_level; }
 			void			    Level(std::wstring const& v) { m_level = v; }
 
-			virtual void FromDynamicMessage(pGina::Messaging::Message * msg)
+			virtual void FromDynamicMessage(OpenCredential::Messaging::Message * msg)
 			{
 				MessageBase::FromDynamicMessage(msg);
 
@@ -148,12 +148,12 @@ namespace pGina
 					Level(msg->Property<std::wstring>(L"Level"));
 			}
 
-			virtual pGina::Messaging::Message * ToDynamicMessage()
+			virtual OpenCredential::Messaging::Message * ToDynamicMessage()
 			{				
-				pGina::Messaging::Message * msg = MessageBase::ToDynamicMessage();				
-				msg->Property<std::wstring>(L"LoggerName", LoggerName(), pGina::Messaging::String);
-				msg->Property<std::wstring>(L"LoggedMessage", LoggedMessage(), pGina::Messaging::String);
-				msg->Property<std::wstring>(L"Level", Level(), pGina::Messaging::String);
+				OpenCredential::Messaging::Message * msg = MessageBase::ToDynamicMessage();				
+				msg->Property<std::wstring>(L"LoggerName", LoggerName(), OpenCredential::Messaging::String);
+				msg->Property<std::wstring>(L"LoggedMessage", LoggedMessage(), OpenCredential::Messaging::String);
+				msg->Property<std::wstring>(L"Level", Level(), OpenCredential::Messaging::String);
 				return msg;
 			}
 
@@ -214,7 +214,7 @@ namespace pGina
 			LoginReason			Reason() { return m_reason; }
 			void				Reason(LoginReason v) { m_reason = v; }
 
-			virtual void FromDynamicMessage(pGina::Messaging::Message * msg)
+			virtual void FromDynamicMessage(OpenCredential::Messaging::Message * msg)
 			{
 				MessageBase::FromDynamicMessage(msg);
 
@@ -234,14 +234,14 @@ namespace pGina
 					Reason((LoginReason) msg->Property<unsigned char>(L"Reason"));
 			}
 
-			virtual pGina::Messaging::Message * ToDynamicMessage()
+			virtual OpenCredential::Messaging::Message * ToDynamicMessage()
 			{				
-				pGina::Messaging::Message * msg = MessageBase::ToDynamicMessage();				
-				msg->Property<std::wstring>(L"Username", Username(), pGina::Messaging::String);
-				msg->Property<std::wstring>(L"Domain", Domain(), pGina::Messaging::String);
-				msg->Property<std::wstring>(L"Password", Password(), pGina::Messaging::String);
-				msg->Property<int>(L"Session", Session(), pGina::Messaging::Integer);
-				msg->Property<unsigned char>(L"Reason", (unsigned char) (Reason()), pGina::Messaging::Byte);
+				OpenCredential::Messaging::Message * msg = MessageBase::ToDynamicMessage();				
+				msg->Property<std::wstring>(L"Username", Username(), OpenCredential::Messaging::String);
+				msg->Property<std::wstring>(L"Domain", Domain(), OpenCredential::Messaging::String);
+				msg->Property<std::wstring>(L"Password", Password(), OpenCredential::Messaging::String);
+				msg->Property<int>(L"Session", Session(), OpenCredential::Messaging::Integer);
+				msg->Property<unsigned char>(L"Reason", (unsigned char) (Reason()), OpenCredential::Messaging::Byte);
 				return msg;
 			}
 
@@ -275,7 +275,7 @@ namespace pGina
 				bool         Result() { return m_result; }
 				void		 Result(bool v) { m_result = v; }
 
-				virtual void FromDynamicMessage(pGina::Messaging::Message * msg)
+				virtual void FromDynamicMessage(OpenCredential::Messaging::Message * msg)
 				{
 					LoginRequestMessage::FromDynamicMessage(msg);
 
@@ -286,11 +286,11 @@ namespace pGina
 						Result(msg->Property<bool>(L"Result"));
 				}
 
-				virtual pGina::Messaging::Message * ToDynamicMessage()
+				virtual OpenCredential::Messaging::Message * ToDynamicMessage()
 				{				
-					pGina::Messaging::Message * msg = LoginRequestMessage::ToDynamicMessage();				
-					msg->Property<std::wstring>(L"Message", Message(), pGina::Messaging::String);
-					msg->Property<bool>(L"Result", Result(), pGina::Messaging::Boolean);					
+					OpenCredential::Messaging::Message * msg = LoginRequestMessage::ToDynamicMessage();				
+					msg->Property<std::wstring>(L"Message", Message(), OpenCredential::Messaging::String);
+					msg->Property<bool>(L"Result", Result(), OpenCredential::Messaging::Boolean);					
 					return msg;
 				}
 
@@ -317,7 +317,7 @@ namespace pGina
 			std::wstring const& Name() { return m_name; }
 			void				Name(std::wstring const& v) { m_name = v; }
 
-			virtual void FromDynamicMessage(pGina::Messaging::Message * msg)
+			virtual void FromDynamicMessage(OpenCredential::Messaging::Message * msg)
 			{
 				MessageBase::FromDynamicMessage(msg);
 
@@ -325,10 +325,10 @@ namespace pGina
 					Name(msg->Property<std::wstring>(L"Name"));
 			}
 
-			virtual pGina::Messaging::Message * ToDynamicMessage()
+			virtual OpenCredential::Messaging::Message * ToDynamicMessage()
 			{				
-				pGina::Messaging::Message * msg = MessageBase::ToDynamicMessage();				
-				msg->Property<std::wstring>(L"Name", Name(), pGina::Messaging::String);
+				OpenCredential::Messaging::Message * msg = MessageBase::ToDynamicMessage();				
+				msg->Property<std::wstring>(L"Name", Name(), OpenCredential::Messaging::String);
 				return msg;
 			}
 
@@ -348,7 +348,7 @@ namespace pGina
 			std::wstring const& Text() { return m_text; }
 			void				Text(std::wstring const& v) { m_text = v; }
 
-			virtual void FromDynamicMessage(pGina::Messaging::Message * msg)
+			virtual void FromDynamicMessage(OpenCredential::Messaging::Message * msg)
 			{
 				DynamicLabelRequestMessage::FromDynamicMessage(msg);
 
@@ -356,10 +356,10 @@ namespace pGina
 					Text(msg->Property<std::wstring>(L"Text"));
 			}
 
-			virtual pGina::Messaging::Message * ToDynamicMessage()
+			virtual OpenCredential::Messaging::Message * ToDynamicMessage()
 			{				
-				pGina::Messaging::Message * msg = DynamicLabelRequestMessage::ToDynamicMessage();				
-				msg->Property<std::wstring>(L"Text", Text(), pGina::Messaging::String);
+				OpenCredential::Messaging::Message * msg = DynamicLabelRequestMessage::ToDynamicMessage();				
+				msg->Property<std::wstring>(L"Text", Text(), OpenCredential::Messaging::String);
 				return msg;
 			}
 
@@ -387,7 +387,7 @@ namespace pGina
 			int const& SessionID() { return m_sessid; }
 			void SessionID(int v) { m_sessid = v; }
 
-			virtual void FromDynamicMessage(pGina::Messaging::Message * msg)
+			virtual void FromDynamicMessage(OpenCredential::Messaging::Message * msg)
 			{
 				MessageBase::FromDynamicMessage(msg);
 
@@ -395,10 +395,10 @@ namespace pGina
 					SessionID(msg->Property<int>(L"SessionID"));
 			}
 
-			virtual pGina::Messaging::Message * ToDynamicMessage()
+			virtual OpenCredential::Messaging::Message * ToDynamicMessage()
 			{				
-				pGina::Messaging::Message * msg = MessageBase::ToDynamicMessage();				
-				msg->Property<int>(L"SessionID", SessionID(), pGina::Messaging::Integer);
+				OpenCredential::Messaging::Message * msg = MessageBase::ToDynamicMessage();				
+				msg->Property<int>(L"SessionID", SessionID(), OpenCredential::Messaging::Integer);
 				return msg;
 			}
 
@@ -424,7 +424,7 @@ namespace pGina
 			std::wstring const& Domain() { return m_domain; }
 			void	Domain(std::wstring const& v) { m_domain = v; }
 
-			virtual void FromDynamicMessage(pGina::Messaging::Message * msg)
+			virtual void FromDynamicMessage(OpenCredential::Messaging::Message * msg)
 			{
 				UserInformationRequestMessage::FromDynamicMessage(msg);
 
@@ -436,12 +436,12 @@ namespace pGina
 					Domain(msg->Property<std::wstring>(L"Domain"));
 			}
 
-			virtual pGina::Messaging::Message * ToDynamicMessage()
+			virtual OpenCredential::Messaging::Message * ToDynamicMessage()
 			{				
-				pGina::Messaging::Message * msg = UserInformationRequestMessage::ToDynamicMessage();				
-				msg->Property<std::wstring>(L"OriginalUsername", OriginalUsername(), pGina::Messaging::String);
-				msg->Property<std::wstring>(L"Username", Username(), pGina::Messaging::String);
-				msg->Property<std::wstring>(L"Domain", Domain(), pGina::Messaging::String);
+				OpenCredential::Messaging::Message * msg = UserInformationRequestMessage::ToDynamicMessage();				
+				msg->Property<std::wstring>(L"OriginalUsername", OriginalUsername(), OpenCredential::Messaging::String);
+				msg->Property<std::wstring>(L"Username", Username(), OpenCredential::Messaging::String);
+				msg->Property<std::wstring>(L"Domain", Domain(), OpenCredential::Messaging::String);
 				return msg;
 			}
 
@@ -475,7 +475,7 @@ namespace pGina
 				int		ToSession() { return m_toSession; }
 				void	ToSession(int v) { m_toSession = v; }
 
-				virtual void FromDynamicMessage(pGina::Messaging::Message * msg)
+				virtual void FromDynamicMessage(OpenCredential::Messaging::Message * msg)
 				{
 					LoginRequestMessage::FromDynamicMessage(msg);
 
@@ -485,11 +485,11 @@ namespace pGina
 						ToSession(msg->Property<int>(L"ToSession"));
 				}
 
-				virtual pGina::Messaging::Message * ToDynamicMessage()
+				virtual OpenCredential::Messaging::Message * ToDynamicMessage()
 				{				
-					pGina::Messaging::Message * msg = LoginRequestMessage::ToDynamicMessage();				
-					msg->Property<int>(L"ToSession", ToSession(), pGina::Messaging::Integer);
-					msg->Property<int>(L"FromSession", FromSession(), pGina::Messaging::Integer);
+					OpenCredential::Messaging::Message * msg = LoginRequestMessage::ToDynamicMessage();				
+					msg->Property<int>(L"ToSession", ToSession(), OpenCredential::Messaging::Integer);
+					msg->Property<int>(L"FromSession", FromSession(), OpenCredential::Messaging::Integer);
 					return msg;
 				}
 
@@ -532,7 +532,7 @@ namespace pGina
 			std::wstring const& Domain() { return m_domain; }
 			void			    Domain(std::wstring const& v) { m_domain = v; }
 
-			virtual void FromDynamicMessage(pGina::Messaging::Message * msg)
+			virtual void FromDynamicMessage(OpenCredential::Messaging::Message * msg)
 			{
 				MessageBase::FromDynamicMessage(msg);
 
@@ -549,13 +549,13 @@ namespace pGina
 					OldPassword(msg->Property<std::wstring>(L"NewPassword"));
 			}
 
-			virtual pGina::Messaging::Message * ToDynamicMessage()
+			virtual OpenCredential::Messaging::Message * ToDynamicMessage()
 			{				
-				pGina::Messaging::Message * msg = MessageBase::ToDynamicMessage();				
-				msg->Property<std::wstring>(L"Username", Username(), pGina::Messaging::String);
-				msg->Property<std::wstring>(L"Domain", Domain(), pGina::Messaging::String);
-				msg->Property<std::wstring>(L"OldPassword", OldPassword(), pGina::Messaging::String);
-				msg->Property<std::wstring>(L"NewPassword", NewPassword(), pGina::Messaging::String);
+				OpenCredential::Messaging::Message * msg = MessageBase::ToDynamicMessage();				
+				msg->Property<std::wstring>(L"Username", Username(), OpenCredential::Messaging::String);
+				msg->Property<std::wstring>(L"Domain", Domain(), OpenCredential::Messaging::String);
+				msg->Property<std::wstring>(L"OldPassword", OldPassword(), OpenCredential::Messaging::String);
+				msg->Property<std::wstring>(L"NewPassword", NewPassword(), OpenCredential::Messaging::String);
 				return msg;
 			}
 
@@ -580,7 +580,7 @@ namespace pGina
 				bool         Result() { return m_result; }
 				void		 Result(bool v) { m_result = v; }
 
-				virtual void FromDynamicMessage(pGina::Messaging::Message * msg)
+				virtual void FromDynamicMessage(OpenCredential::Messaging::Message * msg)
 				{
 					ChangePasswordRequestMessage::FromDynamicMessage(msg);
 
@@ -591,11 +591,11 @@ namespace pGina
 						Result(msg->Property<bool>(L"Result"));
 				}
 
-				virtual pGina::Messaging::Message * ToDynamicMessage()
+				virtual OpenCredential::Messaging::Message * ToDynamicMessage()
 				{				
-					pGina::Messaging::Message * msg = ChangePasswordRequestMessage::ToDynamicMessage();				
-					msg->Property<std::wstring>(L"Message", Message(), pGina::Messaging::String);
-					msg->Property<bool>(L"Result", Result(), pGina::Messaging::Boolean);					
+					OpenCredential::Messaging::Message * msg = ChangePasswordRequestMessage::ToDynamicMessage();				
+					msg->Property<std::wstring>(L"Message", Message(), OpenCredential::Messaging::String);
+					msg->Property<bool>(L"Result", Result(), OpenCredential::Messaging::Boolean);					
 					return msg;
 				}
 

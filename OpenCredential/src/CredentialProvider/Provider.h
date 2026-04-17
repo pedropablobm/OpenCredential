@@ -35,7 +35,7 @@
 
 #include <ntsecapi.h>
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace CredProv
 	{
@@ -57,7 +57,7 @@ namespace pGina
 			IFACEMETHODIMP GetCredentialCount(__out DWORD* pdwCount, __out_range(<,*pdwCount) DWORD* pdwDefault, __out BOOL* pbAutoLogonWithDefault);
 			IFACEMETHODIMP GetCredentialAt(__in DWORD dwIndex, __deref_out ICredentialProviderCredential** ppcpc);
 
-			friend class pGina::COM::CClassFactory;
+			friend class OpenCredential::COM::CClassFactory;
 
 			virtual void	ServiceStateChanged(bool newState);
 		protected:
@@ -81,3 +81,4 @@ namespace pGina
 		};
 	}
 }
+

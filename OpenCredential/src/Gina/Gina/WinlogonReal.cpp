@@ -28,7 +28,7 @@
 
 #include "WinlogonReal.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{

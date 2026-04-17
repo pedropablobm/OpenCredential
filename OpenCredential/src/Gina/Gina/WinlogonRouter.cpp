@@ -27,7 +27,7 @@
 
 #include "WinlogonRouter.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace GINA
 	{

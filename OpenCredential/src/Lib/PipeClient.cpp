@@ -28,7 +28,7 @@
 #include "BinaryReader.h"
 #include "BinaryWriter.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace NamedPipes
 	{
@@ -64,14 +64,14 @@ namespace pGina
 			return true;
 		}
 
-		pGina::Memory::Buffer * PipeClient::ReadLengthEncodedBuffer()
+		OpenCredential::Memory::Buffer * PipeClient::ReadLengthEncodedBuffer()
 		{
-			pGina::Memory::Buffer * lengthBuffer = ReadBuffer(sizeof(int));
+			OpenCredential::Memory::Buffer * lengthBuffer = ReadBuffer(sizeof(int));
 			if(lengthBuffer == 0) return 0;
 
 			int length = 0;
 			{
-				pGina::Memory::BinaryReader reader(lengthBuffer);
+				OpenCredential::Memory::BinaryReader reader(lengthBuffer);
 				length = reader.ReadInt32();
 				delete lengthBuffer;	// No longer needed, not that reader() should no longer be used, hence its scoping
 				lengthBuffer = 0;
@@ -83,10 +83,10 @@ namespace pGina
 			return ReadBuffer(length);
 		}
 
-		bool PipeClient::WriteLengthEncodedBuffer(pGina::Memory::Buffer *buffer)
+		bool PipeClient::WriteLengthEncodedBuffer(OpenCredential::Memory::Buffer *buffer)
 		{
-			pGina::Memory::Buffer lengthBuffer(4);
-			pGina::Memory::BinaryWriter writer(lengthBuffer);
+			OpenCredential::Memory::Buffer lengthBuffer(4);
+			OpenCredential::Memory::BinaryWriter writer(lengthBuffer);
 			writer.Write(buffer->Length());
 
 			if(WriteBuffer(&lengthBuffer))
@@ -97,12 +97,12 @@ namespace pGina
 			return false;
 		}
 
-		pGina::Memory::Buffer * PipeClient::ReadBuffer(int size)
+		OpenCredential::Memory::Buffer * PipeClient::ReadBuffer(int size)
 		{
 			if(size <= 0)
 				return 0;
 
-			pGina::Memory::Buffer * buffer = new pGina::Memory::Buffer(size);
+			OpenCredential::Memory::Buffer * buffer = new OpenCredential::Memory::Buffer(size);
 			
 			unsigned char * ptr = buffer->Raw();
 			int length = buffer->Length();
@@ -123,7 +123,7 @@ namespace pGina
 			return buffer;
 		}
 
-		bool PipeClient::WriteBuffer(pGina::Memory::Buffer *buffer)
+		bool PipeClient::WriteBuffer(OpenCredential::Memory::Buffer *buffer)
 		{
 			if(buffer && buffer->Length() > 0)
 			{

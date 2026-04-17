@@ -37,7 +37,7 @@
 #include "Credential.h"
 #include "Provider.h"
 
-namespace pGina
+namespace OpenCredential
 {
 	namespace Service
 	{		
@@ -49,18 +49,18 @@ namespace pGina
 			
 			static std::wstring GetStateText();
 
-			static void AddTarget(pGina::CredProv::Credential *ptr);
-			static void RemoveTarget(pGina::CredProv::Credential *ptr);
-			static void AddTarget(pGina::CredProv::Provider *ptr);
-			static void RemoveTarget(pGina::CredProv::Provider *ptr);
+			static void AddTarget(OpenCredential::CredProv::Credential *ptr);
+			static void RemoveTarget(OpenCredential::CredProv::Credential *ptr);
+			static void AddTarget(OpenCredential::CredProv::Provider *ptr);
+			static void RemoveTarget(OpenCredential::CredProv::Provider *ptr);
 			
 			static void NotifyStateChanged(bool newState);
 
 		private:
-			static pGina::Transactions::ServiceStateThread s_serviceStateThread;
-			static std::list<pGina::CredProv::Provider *> s_providers;
-			static std::list<pGina::CredProv::Credential *> s_creds;
-			static pGina::Threading::Mutex s_mutex;
+			static OpenCredential::Transactions::ServiceStateThread s_serviceStateThread;
+			static std::list<OpenCredential::CredProv::Provider *> s_providers;
+			static std::list<OpenCredential::CredProv::Credential *> s_creds;
+			static OpenCredential::Threading::Mutex s_mutex;
 		};
 	}
 }

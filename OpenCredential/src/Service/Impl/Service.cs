@@ -55,7 +55,7 @@ namespace OpenCredential.Service.Impl
 {
     public class Service
     {
-        private ILog m_logger = LogManager.GetLogger("pGina.Service.Impl");
+        private ILog m_logger = LogManager.GetLogger("OpenCredential.Service.Impl");
         private ILog m_abstractLogger = LogManager.GetLogger("Abstractions");
         private PipeServer m_server = null;        
         private ObjectCache<int, SessionProperties> m_sessionPropertyCache = new ObjectCache<int, SessionProperties>();
@@ -69,7 +69,7 @@ namespace OpenCredential.Service.Impl
             }
             catch (Exception ex)
             {
-                EventLog.WriteEntry("pGina", ex.ToString(), EventLogEntryType.Error);
+                EventLog.WriteEntry("OpenCredential", ex.ToString(), EventLogEntryType.Error);
                 throw;
             }
         }
@@ -78,7 +78,7 @@ namespace OpenCredential.Service.Impl
         {
             try
             {
-                ILog logger = LogManager.GetLogger("pGina.Service.Exception");
+                ILog logger = LogManager.GetLogger("OpenCredential.Service.Exception");
                 Exception e = args.ExceptionObject as Exception;
                 logger.ErrorFormat("CurrentDomain_UnhandledException: {0}", e);
             }
@@ -124,7 +124,7 @@ namespace OpenCredential.Service.Impl
             }
             catch (Exception e)
             {
-                EventLog.WriteEntry("pGina", e.ToString(), EventLogEntryType.Error);
+                EventLog.WriteEntry("OpenCredential", e.ToString(), EventLogEntryType.Error);
                 m_logger.ErrorFormat("Service startup error: {0}", e.ToString());
                 throw;
             }

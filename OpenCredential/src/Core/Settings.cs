@@ -50,7 +50,7 @@ namespace OpenCredential.Core
                 string.Format(@"{0}\Plugins\Core", curPath),
                 string.Format(@"{0}\Plugins\Contrib", curPath)
             });
-            s_settings.SetDefault("ServicePipeName", "pGinaPipe");
+            s_settings.SetDefault("ServicePipeName", "OpenCredentialPipe");
             s_settings.SetDefault("MaxClients", 25);
             s_settings.SetDefault("TraceMsgTraffic", false);            
             s_settings.SetDefault("SessionHelperExe", "OpenCredential.Service.SessionHelper.exe");
