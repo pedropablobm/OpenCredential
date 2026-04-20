@@ -1,13 +1,14 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Platform = "Mixed Platforms"
+    [string]$Platform = "Mixed Platforms",
+    [string]$Target = "BuildAll"
 )
 
-$solutionPath = Join-Path $PSScriptRoot "OpenCredential\src\OpenCredential-1.0.0.0.sln"
+$buildProjectPath = Join-Path $PSScriptRoot "OpenCredentialBuild.msbuild.xml"
 $msbuildPath = "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe"
 
-if (-not (Test-Path $solutionPath)) {
-    throw "Solution not found: $solutionPath"
+if (-not (Test-Path $buildProjectPath)) {
+    throw "Build project not found: $buildProjectPath"
 }
 
 if (-not (Test-Path $msbuildPath)) {
@@ -16,7 +17,7 @@ if (-not (Test-Path $msbuildPath)) {
 
 $psi = New-Object System.Diagnostics.ProcessStartInfo
 $psi.FileName = $msbuildPath
-$psi.Arguments = ('"{0}" /p:Configuration={1} /p:Platform="{2}" /m:1' -f $solutionPath, $Configuration, $Platform)
+$psi.Arguments = ('"{0}" /t:{1} /p:Configuration={2} /m:1' -f $buildProjectPath, $Target, $Configuration)
 $psi.UseShellExecute = $false
 $psi.RedirectStandardOutput = $true
 $psi.RedirectStandardError = $true

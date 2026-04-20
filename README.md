@@ -318,24 +318,26 @@ Important note:
 git clone https://github.com/pedropablobm/OpenCredential.git
 cd OpenCredential
 
-# Open and build the main solution
-# OpenCredential\src\OpenCredential-1.0.0.0.sln
+# Recommended full build for installer generation
+powershell -ExecutionPolicy Bypass -File .\Build-OpenCredential.ps1 -Configuration Release
 
-# Example MSBuild commands
+# This wrapper builds:
+# - OpenCredential\src\OpenCredential-1.0.0.0.sln (x64 + Win32)
+# - supported core plugin solutions under Plugins\Core\**\*.sln
+
+# If you only want the main solution for development work:
 msbuild OpenCredential\src\OpenCredential-1.0.0.0.sln /p:Configuration=Release /p:Platform=x64
 msbuild OpenCredential\src\OpenCredential-1.0.0.0.sln /p:Configuration=Release /p:Platform=Win32
 
-# Recommended wrapper when the machine has duplicated Path/PATH variables
-powershell -ExecutionPolicy Bypass -File .\Build-OpenCredential.ps1 -Configuration Release -Platform "Mixed Platforms"
-
-# Plugin-only builds
-msbuild Plugins\Core\DatabaseAuth\DatabaseAuth.sln /p:Configuration=Release /p:Platform="Any CPU"
-msbuild Plugins\Core\DatabaseLogger\DatabaseLogger.sln /p:Configuration=Release /p:Platform="Any CPU"
+# Optional: build legacy contrib plugins separately
+msbuild OpenCredentialBuild.msbuild.xml /t:BuildContribPlugins /p:Configuration=Release
 ```
 
 ### Installer
 
 Open `Installer\installer.iss` with Inno Setup and compile the package.
+
+Before generating the installer, run `Build-OpenCredential.ps1` so the plugin DLLs under `Plugins\Core\bin` are refreshed. Building only the main solution can leave stale plugin binaries in the package.
 
 If command-line C++ builds fail with a `Path` / `PATH` duplication error from `CL.exe`, use `Build-OpenCredential.ps1`. It normalizes the process environment before invoking MSBuild.
 
@@ -365,6 +367,12 @@ Still pending:
 - Ensure the required Visual C++ Redistributables are installed
 - Run `OpenCredential.InstallUtil.exe post-install` as Administrator
 - Check Windows Event Viewer
+
+### Some plugins do not appear in OpenCredential Configuration
+
+- Rebuild with `Build-OpenCredential.ps1` before compiling the installer
+- Confirm the installed plugin folders contain fresh `OpenCredential.Plugin.*.dll` files
+- If only `Database Auth`, `Database Logger`, and `Local Machine` appear, the installer was likely built from stale plugin binaries
 
 ### Database connection fails
 

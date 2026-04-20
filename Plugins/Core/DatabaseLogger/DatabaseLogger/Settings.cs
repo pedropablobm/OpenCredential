@@ -229,11 +229,24 @@ namespace OpenCredential.Plugin.DatabaseLogger
         {
             string configuredPath = GetStringSetting("OfflineQueuePath");
             if (!string.IsNullOrWhiteSpace(configuredPath))
-                return configuredPath;
+            {
+                string normalizedConfiguredPath = NormalizeProgramDataPath(
+                    configuredPath,
+                    "DatabaseLogger",
+                    "databaselogger-queue.sqlite");
+
+                if (!string.Equals(configuredPath, normalizedConfiguredPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    TryMigratePath(configuredPath, normalizedConfiguredPath);
+                    m_settings.SetSetting("OfflineQueuePath", normalizedConfiguredPath);
+                }
+
+                return normalizedConfiguredPath;
+            }
 
             string defaultPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "pGina",
+                "OpenCredential",
                 "DatabaseLogger",
                 "databaselogger-queue.sqlite");
 
@@ -245,6 +258,22 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
             TryMigratePath(legacyPath, defaultPath);
             return defaultPath;
+        }
+
+        private static string NormalizeProgramDataPath(string path, string productFolder, string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return path;
+
+            string programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            string legacyRoot = Path.Combine(programData, "pGina");
+            string currentRoot = Path.Combine(programData, "OpenCredential");
+            string expectedLegacyPath = Path.Combine(legacyRoot, productFolder, fileName);
+
+            if (string.Equals(path, expectedLegacyPath, StringComparison.OrdinalIgnoreCase))
+                return Path.Combine(currentRoot, productFolder, fileName);
+
+            return path;
         }
 
         private static void TryMigratePath(string legacyPath, string newPath)
