@@ -77,6 +77,8 @@ namespace OpenCredential.Plugin.DatabaseLogger
             m_settings.SetDefault("UseModifiedName", false);
             m_settings.SetDefault("OfflineQueueEnabled", true);
             m_settings.SetDefault("HealthCheckSeconds", 30);
+            m_settings.SetDefault("PresenceTrackingEnabled", true);
+            m_settings.SetDefault("HeartbeatIntervalSeconds", 60);
             m_settings.SetDefault("FlushBatchSize", 100);
             m_settings.SetDefault("OfflineQueuePath", string.Empty);
         }
@@ -218,6 +220,16 @@ namespace OpenCredential.Plugin.DatabaseLogger
         public static int GetHealthCheckSeconds()
         {
             return Math.Max(5, GetIntSetting("HealthCheckSeconds", 30));
+        }
+
+        public static bool IsPresenceTrackingEnabled()
+        {
+            return GetBoolSetting("PresenceTrackingEnabled", true);
+        }
+
+        public static int GetHeartbeatIntervalSeconds()
+        {
+            return Math.Max(15, GetIntSetting("HeartbeatIntervalSeconds", 60));
         }
 
         public static int GetFlushBatchSize()

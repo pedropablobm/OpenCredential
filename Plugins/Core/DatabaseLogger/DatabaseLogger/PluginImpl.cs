@@ -30,6 +30,7 @@ using System.Linq;
 using System.Text;
 using System.ComponentModel;
 using System.Threading;
+using System.ServiceProcess;
 
 using OpenCredential.Shared.Interfaces;
 using OpenCredential.Shared.Settings;
@@ -44,10 +45,21 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
     public class PluginImpl : IPluginConfiguration, IPluginEventNotifications
     {
+        private sealed class ActiveSessionContext
+        {
+            public int WindowsSessionId { get; set; }
+            public SessionProperties Properties { get; set; }
+            public string SessionState { get; set; }
+            public DateTime LastHeartbeatUtc { get; set; }
+        }
+
         public static readonly Guid PluginUuid = new Guid("B68CF064-9299-4765-AC08-ACB49F93F892");
         private static readonly object m_timerLock = new object();
+        private static readonly object m_runtimeSync = new object();
+        private static readonly object m_activeSessionsLock = new object();
         private static Timer m_flushTimer;
         private static bool m_offlineQueueRuntimeAvailable = true;
+        private static readonly Dictionary<int, ActiveSessionContext> m_activeSessions = new Dictionary<int, ActiveSessionContext>();
         private ILog m_logger = LogManager.GetLogger("DatabaseLoggerPlugin");
 
         public string Description
@@ -83,13 +95,16 @@ namespace OpenCredential.Plugin.DatabaseLogger
         {
             m_logger.DebugFormat("SessionChange({0}) - ID: {1}", changeDescription.Reason.ToString(), changeDescription.SessionId);
 
-            TryFlushOfflineQueue();
-            TryLogMode(LoggerMode.SESSION, Settings.GetSessionMode(), changeDescription, properties);
-            TryLogMode(LoggerMode.EVENT, Settings.GetEventMode(), changeDescription, properties);
+            lock (m_runtimeSync)
+            {
+                TryFlushOfflineQueue();
+                TryLogMode(LoggerMode.SESSION, Settings.GetSessionMode(), changeDescription, properties);
+                TryLogMode(LoggerMode.EVENT, Settings.GetEventMode(), changeDescription, properties);
+                UpdateActiveSessions(changeDescription, properties);
 
-            //Close the connection if it's still open
-            LoggerModeFactory.closeConnection();
-            
+                //Close the connection if it's still open
+                LoggerModeFactory.closeConnection();
+            }
         }
 
         public void Starting()
@@ -109,12 +124,21 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 }
             }
 
+            lock (m_activeSessionsLock)
+            {
+                m_activeSessions.Clear();
+            }
+
             StartBackgroundTasks();
         }
 
         public void Stopping()
         {
             StopBackgroundTasks();
+            lock (m_activeSessionsLock)
+            {
+                m_activeSessions.Clear();
+            }
         }
 
         private void TryLogMode(LoggerMode loggerMode, bool enabled, System.ServiceProcess.SessionChangeDescription changeDescription, SessionProperties properties)
@@ -142,7 +166,8 @@ namespace OpenCredential.Plugin.DatabaseLogger
         {
             lock (m_timerLock)
             {
-                if (m_flushTimer != null || !m_offlineQueueRuntimeAvailable)
+                bool needsTimer = m_offlineQueueRuntimeAvailable || (Settings.GetSessionMode() && Settings.IsPresenceTrackingEnabled());
+                if (m_flushTimer != null || !needsTimer)
                     return;
 
                 int periodMs = Settings.GetHealthCheckSeconds() * 1000;
@@ -164,7 +189,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
         private void FlushOfflineQueue(object state)
         {
-            TryFlushOfflineQueue();
+            lock (m_runtimeSync)
+            {
+                TryFlushOfflineQueue();
+                TrySendHeartbeats();
+                LoggerModeFactory.closeConnection();
+            }
         }
 
         private void TryFlushOfflineQueue()
@@ -200,6 +230,125 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 m_offlineQueueRuntimeAvailable = false;
                 m_logger.ErrorFormat("Disabling offline SQLite queue after runtime failure: {0}", ex);
                 StopBackgroundTasks();
+            }
+        }
+
+        private void UpdateActiveSessions(SessionChangeDescription changeDescription, SessionProperties properties)
+        {
+            if (!Settings.GetSessionMode() || !Settings.IsPresenceTrackingEnabled())
+                return;
+
+            if (properties == null)
+            {
+                if (changeDescription.Reason == SessionChangeReason.SessionLogoff)
+                {
+                    lock (m_activeSessionsLock)
+                    {
+                        m_activeSessions.Remove(changeDescription.SessionId);
+                    }
+                }
+                return;
+            }
+
+            lock (m_activeSessionsLock)
+            {
+                switch (changeDescription.Reason)
+                {
+                    case SessionChangeReason.SessionLogon:
+                    case SessionChangeReason.SessionUnlock:
+                    case SessionChangeReason.ConsoleConnect:
+                    case SessionChangeReason.RemoteConnect:
+                        m_activeSessions[changeDescription.SessionId] = new ActiveSessionContext
+                        {
+                            WindowsSessionId = changeDescription.SessionId,
+                            Properties = properties,
+                            SessionState = "active",
+                            LastHeartbeatUtc = DateTime.UtcNow
+                        };
+                        break;
+
+                    case SessionChangeReason.SessionLock:
+                        if (m_activeSessions.ContainsKey(changeDescription.SessionId))
+                        {
+                            m_activeSessions[changeDescription.SessionId].Properties = properties;
+                            m_activeSessions[changeDescription.SessionId].SessionState = "locked";
+                            m_activeSessions[changeDescription.SessionId].LastHeartbeatUtc = DateTime.UtcNow;
+                        }
+                        else
+                        {
+                            m_activeSessions[changeDescription.SessionId] = new ActiveSessionContext
+                            {
+                                WindowsSessionId = changeDescription.SessionId,
+                                Properties = properties,
+                                SessionState = "locked",
+                                LastHeartbeatUtc = DateTime.UtcNow
+                            };
+                        }
+                        break;
+
+                    case SessionChangeReason.ConsoleDisconnect:
+                    case SessionChangeReason.RemoteDisconnect:
+                        if (m_activeSessions.ContainsKey(changeDescription.SessionId))
+                        {
+                            m_activeSessions[changeDescription.SessionId].Properties = properties;
+                            m_activeSessions[changeDescription.SessionId].SessionState = "disconnected";
+                            m_activeSessions[changeDescription.SessionId].LastHeartbeatUtc = DateTime.UtcNow;
+                        }
+                        break;
+
+                    case SessionChangeReason.SessionLogoff:
+                        m_activeSessions.Remove(changeDescription.SessionId);
+                        break;
+                }
+            }
+        }
+
+        private void TrySendHeartbeats()
+        {
+            if (!Settings.GetSessionMode() || !Settings.IsPresenceTrackingEnabled())
+                return;
+
+            List<ActiveSessionContext> dueHeartbeats;
+            DateTime nowUtc = DateTime.UtcNow;
+            int heartbeatIntervalSeconds = Settings.GetHeartbeatIntervalSeconds();
+
+            lock (m_activeSessionsLock)
+            {
+                dueHeartbeats = m_activeSessions.Values
+                    .Where(ctx => (nowUtc - ctx.LastHeartbeatUtc).TotalSeconds >= heartbeatIntervalSeconds)
+                    .Select(ctx => new ActiveSessionContext
+                    {
+                        WindowsSessionId = ctx.WindowsSessionId,
+                        Properties = ctx.Properties,
+                        SessionState = ctx.SessionState,
+                        LastHeartbeatUtc = ctx.LastHeartbeatUtc
+                    })
+                    .ToList();
+            }
+
+            if (dueHeartbeats.Count == 0)
+                return;
+
+            try
+            {
+                SessionLogger logger = LoggerModeFactory.GetSessionLogger();
+                foreach (ActiveSessionContext session in dueHeartbeats)
+                {
+                    logger.WriteHeartbeat(session.WindowsSessionId, session.Properties, session.SessionState, nowUtc);
+                }
+
+                lock (m_activeSessionsLock)
+                {
+                    foreach (ActiveSessionContext session in dueHeartbeats)
+                    {
+                        if (m_activeSessions.ContainsKey(session.WindowsSessionId))
+                            m_activeSessions[session.WindowsSessionId].LastHeartbeatUtc = nowUtc;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                m_logger.DebugFormat("Heartbeat update skipped: {0}", ex.Message);
             }
         }
 

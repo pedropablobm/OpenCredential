@@ -170,6 +170,12 @@
     <ClCompile Include="FakeWinlogon.cpp" />
     <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Gina\Gina\Gina.vcxproj">
+      <Project>{24C3DAD2-BD6B-4ECC-96EE-049B6A4CEF55}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

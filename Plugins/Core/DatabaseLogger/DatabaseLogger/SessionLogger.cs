@@ -12,6 +12,7 @@
 // this distribution.
 
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
@@ -25,60 +26,78 @@ namespace OpenCredential.Plugin.DatabaseLogger
 {
     class SessionLogger : ILoggerMode
     {
+        private static readonly string[] RequiredColumns =
+        {
+            "dbid",
+            "loginstamp",
+            "logoutstamp",
+            "username",
+            "machine",
+            "ipaddress",
+            "client_session_id",
+            "windows_session_id",
+            "session_state",
+            "last_heartbeat_at",
+            "session_end_reason"
+        };
+
         private readonly ILog m_logger = LogManager.GetLogger("DatabaseLoggerPlugin");
         private DbConnection m_conn;
 
         public bool Log(SessionChangeDescription changeDescription, SessionProperties properties)
         {
-            if (m_conn == null)
-                throw new InvalidOperationException("No database connection present.");
+            EnsureConnection();
+            EnsureSessionSchema();
 
-            string username = "--UNKNOWN--";
-            if (properties != null)
+            string username = ResolveUsername(properties);
+            string machine = Environment.MachineName;
+            string ipAddress = GetIpAddress();
+            string clientSessionId = GetClientSessionId(properties);
+            DateTime eventUtc = DateTime.UtcNow;
+
+            switch (changeDescription.Reason)
             {
-                UserInformation ui = properties.GetTrackedSingle<UserInformation>();
-                if (ui != null)
-                    username = ResolveUsername(ui);
-            }
+                case SessionChangeReason.SessionLogon:
+                    CloseCompetingSessions(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc);
+                    InsertSession(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "active");
+                    m_logger.DebugFormat("Logged SessionLogon for {0} ({1})", username, clientSessionId);
+                    break;
 
-            if (changeDescription.Reason == SessionChangeReason.SessionLogon)
-            {
-                EnsureConnection();
-                UpdateOpenSessions(username, GetIpAddress(), NowExpression);
+                case SessionChangeReason.SessionLogoff:
+                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "ended", "logoff", true);
+                    m_logger.DebugFormat("Logged SessionLogoff for {0} ({1})", username, clientSessionId);
+                    break;
 
-                string insertSql = IsPostgreSql
-                    ? string.Format(
-                        "INSERT INTO {0} ({1}, {2}, {3}, {4}, {5}) VALUES ({6}, NULL, @username, @machine, @ipaddress)",
-                        Quote(Settings.Store.SessionTable),
-                        QuoteColumn("loginstamp"),
-                        QuoteColumn("logoutstamp"),
-                        QuoteColumn("username"),
-                        QuoteColumn("machine"),
-                        QuoteColumn("ipaddress"),
-                        NowExpression)
-                    : string.Format(
-                        "INSERT INTO {0} (dbid, loginstamp, logoutstamp, username, machine, ipaddress) VALUES (NULL, NOW(), NULL, @username, @machine, @ipaddress)",
-                        Quote(Settings.Store.SessionTable));
+                case SessionChangeReason.SessionLock:
+                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "locked", null, false);
+                    break;
 
-                using (var cmd = m_conn.CreateCommand())
-                {
-                    cmd.CommandText = insertSql;
-                    AddParameter(cmd, "@username", username);
-                    AddParameter(cmd, "@machine", Environment.MachineName);
-                    AddParameter(cmd, "@ipaddress", GetIpAddress());
-                    cmd.ExecuteNonQuery();
-                }
+                case SessionChangeReason.SessionUnlock:
+                case SessionChangeReason.ConsoleConnect:
+                case SessionChangeReason.RemoteConnect:
+                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "active", null, false);
+                    break;
 
-                m_logger.DebugFormat("Logged LogOn event for {0}", username);
-            }
-            else if (changeDescription.Reason == SessionChangeReason.SessionLogoff)
-            {
-                EnsureConnection();
-                UpdateOpenSessions(username, GetIpAddress(), "@logoutstamp", DateTime.UtcNow);
-                m_logger.DebugFormat("Logged LogOff event for {0}", username);
+                case SessionChangeReason.ConsoleDisconnect:
+                case SessionChangeReason.RemoteDisconnect:
+                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "disconnected", null, false);
+                    break;
             }
 
             return true;
+        }
+
+        public void WriteHeartbeat(int windowsSessionId, SessionProperties properties, string sessionState, DateTime heartbeatUtc)
+        {
+            EnsureConnection();
+            EnsureSessionSchema();
+
+            string username = ResolveUsername(properties);
+            string machine = Environment.MachineName;
+            string ipAddress = GetIpAddress();
+            string clientSessionId = GetClientSessionId(properties);
+
+            UpdateSessionPresence(windowsSessionId, clientSessionId, username, machine, ipAddress, heartbeatUtc, sessionState, null, false);
         }
 
         public string TestTable()
@@ -91,28 +110,19 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 if (!TableExists(table))
                     return "Connection successful, but table does not exist. Click 'Create Table'.";
 
-                string[] columns = { "dbid", "loginstamp", "logoutstamp", "username", "machine", "ipaddress" };
-                using (var cmd = m_conn.CreateCommand())
+                List<string> existingColumns = GetExistingColumns(table);
+                string[] missingColumns = RequiredColumns
+                    .Where(col => !existingColumns.Contains(col, StringComparer.OrdinalIgnoreCase))
+                    .ToArray();
+
+                if (missingColumns.Length > 0)
                 {
-                    cmd.CommandText = IsPostgreSql
-                        ? "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = @table ORDER BY ordinal_position"
-                        : "DESCRIBE " + Quote(table);
-                    if (IsPostgreSql)
-                        AddParameter(cmd, "@table", table);
-
-                    using (var rdr = cmd.ExecuteReader())
-                    {
-                        int colCt = 0;
-                        while (rdr.Read())
-                        {
-                            if (!columns.Contains(Convert.ToString(rdr[0])))
-                                return "Table exists but has invalid columns.";
-                            colCt++;
-                        }
-
-                        return colCt == columns.Length ? "Table exists and is correct." : "Table has incorrect columns.";
-                    }
+                    return string.Format(
+                        "Table exists but is missing OpenCredential presence columns: {0}. Click 'Create Table' to update it.",
+                        string.Join(", ", missingColumns));
                 }
+
+                return "Table exists and is correct.";
             }
             catch (Exception ex)
             {
@@ -127,39 +137,15 @@ namespace OpenCredential.Plugin.DatabaseLogger
             try
             {
                 string table = Convert.ToString(Settings.Store.SessionTable);
-                if (TableExists(table))
-                    return "Table already exists.";
-
-                string sql = IsPostgreSql
-                    ? string.Format(
-                        "CREATE TABLE {0} (\"dbid\" BIGSERIAL PRIMARY KEY, \"loginstamp\" TIMESTAMP NOT NULL, \"logoutstamp\" TIMESTAMP NULL, \"username\" VARCHAR(128) NOT NULL, \"machine\" VARCHAR(128) NOT NULL, \"ipaddress\" VARCHAR(45) NOT NULL)",
-                        Quote(table))
-                    : string.Format(
-                        "CREATE TABLE {0} (dbid BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, loginstamp DATETIME NOT NULL, logoutstamp DATETIME NULL, username VARCHAR(128) NOT NULL, machine VARCHAR(128) NOT NULL, ipaddress VARCHAR(45) NOT NULL, INDEX idx_{1}_active (logoutstamp, machine, ipaddress), INDEX idx_{1}_user (username, machine, ipaddress)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-                        Quote(table),
-                        table);
-
-                using (var cmd = m_conn.CreateCommand())
+                if (!TableExists(table))
                 {
-                    cmd.CommandText = sql;
-                    cmd.ExecuteNonQuery();
+                    CreateSessionTable(table);
+                    EnsureSessionIndexes(table);
+                    return "Table created.";
                 }
 
-                if (IsPostgreSql)
-                {
-                    using (var cmd = m_conn.CreateCommand())
-                    {
-                        cmd.CommandText = string.Format(
-                            "CREATE INDEX {0} ON {1} (\"logoutstamp\", \"machine\", \"ipaddress\"); " +
-                            "CREATE INDEX {2} ON {1} (\"username\", \"machine\", \"ipaddress\")",
-                            Quote("idx_" + table + "_active"),
-                            Quote(table),
-                            Quote("idx_" + table + "_user"));
-                        cmd.ExecuteNonQuery();
-                    }
-                }
-
-                return "Table created.";
+                EnsureSessionSchema();
+                return "Table already exists and was updated.";
             }
             catch (Exception ex)
             {
@@ -172,26 +158,89 @@ namespace OpenCredential.Plugin.DatabaseLogger
             m_conn = connection;
         }
 
-        private void UpdateOpenSessions(string username, string ipAddress, string logoutExpression, object logoutParameterValue = null)
+        private void EnsureConnection()
         {
-            string updateSql = string.Format(
-                "UPDATE {0} SET {1}={2} WHERE {1} IS NULL AND {3}=@username AND {4}=@machine AND {5}=@ipaddress",
-                Quote(Settings.Store.SessionTable),
-                QuoteColumn("logoutstamp"),
-                logoutExpression,
-                QuoteColumn("username"),
-                QuoteColumn("machine"),
-                QuoteColumn("ipaddress"));
+            if (m_conn == null)
+                throw new InvalidOperationException("No database connection present.");
+
+            if (m_conn.State != ConnectionState.Open)
+                m_conn.Open();
+        }
+
+        private void EnsureSessionSchema()
+        {
+            string table = Convert.ToString(Settings.Store.SessionTable);
+            if (!TableExists(table))
+                return;
+
+            List<string> existingColumns = GetExistingColumns(table);
+            EnsureColumn(table, existingColumns, "client_session_id", IsPostgreSql ? "VARCHAR(64) NULL" : "VARCHAR(64) NULL");
+            EnsureColumn(table, existingColumns, "windows_session_id", "INT NULL");
+            EnsureColumn(table, existingColumns, "session_state", IsPostgreSql ? "VARCHAR(32) NOT NULL DEFAULT 'active'" : "VARCHAR(32) NOT NULL DEFAULT 'active'");
+            EnsureColumn(table, existingColumns, "last_heartbeat_at", IsPostgreSql ? "TIMESTAMP NULL" : "DATETIME NULL");
+            EnsureColumn(table, existingColumns, "session_end_reason", IsPostgreSql ? "VARCHAR(64) NULL" : "VARCHAR(64) NULL");
+            EnsureSessionIndexes(table);
+        }
+
+        private void EnsureColumn(string table, List<string> existingColumns, string columnName, string columnDefinition)
+        {
+            if (existingColumns.Contains(columnName, StringComparer.OrdinalIgnoreCase))
+                return;
 
             using (var cmd = m_conn.CreateCommand())
             {
-                cmd.CommandText = updateSql;
-                AddParameter(cmd, "@username", username);
-                AddParameter(cmd, "@machine", Environment.MachineName);
-                AddParameter(cmd, "@ipaddress", ipAddress);
-                if (logoutParameterValue != null)
-                    AddParameter(cmd, "@logoutstamp", logoutParameterValue);
+                cmd.CommandText = string.Format(
+                    "ALTER TABLE {0} ADD COLUMN {1} {2}",
+                    Quote(table),
+                    QuoteColumn(columnName),
+                    columnDefinition);
                 cmd.ExecuteNonQuery();
+            }
+
+            existingColumns.Add(columnName);
+        }
+
+        private void EnsureSessionIndexes(string table)
+        {
+            EnsureIndex(table, "idx_" + table + "_client_session", new[] { "client_session_id" });
+            EnsureIndex(table, "idx_" + table + "_presence", new[] { "logoutstamp", "last_heartbeat_at", "session_state" });
+        }
+
+        private void EnsureIndex(string table, string indexName, string[] columns)
+        {
+            if (IndexExists(table, indexName))
+                return;
+
+            string quotedColumns = string.Join(", ", columns.Select(QuoteColumn));
+            using (var cmd = m_conn.CreateCommand())
+            {
+                cmd.CommandText = string.Format(
+                    "CREATE INDEX {0} ON {1} ({2})",
+                    Quote(indexName),
+                    Quote(table),
+                    quotedColumns);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private bool IndexExists(string table, string indexName)
+        {
+            using (var cmd = m_conn.CreateCommand())
+            {
+                if (IsPostgreSql)
+                {
+                    cmd.CommandText =
+                        "SELECT COUNT(*) FROM pg_indexes WHERE schemaname = current_schema() AND tablename = @table AND indexname = @index";
+                    AddParameter(cmd, "@table", table);
+                    AddParameter(cmd, "@index", indexName);
+                    return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+                }
+
+                cmd.CommandText =
+                    "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = @table AND index_name = @index";
+                AddParameter(cmd, "@table", table);
+                AddParameter(cmd, "@index", indexName);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
             }
         }
 
@@ -213,13 +262,160 @@ namespace OpenCredential.Plugin.DatabaseLogger
             }
         }
 
-        private void EnsureConnection()
+        private List<string> GetExistingColumns(string table)
         {
-            if (m_conn == null)
-                throw new InvalidOperationException("No database connection present.");
+            using (var cmd = m_conn.CreateCommand())
+            {
+                cmd.CommandText = IsPostgreSql
+                    ? "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = @table ORDER BY ordinal_position"
+                    : "SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = @table ORDER BY ordinal_position";
+                AddParameter(cmd, "@table", table);
 
-            if (m_conn.State != ConnectionState.Open)
-                m_conn.Open();
+                var columns = new List<string>();
+                using (var rdr = cmd.ExecuteReader())
+                {
+                    while (rdr.Read())
+                        columns.Add(Convert.ToString(rdr[0]));
+                }
+
+                return columns;
+            }
+        }
+
+        private void CreateSessionTable(string table)
+        {
+            string sql = IsPostgreSql
+                ? string.Format(
+                    "CREATE TABLE {0} (\"dbid\" BIGSERIAL PRIMARY KEY, \"loginstamp\" TIMESTAMP NOT NULL, \"logoutstamp\" TIMESTAMP NULL, \"username\" VARCHAR(128) NOT NULL, \"machine\" VARCHAR(128) NOT NULL, \"ipaddress\" VARCHAR(45) NOT NULL, \"client_session_id\" VARCHAR(64) NULL, \"windows_session_id\" INT NULL, \"session_state\" VARCHAR(32) NOT NULL DEFAULT 'active', \"last_heartbeat_at\" TIMESTAMP NULL, \"session_end_reason\" VARCHAR(64) NULL)",
+                    Quote(table))
+                : string.Format(
+                    "CREATE TABLE {0} (dbid BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, loginstamp DATETIME NOT NULL, logoutstamp DATETIME NULL, username VARCHAR(128) NOT NULL, machine VARCHAR(128) NOT NULL, ipaddress VARCHAR(45) NOT NULL, client_session_id VARCHAR(64) NULL, windows_session_id INT NULL, session_state VARCHAR(32) NOT NULL DEFAULT 'active', last_heartbeat_at DATETIME NULL, session_end_reason VARCHAR(64) NULL, INDEX idx_{1}_active (logoutstamp, machine, ipaddress), INDEX idx_{1}_user (username, machine, ipaddress)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+                    Quote(table),
+                    table);
+
+            using (var cmd = m_conn.CreateCommand())
+            {
+                cmd.CommandText = sql;
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private void InsertSession(int windowsSessionId, string clientSessionId, string username, string machine, string ipAddress, DateTime eventUtc, string sessionState)
+        {
+            string sql = string.Format(
+                "INSERT INTO {0} ({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}) VALUES (@loginstamp, NULL, @username, @machine, @ipaddress, @client_session_id, @windows_session_id, @session_state, @last_heartbeat_at, NULL)",
+                Quote(Settings.Store.SessionTable),
+                QuoteColumn("loginstamp"),
+                QuoteColumn("logoutstamp"),
+                QuoteColumn("username"),
+                QuoteColumn("machine"),
+                QuoteColumn("ipaddress"),
+                QuoteColumn("client_session_id"),
+                QuoteColumn("windows_session_id"),
+                QuoteColumn("session_state"),
+                QuoteColumn("last_heartbeat_at"),
+                QuoteColumn("session_end_reason"));
+
+            using (var cmd = m_conn.CreateCommand())
+            {
+                cmd.CommandText = sql;
+                AddParameter(cmd, "@loginstamp", eventUtc);
+                AddParameter(cmd, "@username", username);
+                AddParameter(cmd, "@machine", machine);
+                AddParameter(cmd, "@ipaddress", ipAddress);
+                AddParameter(cmd, "@client_session_id", NullableDbValue(clientSessionId));
+                AddParameter(cmd, "@windows_session_id", windowsSessionId);
+                AddParameter(cmd, "@session_state", sessionState);
+                AddParameter(cmd, "@last_heartbeat_at", eventUtc);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private void CloseCompetingSessions(int windowsSessionId, string clientSessionId, string username, string machine, string ipAddress, DateTime eventUtc)
+        {
+            UpdateSessionPresence(windowsSessionId, clientSessionId, username, machine, ipAddress, eventUtc, "ended", "superseded_by_logon", true);
+        }
+
+        private void UpdateSessionPresence(
+            int windowsSessionId,
+            string clientSessionId,
+            string username,
+            string machine,
+            string ipAddress,
+            DateTime heartbeatUtc,
+            string sessionState,
+            string endReason,
+            bool closeSession)
+        {
+            string sql = string.Format(
+                "UPDATE {0} SET {1} = @last_heartbeat_at, {2} = @session_state, {3} = CASE WHEN ({4} IS NULL OR {4} = '') THEN {3} ELSE @client_session_id END, {5} = CASE WHEN {5} IS NULL THEN @windows_session_id ELSE {5} END{6}{7} WHERE {8} IS NULL AND {9} = @machine AND (((@client_session_id IS NOT NULL AND @client_session_id <> '') AND {3} = @client_session_id) OR ({5} = @windows_session_id) OR ({10} = @username AND {11} = @ipaddress))",
+                Quote(Settings.Store.SessionTable),
+                QuoteColumn("last_heartbeat_at"),
+                QuoteColumn("session_state"),
+                QuoteColumn("client_session_id"),
+                QuoteColumn("client_session_id"),
+                QuoteColumn("windows_session_id"),
+                closeSession ? string.Format(", {0} = @logoutstamp", QuoteColumn("logoutstamp")) : string.Empty,
+                closeSession ? string.Format(", {0} = @session_end_reason", QuoteColumn("session_end_reason")) : string.Empty,
+                QuoteColumn("logoutstamp"),
+                QuoteColumn("machine"),
+                QuoteColumn("username"),
+                QuoteColumn("ipaddress"));
+
+            using (var cmd = m_conn.CreateCommand())
+            {
+                cmd.CommandText = sql;
+                AddParameter(cmd, "@last_heartbeat_at", heartbeatUtc);
+                AddParameter(cmd, "@session_state", sessionState);
+                AddParameter(cmd, "@client_session_id", NullableDbValue(clientSessionId));
+                AddParameter(cmd, "@windows_session_id", windowsSessionId);
+                AddParameter(cmd, "@machine", machine);
+                AddParameter(cmd, "@username", username);
+                AddParameter(cmd, "@ipaddress", ipAddress);
+                if (closeSession)
+                {
+                    AddParameter(cmd, "@logoutstamp", heartbeatUtc);
+                    AddParameter(cmd, "@session_end_reason", NullableDbValue(endReason));
+                }
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private string GetClientSessionId(SessionProperties properties)
+        {
+            if (properties == null || properties.Id == Guid.Empty)
+                return null;
+
+            return properties.Id.ToString("D");
+        }
+
+        private string ResolveUsername(SessionProperties properties)
+        {
+            if (properties == null)
+                return "--UNKNOWN--";
+
+            UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
+            if (userInfo == null)
+                return "--UNKNOWN--";
+
+            string username = Settings.GetUseModifiedName() ? userInfo.Username : userInfo.OriginalUsername;
+            return string.IsNullOrWhiteSpace(username) ? "--UNKNOWN--" : username;
+        }
+
+        private string GetIpAddress()
+        {
+            foreach (IPAddress addr in Dns.GetHostAddresses(string.Empty))
+            {
+                if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    return addr.ToString();
+            }
+
+            return string.Empty;
+        }
+
+        private object NullableDbValue(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? (object)DBNull.Value : value;
         }
 
         private void AddParameter(DbCommand cmd, string name, object value)
@@ -246,29 +442,5 @@ namespace OpenCredential.Plugin.DatabaseLogger
         {
             get { return m_conn is NpgsqlConnection; }
         }
-
-        private string NowExpression
-        {
-            get { return IsPostgreSql ? "CURRENT_TIMESTAMP" : "NOW()"; }
-        }
-
-        private string ResolveUsername(UserInformation userInfo)
-        {
-            if (userInfo == null)
-                return "--UNKNOWN--";
-
-            string username = Settings.GetUseModifiedName() ? userInfo.Username : userInfo.OriginalUsername;
-            return string.IsNullOrWhiteSpace(username) ? "--UNKNOWN--" : username;
-        }
-
-        private string GetIpAddress()
-        {
-            foreach (IPAddress addr in Dns.GetHostAddresses(string.Empty))
-                if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    return addr.ToString();
-            return "-INVALID IP ADDRESS-";
-        }
     }
 }
-
-

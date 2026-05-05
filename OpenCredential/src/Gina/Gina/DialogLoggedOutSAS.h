@@ -40,7 +40,7 @@ namespace OpenCredential
 		class DialogLoggedOutSAS : public DialogBase
 		{
 		public:
-			typedef enum DialogResult
+			enum DialogResult
 			{				
 				SAS_ACTION_LOGON =						 WLX_SAS_ACTION_LOGON,
 				SAS_ACTION_NONE =						 WLX_SAS_ACTION_NONE,

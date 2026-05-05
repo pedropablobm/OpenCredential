@@ -201,8 +201,16 @@ namespace OpenCredential.Plugin.DatabaseLogger
         {
             string table = Settings.Store.SessionTable;
             string updateSql = string.Format(
-                "UPDATE {0} SET {1}=@logoutstamp WHERE {1} IS NULL AND {2}=@username AND {3}=@machine AND {4}=@ipaddress",
+                "UPDATE {0} SET {1}=@last_heartbeat_at, {2}=@session_state{3}{4} WHERE {5} IS NULL AND {6}=@username AND {7}=@machine AND {8}=@ipaddress",
                 Quote(table, dbConn),
+                QuoteColumn("last_heartbeat_at", dbConn),
+                QuoteColumn("session_state", dbConn),
+                string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase)
+                    ? string.Format(", {0}=@logoutstamp", QuoteColumn("logoutstamp", dbConn))
+                    : string.Empty,
+                string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase)
+                    ? string.Format(", {0}=@session_end_reason", QuoteColumn("session_end_reason", dbConn))
+                    : string.Empty,
                 QuoteColumn("logoutstamp", dbConn),
                 QuoteColumn("username", dbConn),
                 QuoteColumn("machine", dbConn),
@@ -210,27 +218,22 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
             if (string.Equals(entry.Reason, "SessionLogon", StringComparison.OrdinalIgnoreCase))
             {
-                using (var updateCmd = dbConn.CreateCommand())
-                {
-                    updateCmd.CommandText = updateSql;
-                    AddParameter(updateCmd, "@logoutstamp", entry.EventUtc);
-                    AddParameter(updateCmd, "@username", entry.Username ?? "--UNKNOWN--");
-                    AddParameter(updateCmd, "@machine", entry.Machine);
-                    AddParameter(updateCmd, "@ipaddress", (object)entry.IpAddress ?? DBNull.Value);
-                    updateCmd.ExecuteNonQuery();
-                }
-
                 string insertSql = dbConn is NpgsqlConnection
                     ? string.Format(
-                        "INSERT INTO {0} ({1}, {2}, {3}, {4}, {5}) VALUES (@loginstamp, NULL, @username, @machine, @ipaddress)",
+                        "INSERT INTO {0} ({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}) VALUES (@loginstamp, NULL, @username, @machine, @ipaddress, NULL, @windows_session_id, @session_state, @last_heartbeat_at, NULL)",
                         Quote(table, dbConn),
                         QuoteColumn("loginstamp", dbConn),
                         QuoteColumn("logoutstamp", dbConn),
                         QuoteColumn("username", dbConn),
                         QuoteColumn("machine", dbConn),
-                        QuoteColumn("ipaddress", dbConn))
+                        QuoteColumn("ipaddress", dbConn),
+                        QuoteColumn("client_session_id", dbConn),
+                        QuoteColumn("windows_session_id", dbConn),
+                        QuoteColumn("session_state", dbConn),
+                        QuoteColumn("last_heartbeat_at", dbConn),
+                        QuoteColumn("session_end_reason", dbConn))
                     : string.Format(
-                        "INSERT INTO {0} (dbid, loginstamp, logoutstamp, username, machine, ipaddress) VALUES (NULL, @loginstamp, NULL, @username, @machine, @ipaddress)",
+                        "INSERT INTO {0} (dbid, loginstamp, logoutstamp, username, machine, ipaddress, client_session_id, windows_session_id, session_state, last_heartbeat_at, session_end_reason) VALUES (NULL, @loginstamp, NULL, @username, @machine, @ipaddress, NULL, @windows_session_id, @session_state, @last_heartbeat_at, NULL)",
                         Quote(table, dbConn));
 
                 using (var insertCmd = dbConn.CreateCommand())
@@ -240,20 +243,51 @@ namespace OpenCredential.Plugin.DatabaseLogger
                     AddParameter(insertCmd, "@username", entry.Username ?? "--UNKNOWN--");
                     AddParameter(insertCmd, "@machine", entry.Machine);
                     AddParameter(insertCmd, "@ipaddress", (object)entry.IpAddress ?? DBNull.Value);
+                    AddParameter(insertCmd, "@windows_session_id", entry.SessionId);
+                    AddParameter(insertCmd, "@session_state", "active");
+                    AddParameter(insertCmd, "@last_heartbeat_at", entry.EventUtc);
                     insertCmd.ExecuteNonQuery();
                 }
             }
-            else if (string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(entry.Reason, "SessionLock", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(entry.Reason, "SessionUnlock", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(entry.Reason, "ConsoleConnect", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(entry.Reason, "RemoteConnect", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(entry.Reason, "ConsoleDisconnect", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(entry.Reason, "RemoteDisconnect", StringComparison.OrdinalIgnoreCase))
             {
                 using (var updateCmd = dbConn.CreateCommand())
                 {
                     updateCmd.CommandText = updateSql;
-                    AddParameter(updateCmd, "@logoutstamp", entry.EventUtc);
+                    AddParameter(updateCmd, "@last_heartbeat_at", entry.EventUtc);
+                    AddParameter(updateCmd, "@session_state", ResolveSessionState(entry.Reason));
                     AddParameter(updateCmd, "@username", entry.Username ?? "--UNKNOWN--");
                     AddParameter(updateCmd, "@machine", entry.Machine);
                     AddParameter(updateCmd, "@ipaddress", (object)entry.IpAddress ?? DBNull.Value);
+                    if (string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase))
+                    {
+                        AddParameter(updateCmd, "@logoutstamp", entry.EventUtc);
+                        AddParameter(updateCmd, "@session_end_reason", "logoff");
+                    }
                     updateCmd.ExecuteNonQuery();
                 }
+            }
+        }
+
+        private static string ResolveSessionState(string reason)
+        {
+            switch (reason)
+            {
+                case "SessionLogoff":
+                    return "ended";
+                case "SessionLock":
+                    return "locked";
+                case "ConsoleDisconnect":
+                case "RemoteDisconnect":
+                    return "disconnected";
+                default:
+                    return "active";
             }
         }
 

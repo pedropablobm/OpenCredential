@@ -33,7 +33,7 @@ namespace OpenCredential
 	namespace CredProv
 	{
 		// Fields for unlock and logon:
-		typedef enum CHANGE_PASSWORD_UI_FIELD_ID
+		enum CHANGE_PASSWORD_UI_FIELD_ID
 		{
 			CPUIFI_TILEIMAGE       = 0,
 			CPUIFI_MOTD            = 1,
