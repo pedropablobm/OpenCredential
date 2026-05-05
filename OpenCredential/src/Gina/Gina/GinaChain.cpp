@@ -298,7 +298,7 @@ namespace OpenCredential
 			if (!HIWORD(lpszTemplate)) 
 			{
 				// Make sure we only hook the dialogs we want
-				switch ((DWORD) lpszTemplate) 
+				switch (reinterpret_cast<ULONG_PTR>(lpszTemplate)) 
 				{
 					case IDD_WLXLOGGEDOUTSAS_DIALOG:
 						// Thank god gina is single threaded... I think...

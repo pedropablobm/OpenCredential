@@ -38,6 +38,18 @@ namespace OpenCredential.Plugin.DatabaseLogger
             return logger;
         }
 
+        public static SessionLogger GetSessionLogger()
+        {
+            if (m_conn == null || m_conn.State != System.Data.ConnectionState.Open)
+            {
+                m_conn = CreateConnection();
+            }
+
+            var logger = new SessionLogger();
+            logger.SetConnection(m_conn);
+            return logger;
+        }
+
         public static void closeConnection()
         {
             if (m_conn != null)
