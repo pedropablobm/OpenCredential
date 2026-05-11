@@ -49,7 +49,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             EnsureConnection();
             EnsureSessionSchema();
 
-            string username = ResolveUsername(properties);
+            string username = ResolveUsername(changeDescription.SessionId, properties);
             string machine = Environment.MachineName;
             string ipAddress = GetIpAddress();
             string clientSessionId = GetClientSessionId(properties);
@@ -92,7 +92,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             EnsureConnection();
             EnsureSessionSchema();
 
-            string username = ResolveUsername(properties);
+            string username = ResolveUsername(windowsSessionId, properties);
             string machine = Environment.MachineName;
             string ipAddress = GetIpAddress();
             string clientSessionId = GetClientSessionId(properties);
@@ -389,17 +389,13 @@ namespace OpenCredential.Plugin.DatabaseLogger
             return properties.Id.ToString("D");
         }
 
-        private string ResolveUsername(SessionProperties properties)
+        private string ResolveUsername(int windowsSessionId, SessionProperties properties)
         {
-            if (properties == null)
-                return "--UNKNOWN--";
-
-            UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
-            if (userInfo == null)
-                return "--UNKNOWN--";
-
-            string username = Settings.GetUseModifiedName() ? userInfo.Username : userInfo.OriginalUsername;
-            return string.IsNullOrWhiteSpace(username) ? "--UNKNOWN--" : username;
+            return SessionIdentityCache.ResolveUsername(
+                windowsSessionId,
+                properties,
+                Settings.GetUseModifiedName(),
+                "--UNKNOWN--");
         }
 
         private string GetIpAddress()

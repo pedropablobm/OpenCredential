@@ -241,27 +241,23 @@ namespace OpenCredential.Plugin.DatabaseLogger
             return string.Empty;
         }
 
-        private string GetUsername(SessionProperties properties)
+        private string GetUsername(int windowsSessionId, SessionProperties properties)
         {
-            if (properties == null)
-                return UNKNOWN_USERNAME;
-
-            UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
-            if (userInfo == null)
-                return UNKNOWN_USERNAME;
-
-            string username = Settings.GetUseModifiedName() ? userInfo.Username : userInfo.OriginalUsername;
-            return string.IsNullOrWhiteSpace(username) ? UNKNOWN_USERNAME : username;
+            return SessionIdentityCache.ResolveUsername(
+                windowsSessionId,
+                properties,
+                Settings.GetUseModifiedName(),
+                UNKNOWN_USERNAME);
         }
 
         private string LogonEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.GetEvtLogon() ? string.Format("[{0}] Logon user: {1}", sessionId, GetUsername(properties) ?? UNKNOWN_USERNAME) : string.Empty;
+            return Settings.GetEvtLogon() ? string.Format("[{0}] Logon user: {1}", sessionId, GetUsername(sessionId, properties) ?? UNKNOWN_USERNAME) : string.Empty;
         }
 
         private string LogoffEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.GetEvtLogoff() ? string.Format("[{0}] Logoff user: {1}", sessionId, GetUsername(properties) ?? UNKNOWN_USERNAME) : string.Empty;
+            return Settings.GetEvtLogoff() ? string.Format("[{0}] Logoff user: {1}", sessionId, GetUsername(sessionId, properties) ?? UNKNOWN_USERNAME) : string.Empty;
         }
 
         private string ConsoleConnectEvent(int sessionId, SessionProperties properties)
@@ -276,27 +272,27 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
         private string RemoteDisconnectEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.GetEvtRemoteDisconnect() ? string.Format("[{0}] Remote disconnect user: {1}", sessionId, GetUsername(properties) ?? UNKNOWN_USERNAME) : string.Empty;
+            return Settings.GetEvtRemoteDisconnect() ? string.Format("[{0}] Remote disconnect user: {1}", sessionId, GetUsername(sessionId, properties) ?? UNKNOWN_USERNAME) : string.Empty;
         }
 
         private string RemoteConnectEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.GetEvtRemoteConnect() ? string.Format("[{0}] Remote connect user: {1}", sessionId, GetUsername(properties) ?? UNKNOWN_USERNAME) : string.Empty;
+            return Settings.GetEvtRemoteConnect() ? string.Format("[{0}] Remote connect user: {1}", sessionId, GetUsername(sessionId, properties) ?? UNKNOWN_USERNAME) : string.Empty;
         }
 
         private string RemoteControlEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.GetEvtRemoteControl() ? string.Format("[{0}] Remote control user: {1}", sessionId, GetUsername(properties) ?? UNKNOWN_USERNAME) : string.Empty;
+            return Settings.GetEvtRemoteControl() ? string.Format("[{0}] Remote control user: {1}", sessionId, GetUsername(sessionId, properties) ?? UNKNOWN_USERNAME) : string.Empty;
         }
 
         private string SessionUnlockEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.GetEvtUnlock() ? string.Format("[{0}] Session unlock user: {1}", sessionId, GetUsername(properties) ?? UNKNOWN_USERNAME) : string.Empty;
+            return Settings.GetEvtUnlock() ? string.Format("[{0}] Session unlock user: {1}", sessionId, GetUsername(sessionId, properties) ?? UNKNOWN_USERNAME) : string.Empty;
         }
 
         private string SessionLockEvent(int sessionId, SessionProperties properties)
         {
-            return Settings.GetEvtLock() ? string.Format("[{0}] Session lock user: {1}", sessionId, GetUsername(properties) ?? UNKNOWN_USERNAME) : string.Empty;
+            return Settings.GetEvtLock() ? string.Format("[{0}] Session lock user: {1}", sessionId, GetUsername(sessionId, properties) ?? UNKNOWN_USERNAME) : string.Empty;
         }
     }
 }

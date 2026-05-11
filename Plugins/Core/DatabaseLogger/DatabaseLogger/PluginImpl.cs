@@ -97,6 +97,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
             lock (m_runtimeSync)
             {
+                SessionIdentityCache.UpdateFromProperties(changeDescription.SessionId, properties, Settings.GetUseModifiedName());
                 TryFlushOfflineQueue();
                 TryLogMode(LoggerMode.SESSION, Settings.GetSessionMode(), changeDescription, properties);
                 TryLogMode(LoggerMode.EVENT, Settings.GetEventMode(), changeDescription, properties);
@@ -128,6 +129,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             {
                 m_activeSessions.Clear();
             }
+            SessionIdentityCache.Clear();
 
             StartBackgroundTasks();
         }
@@ -139,6 +141,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             {
                 m_activeSessions.Clear();
             }
+            SessionIdentityCache.Clear();
         }
 
         private void TryLogMode(LoggerMode loggerMode, bool enabled, System.ServiceProcess.SessionChangeDescription changeDescription, SessionProperties properties)
@@ -298,6 +301,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
                     case SessionChangeReason.SessionLogoff:
                         m_activeSessions.Remove(changeDescription.SessionId);
+                        SessionIdentityCache.Remove(changeDescription.SessionId);
                         break;
                 }
             }

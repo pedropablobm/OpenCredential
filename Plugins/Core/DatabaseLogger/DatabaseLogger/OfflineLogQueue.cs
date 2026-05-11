@@ -72,7 +72,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             {
                 Initialize();
 
-                string username = GetUsername(properties);
+                string username = GetUsername(changeDescription.SessionId, properties);
                 string reason = changeDescription.Reason.ToString();
                 string message = mode == LoggerMode.EVENT
                     ? BuildEventMessage(changeDescription.Reason, changeDescription.SessionId, username)
@@ -344,17 +344,13 @@ namespace OpenCredential.Plugin.DatabaseLogger
             return conn;
         }
 
-        private static string GetUsername(SessionProperties properties)
+        private static string GetUsername(int windowsSessionId, SessionProperties properties)
         {
-            if (properties == null)
-                return "--UNKNOWN--";
-
-            UserInformation userInfo = properties.GetTrackedSingle<UserInformation>();
-            if (userInfo == null)
-                return "--UNKNOWN--";
-
-            string username = Settings.GetUseModifiedName() ? userInfo.Username : userInfo.OriginalUsername;
-            return string.IsNullOrWhiteSpace(username) ? "--UNKNOWN--" : username;
+            return SessionIdentityCache.ResolveUsername(
+                windowsSessionId,
+                properties,
+                Settings.GetUseModifiedName(),
+                "--UNKNOWN--");
         }
 
         private static string GetIpAddress()
