@@ -132,6 +132,7 @@
     </Compile>
     <Compile Include="OfflineLogQueue.cs" />
     <Compile Include="SessionLogger.cs" />
+    <Compile Include="SessionIdentityCache.cs" />
     <Compile Include="EventLogger.cs" />
     <Compile Include="PluginImpl.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
