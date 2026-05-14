@@ -51,6 +51,7 @@ namespace OpenCredential.Plugin.DatabaseAuth
     {
         private ComboBox m_providerCB;
         private Label m_providerLabel;
+        private bool m_hasStoredPassword;
 
         private log4net.ILog m_logger = log4net.LogManager.GetLogger("DatabaseAuth Configuration");
 
@@ -89,7 +90,12 @@ namespace OpenCredential.Plugin.DatabaseAuth
             this.hostTB.Text = Convert.ToString(Settings.Store.Host);
             this.portTB.Text = Convert.ToString(Settings.GetPort());
             this.userTB.Text = Convert.ToString(Settings.Store.User);
-            this.passwordTB.Text = Settings.Store.GetEncryptedSetting("Password");
+            string storedPassword = Settings.Store.GetEncryptedSetting("Password");
+            m_hasStoredPassword = !string.IsNullOrEmpty(storedPassword);
+            this.passwordTB.Text = string.Empty;
+            this.passwordTB.UseSystemPasswordChar = true;
+            this.passwdCB.Checked = false;
+            this.passwdCB.Visible = false;
             this.dbTB.Text = Convert.ToString(Settings.Store.Database);
             this.m_providerCB.SelectedItem = Settings.GetDatabaseProvider().ToString();
             this.sslModeCB.SelectedItem = Settings.GetSslMode().ToString();
@@ -261,6 +267,12 @@ namespace OpenCredential.Plugin.DatabaseAuth
                 return false;
             }
 
+            if (string.IsNullOrWhiteSpace(this.passwordTB.Text) && !m_hasStoredPassword)
+            {
+                MessageBox.Show("Please enter a database password.");
+                return false;
+            }
+
             MySqlSslMode sslMode;
             if (!Enum.TryParse(this.sslModeCB.Text, true, out sslMode))
             {
@@ -279,7 +291,13 @@ namespace OpenCredential.Plugin.DatabaseAuth
             Settings.Store.Port = port;
             Settings.Store.DatabaseProvider = (int)provider;
             Settings.Store.User = this.userTB.Text.Trim();
-            Settings.Store.SetEncryptedSetting("Password", this.passwordTB.Text);
+            string newPassword = this.passwordTB.Text;
+            if (!string.IsNullOrWhiteSpace(newPassword))
+            {
+                Settings.Store.SetEncryptedSetting("Password", newPassword);
+                m_hasStoredPassword = true;
+                this.passwordTB.Text = string.Empty;
+            }
             Settings.Store.Database = this.dbTB.Text.Trim();
             Settings.Store.LocalCacheEnabled = this.localCacheEnabledCB.Checked;
             Settings.Store.OfflineFallbackEnabled = this.offlineFallbackEnabledCB.Checked;
@@ -872,13 +890,14 @@ namespace OpenCredential.Plugin.DatabaseAuth
 
             if (provider == Settings.DatabaseProvider.PostgreSql)
             {
+                string password = GetConfiguredPassword();
                 var builder = new NpgsqlConnectionStringBuilder
                 {
                     Host = this.hostTB.Text.Trim(),
                     Port = Convert.ToInt32(port),
                     Username = this.userTB.Text.Trim(),
                     Database = this.dbTB.Text.Trim(),
-                    Password = this.passwordTB.Text,
+                    Password = password,
                     SslMode = MapPostgreSqlSslMode(sslMode),
                     Pooling = true
                 };
@@ -889,17 +908,27 @@ namespace OpenCredential.Plugin.DatabaseAuth
                 return builder.ConnectionString;
             }
 
+            string mySqlPassword = GetConfiguredPassword();
             MySqlConnectionStringBuilder bldr = new MySqlConnectionStringBuilder
             {
                 Server = this.hostTB.Text.Trim(),
                 Port = port,
                 UserID = this.userTB.Text.Trim(),
                 Database = this.dbTB.Text.Trim(),
-                Password = this.passwordTB.Text,
+                Password = mySqlPassword,
                 SslMode = sslMode
             };
 
             return bldr.ConnectionString;
+        }
+
+        private string GetConfiguredPassword()
+        {
+            string password = this.passwordTB.Text;
+            if (!string.IsNullOrWhiteSpace(password))
+                return password;
+
+            return Settings.Store.GetEncryptedSetting("Password");
         }
 
         private Settings.DatabaseProvider GetSelectedDatabaseProvider()

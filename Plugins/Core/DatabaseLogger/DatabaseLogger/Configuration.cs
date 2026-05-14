@@ -39,11 +39,18 @@ namespace OpenCredential.Plugin.DatabaseLogger
     {
         private ComboBox m_providerCB;
         private Label m_providerLabel;
+        private CheckBox m_presenceTrackingEnabledCB;
+        private Label m_heartbeatIntervalLabel;
+        private TextBox m_heartbeatIntervalTB;
+        private Label m_presenceStatePathLabel;
+        private TextBox m_presenceStatePathTB;
+        private bool m_hasStoredPassword;
 
         public Configuration()
         {
             InitializeComponent();
             InitializeProviderControls();
+            InitializePresenceControls();
             InitUI();
         }
 
@@ -72,6 +79,55 @@ namespace OpenCredential.Plugin.DatabaseLogger
             m_providerCB.BringToFront();
         }
 
+        private void InitializePresenceControls()
+        {
+            m_presenceTrackingEnabledCB = new CheckBox();
+            m_presenceTrackingEnabledCB.AutoSize = true;
+            m_presenceTrackingEnabledCB.Location = new Point(7, 100);
+            m_presenceTrackingEnabledCB.Name = "presenceTrackingEnabledCB";
+            m_presenceTrackingEnabledCB.Size = new Size(163, 17);
+            m_presenceTrackingEnabledCB.Text = "Enable session presence tracking";
+            m_presenceTrackingEnabledCB.UseVisualStyleBackColor = true;
+            m_presenceTrackingEnabledCB.CheckedChanged += new EventHandler(this.ModeChange);
+
+            m_heartbeatIntervalLabel = new Label();
+            m_heartbeatIntervalLabel.AutoSize = true;
+            m_heartbeatIntervalLabel.Location = new Point(6, 126);
+            m_heartbeatIntervalLabel.Name = "heartbeatIntervalLabel";
+            m_heartbeatIntervalLabel.Size = new Size(116, 13);
+            m_heartbeatIntervalLabel.Text = "Heartbeat every (secs):";
+
+            m_heartbeatIntervalTB = new TextBox();
+            m_heartbeatIntervalTB.Location = new Point(128, 123);
+            m_heartbeatIntervalTB.Name = "heartbeatIntervalTB";
+            m_heartbeatIntervalTB.Size = new Size(45, 20);
+
+            m_presenceStatePathLabel = new Label();
+            m_presenceStatePathLabel.AutoSize = true;
+            m_presenceStatePathLabel.Location = new Point(6, 152);
+            m_presenceStatePathLabel.Name = "presenceStatePathLabel";
+            m_presenceStatePathLabel.Size = new Size(52, 13);
+            m_presenceStatePathLabel.Text = "State file:";
+
+            m_presenceStatePathTB = new TextBox();
+            m_presenceStatePathTB.Location = new Point(73, 149);
+            m_presenceStatePathTB.Name = "presenceStatePathTB";
+            m_presenceStatePathTB.Size = new Size(415, 20);
+
+            this.optionsBox.Controls.Add(m_presenceTrackingEnabledCB);
+            this.optionsBox.Controls.Add(m_heartbeatIntervalLabel);
+            this.optionsBox.Controls.Add(m_heartbeatIntervalTB);
+            this.optionsBox.Controls.Add(m_presenceStatePathLabel);
+            this.optionsBox.Controls.Add(m_presenceStatePathTB);
+
+            this.optionsBox.Height = 180;
+            this.testButton.Top += 65;
+            this.createTableBtn.Top += 65;
+            this.cancelBtn.Top += 65;
+            this.okBtn.Top += 65;
+            this.ClientSize = new Size(this.ClientSize.Width, this.ClientSize.Height + 65);
+        }
+
         private void InitUI()
         {
             this.sessionModeCB.Checked = Settings.GetSessionMode();
@@ -92,7 +148,11 @@ namespace OpenCredential.Plugin.DatabaseLogger
             string user = Convert.ToString(Settings.Store.User);
             this.userTB.Text = user;
             string pass = Settings.Store.GetEncryptedSetting("Password");
-            this.passwdTB.Text = pass;
+            m_hasStoredPassword = !string.IsNullOrEmpty(pass);
+            this.passwdTB.Text = string.Empty;
+            this.passwdTB.UseSystemPasswordChar = true;
+            this.showPassCB.Checked = false;
+            this.showPassCB.Visible = false;
 
             bool setting = Settings.GetEvtLogon();
             this.logonEvtCB.Checked = setting;
@@ -118,6 +178,9 @@ namespace OpenCredential.Plugin.DatabaseLogger
             this.healthCheckTB.Text = Convert.ToString(Settings.GetHealthCheckSeconds());
             this.flushBatchTB.Text = Convert.ToString(Settings.GetFlushBatchSize());
             this.offlineQueuePathTB.Text = Settings.GetOfflineQueuePath();
+            this.m_presenceTrackingEnabledCB.Checked = Settings.IsPresenceTrackingEnabled();
+            this.m_heartbeatIntervalTB.Text = Convert.ToString(Settings.GetHeartbeatIntervalSeconds());
+            this.m_presenceStatePathTB.Text = Settings.GetPresenceStatePath();
 
             updateUIOnModeChange();
         }
@@ -141,6 +204,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
         {
             int healthCheckSeconds = 0;
             int flushBatchSize = 0;
+            int heartbeatIntervalSeconds = 0;
             try
             {
                 int port = Convert.ToInt32((String)this.portTB.Text.Trim());
@@ -156,10 +220,11 @@ namespace OpenCredential.Plugin.DatabaseLogger
             {
                 healthCheckSeconds = Convert.ToInt32(this.healthCheckTB.Text.Trim());
                 flushBatchSize = Convert.ToInt32(this.flushBatchTB.Text.Trim());
+                heartbeatIntervalSeconds = Convert.ToInt32(this.m_heartbeatIntervalTB.Text.Trim());
             }
             catch (FormatException)
             {
-                MessageBox.Show("Health check and flush batch must be positive integers.");
+                MessageBox.Show("Heartbeat, health check and flush batch must be positive integers.");
                 return false;
             }
 
@@ -175,10 +240,22 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 return false;
             }
 
+            if (heartbeatIntervalSeconds < 15)
+            {
+                MessageBox.Show("Heartbeat interval must be at least 15 seconds.");
+                return false;
+            }
+
             if (sessionModeCB.Checked && eventModeCB.Checked
                 && sessionTableTB.Text.Trim() == eventTableTB.Text.Trim())
             {
                 MessageBox.Show("The Event Table must be different from the Session Table.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(this.passwdTB.Text) && !m_hasStoredPassword)
+            {
+                MessageBox.Show("Please enter a database password.");
                 return false;
             }
 
@@ -198,7 +275,13 @@ namespace OpenCredential.Plugin.DatabaseLogger
             Settings.Store.EventTable = this.eventTableTB.Text.Trim();
             Settings.Store.SessionTable = this.sessionTableTB.Text.Trim();
             Settings.Store.User = this.userTB.Text.Trim();
-            Settings.Store.SetEncryptedSetting("Password", this.passwdTB.Text);
+            string newPassword = this.passwdTB.Text;
+            if (!string.IsNullOrWhiteSpace(newPassword))
+            {
+                Settings.Store.SetEncryptedSetting("Password", newPassword);
+                m_hasStoredPassword = true;
+                this.passwdTB.Text = string.Empty;
+            }
 
             Settings.Store.EvtLogon = this.logonEvtCB.Checked;
             Settings.Store.EvtLogoff = this.logoffEvtCB.Checked;
@@ -212,9 +295,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
             Settings.Store.UseModifiedName = this.useModNameCB.Checked;
             Settings.Store.OfflineQueueEnabled = this.offlineQueueEnabledCB.Checked;
+            Settings.Store.PresenceTrackingEnabled = this.m_presenceTrackingEnabledCB.Checked;
+            Settings.Store.HeartbeatIntervalSeconds = heartbeatIntervalSeconds;
             Settings.Store.HealthCheckSeconds = healthCheckSeconds;
             Settings.Store.FlushBatchSize = flushBatchSize;
             Settings.Store.OfflineQueuePath = this.offlineQueuePathTB.Text.Trim();
+            Settings.Store.PresenceStatePath = this.m_presenceStatePathTB.Text.Trim();
 
             return true;
         }
@@ -310,6 +396,11 @@ namespace OpenCredential.Plugin.DatabaseLogger
             eventsBox.Enabled = eventModeCB.Checked;
             eventTableTB.Enabled = eventModeCB.Checked;
             sessionTableTB.Enabled = sessionModeCB.Checked;
+            m_presenceTrackingEnabledCB.Enabled = sessionModeCB.Checked;
+            m_heartbeatIntervalLabel.Enabled = sessionModeCB.Checked && m_presenceTrackingEnabledCB.Checked;
+            m_heartbeatIntervalTB.Enabled = sessionModeCB.Checked && m_presenceTrackingEnabledCB.Checked;
+            m_presenceStatePathLabel.Enabled = sessionModeCB.Checked && m_presenceTrackingEnabledCB.Checked;
+            m_presenceStatePathTB.Enabled = sessionModeCB.Checked && m_presenceTrackingEnabledCB.Checked;
         }
 
         private void showPassCB_CheckedChanged(object sender, EventArgs e)

@@ -453,6 +453,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
         {
             var sb = new StringBuilder();
             string dbPath = Settings.GetOfflineQueuePath();
+            string statePath = Settings.GetPresenceStatePath();
             string nativeDirectory = SQLiteNativeBootstrap.GetNativeDirectory();
             string nativeDllPath = SQLiteNativeBootstrap.GetNativeDllPath();
 
@@ -462,6 +463,9 @@ namespace OpenCredential.Plugin.DatabaseLogger
             sb.AppendLine(string.Format("Native SQLite dir: {0}", nativeDirectory));
             sb.AppendLine(string.Format("Native SQLite dll: {0}", File.Exists(nativeDllPath) ? nativeDllPath : "MISSING"));
             sb.AppendLine(string.Format("Queue file: {0}", dbPath));
+            sb.AppendLine(string.Format("Presence tracking enabled: {0}", Settings.IsPresenceTrackingEnabled() ? "Yes" : "No"));
+            sb.AppendLine(string.Format("Heartbeat interval (secs): {0}", Settings.GetHeartbeatIntervalSeconds()));
+            sb.AppendLine(string.Format("State file: {0}", statePath));
 
             try
             {
@@ -474,13 +478,34 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 }
 
                 sb.AppendLine("SQLite offline queue: OK");
+                sb.AppendLine(string.Format("Queued items: {0}", GetQueuedItemCount()));
             }
             catch (Exception ex)
             {
                 sb.AppendLine(string.Format("SQLite offline queue ERROR: {0}", ex.Message));
             }
 
+            try
+            {
+                SessionPresenceStore.Initialize();
+                sb.AppendLine(string.Format("Persisted active sessions: {0}", SessionPresenceStore.GetActiveSessionCount()));
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine(string.Format("Session presence store ERROR: {0}", ex.Message));
+            }
+
             return sb.ToString();
+        }
+
+        private static int GetQueuedItemCount()
+        {
+            using (var conn = OpenConnection())
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT COUNT(*) FROM queued_logs";
+                return Convert.ToInt32(cmd.ExecuteScalar());
+            }
         }
 
         private static SQLiteConnection OpenConnection()

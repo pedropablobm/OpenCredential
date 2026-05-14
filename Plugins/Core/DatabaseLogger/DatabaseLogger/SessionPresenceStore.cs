@@ -129,6 +129,21 @@ namespace OpenCredential.Plugin.DatabaseLogger
             }
         }
 
+        public static int GetActiveSessionCount()
+        {
+            lock (SyncRoot)
+            {
+                Initialize();
+
+                using (var conn = OpenConnection())
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT COUNT(*) FROM active_sessions";
+                    return Convert.ToInt32(cmd.ExecuteScalar());
+                }
+            }
+        }
+
         public static void Remove(int windowsSessionId)
         {
             lock (SyncRoot)
