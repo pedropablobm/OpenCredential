@@ -53,6 +53,17 @@ namespace OpenCredential.Plugin.DatabaseLogger
             }
         }
 
+        public static void RememberUsername(int windowsSessionId, string username)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                return;
+
+            lock (SyncRoot)
+            {
+                UsernamesBySessionId[windowsSessionId] = username;
+            }
+        }
+
         public static void Clear()
         {
             lock (SyncRoot)
