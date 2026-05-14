@@ -358,6 +358,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
             SessionLogger logger = LoggerModeFactory.GetSessionLogger();
             foreach (ActiveSessionContext session in dueHeartbeats)
             {
+                if (!IsRuntimeSessionAlive(session))
+                {
+                    ExpireActiveSession(session.WindowsSessionId, "heartbeat_timeout", nowUtc);
+                    continue;
+                }
+
                 try
                 {
                     logger.WriteHeartbeat(session.WindowsSessionId, session.Properties, session.SessionState, nowUtc);
@@ -377,6 +383,14 @@ namespace OpenCredential.Plugin.DatabaseLogger
                     if (Settings.IsOfflineQueueEnabled() && m_offlineQueueRuntimeAvailable)
                     {
                         TryEnqueueOfflineHeartbeat(session.WindowsSessionId, session.Properties, session.SessionState, nowUtc);
+                        lock (m_activeSessionsLock)
+                        {
+                            if (m_activeSessions.ContainsKey(session.WindowsSessionId))
+                            {
+                                m_activeSessions[session.WindowsSessionId].LastHeartbeatUtc = nowUtc;
+                                PersistSessionState(session.WindowsSessionId);
+                            }
+                        }
                     }
                 }
             }
@@ -395,6 +409,13 @@ namespace OpenCredential.Plugin.DatabaseLogger
             {
                 foreach (SessionPresenceState persistedState in persistedStates)
                 {
+                    if (IsLeaseExpired(persistedState.LastHeartbeatUtc, DateTime.UtcNow))
+                    {
+                        TryReconcileRecoveredSessionEnd(persistedState, DateTime.UtcNow, "heartbeat_timeout");
+                        RemovePersistedSessionState(persistedState.WindowsSessionId);
+                        continue;
+                    }
+
                     if (!IsPersistedSessionAlive(persistedState))
                     {
                         TryReconcileRecoveredSessionEnd(persistedState, DateTime.UtcNow, "unexpected_shutdown");
@@ -413,6 +434,77 @@ namespace OpenCredential.Plugin.DatabaseLogger
                     SessionIdentityCache.RememberUsername(persistedState.WindowsSessionId, persistedState.Username);
                 }
             }
+        }
+
+        private bool IsLeaseExpired(DateTime lastHeartbeatUtc, DateTime nowUtc)
+        {
+            return (nowUtc - lastHeartbeatUtc).TotalSeconds > Settings.GetPresenceLeaseTimeoutSeconds();
+        }
+
+        private bool IsRuntimeSessionAlive(ActiveSessionContext session)
+        {
+            try
+            {
+                string liveUsername = pInvokes.GetUserName(session.WindowsSessionId);
+                if (string.IsNullOrWhiteSpace(liveUsername))
+                    return false;
+
+                string expectedUsername = SessionIdentityCache.ResolveUsername(
+                    session.WindowsSessionId,
+                    session.Properties,
+                    Settings.GetUseModifiedName(),
+                    null);
+
+                if (!string.IsNullOrWhiteSpace(expectedUsername) &&
+                    !string.Equals(liveUsername, expectedUsername, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                m_logger.DebugFormat("Session {0} no longer looks alive: {1}", session.WindowsSessionId, ex.Message);
+                return false;
+            }
+        }
+
+        private void ExpireActiveSession(int windowsSessionId, string endReason, DateTime eventUtc)
+        {
+            SessionPresenceState persistedState = null;
+
+            lock (m_activeSessionsLock)
+            {
+                if (m_activeSessions.ContainsKey(windowsSessionId))
+                {
+                    ActiveSessionContext context = m_activeSessions[windowsSessionId];
+                    persistedState = new SessionPresenceState
+                    {
+                        WindowsSessionId = context.WindowsSessionId,
+                        Username = SessionIdentityCache.ResolveUsername(
+                            context.WindowsSessionId,
+                            context.Properties,
+                            Settings.GetUseModifiedName(),
+                            null),
+                        ClientSessionId = context.Properties == null || context.Properties.Id == Guid.Empty
+                            ? null
+                            : context.Properties.Id.ToString("D"),
+                        Machine = Environment.MachineName,
+                        IpAddress = GetCurrentIpAddress(),
+                        SessionState = context.SessionState,
+                        LastHeartbeatUtc = context.LastHeartbeatUtc
+                    };
+                }
+
+                m_activeSessions.Remove(windowsSessionId);
+            }
+
+            if (persistedState != null)
+                TryReconcileRecoveredSessionEnd(persistedState, eventUtc, endReason);
+
+            SessionIdentityCache.Remove(windowsSessionId);
+            RemovePersistedSessionState(windowsSessionId);
         }
 
         private bool IsPersistedSessionAlive(SessionPresenceState persistedState)

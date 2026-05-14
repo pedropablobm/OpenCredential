@@ -465,6 +465,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             sb.AppendLine(string.Format("Queue file: {0}", dbPath));
             sb.AppendLine(string.Format("Presence tracking enabled: {0}", Settings.IsPresenceTrackingEnabled() ? "Yes" : "No"));
             sb.AppendLine(string.Format("Heartbeat interval (secs): {0}", Settings.GetHeartbeatIntervalSeconds()));
+            sb.AppendLine(string.Format("Presence lease timeout (secs): {0}", Settings.GetPresenceLeaseTimeoutSeconds()));
             sb.AppendLine(string.Format("State file: {0}", statePath));
 
             try

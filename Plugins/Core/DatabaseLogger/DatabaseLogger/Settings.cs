@@ -79,6 +79,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             m_settings.SetDefault("HealthCheckSeconds", 30);
             m_settings.SetDefault("PresenceTrackingEnabled", true);
             m_settings.SetDefault("HeartbeatIntervalSeconds", 60);
+            m_settings.SetDefault("PresenceLeaseTimeoutSeconds", 300);
             m_settings.SetDefault("FlushBatchSize", 100);
             m_settings.SetDefault("OfflineQueuePath", string.Empty);
             m_settings.SetDefault("PresenceStatePath", string.Empty);
@@ -231,6 +232,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
         public static int GetHeartbeatIntervalSeconds()
         {
             return Math.Max(15, GetIntSetting("HeartbeatIntervalSeconds", 60));
+        }
+
+        public static int GetPresenceLeaseTimeoutSeconds()
+        {
+            int configured = GetIntSetting("PresenceLeaseTimeoutSeconds", 300);
+            return Math.Max(GetHeartbeatIntervalSeconds() * 3, Math.Max(60, configured));
         }
 
         public static int GetFlushBatchSize()

@@ -836,5 +836,34 @@ namespace Abstractions.WindowsApi
 
             return result;
         }
+
+        public static bool TryValidateCredentialsAndGetIdentity(string username, string domain, string password, out string identityName, out string identitySid)
+        {
+            IntPtr hToken = IntPtr.Zero;
+            identityName = null;
+            identitySid = null;
+
+            bool result = SafeNativeMethods.LogonUser(username, domain, password,
+                (int)SafeNativeMethods.LogonType.LOGON32_LOGON_NETWORK,
+                (int)SafeNativeMethods.LogonProvider.LOGON32_PROVIDER_DEFAULT,
+                out hToken);
+
+            if (!result)
+                return false;
+
+            try
+            {
+                using (WindowsIdentity identity = new WindowsIdentity(hToken))
+                {
+                    identityName = identity.Name;
+                    identitySid = identity.User != null ? identity.User.Value : null;
+                    return true;
+                }
+            }
+            finally
+            {
+                if (hToken != IntPtr.Zero) CloseHandle(hToken);
+            }
+        }
     }
 }
