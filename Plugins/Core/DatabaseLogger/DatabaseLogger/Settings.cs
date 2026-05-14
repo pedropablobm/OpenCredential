@@ -81,6 +81,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             m_settings.SetDefault("HeartbeatIntervalSeconds", 60);
             m_settings.SetDefault("FlushBatchSize", 100);
             m_settings.SetDefault("OfflineQueuePath", string.Empty);
+            m_settings.SetDefault("PresenceStatePath", string.Empty);
         }
 
         private static object UnwrapSettingValue(object value)
@@ -267,6 +268,41 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 "pGina",
                 "MySQLLogger",
                 "mysqllogger-queue.sqlite");
+
+            TryMigratePath(legacyPath, defaultPath);
+            return defaultPath;
+        }
+
+        public static string GetPresenceStatePath()
+        {
+            string configuredPath = GetStringSetting("PresenceStatePath");
+            if (!string.IsNullOrWhiteSpace(configuredPath))
+            {
+                string normalizedConfiguredPath = NormalizeProgramDataPath(
+                    configuredPath,
+                    "DatabaseLogger",
+                    "databaselogger-state.sqlite");
+
+                if (!string.Equals(configuredPath, normalizedConfiguredPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    TryMigratePath(configuredPath, normalizedConfiguredPath);
+                    m_settings.SetSetting("PresenceStatePath", normalizedConfiguredPath);
+                }
+
+                return normalizedConfiguredPath;
+            }
+
+            string defaultPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "OpenCredential",
+                "DatabaseLogger",
+                "databaselogger-state.sqlite");
+
+            string legacyPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "pGina",
+                "MySQLLogger",
+                "mysqllogger-state.sqlite");
 
             TryMigratePath(legacyPath, defaultPath);
             return defaultPath;

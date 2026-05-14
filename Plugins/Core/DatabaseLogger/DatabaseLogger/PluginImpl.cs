@@ -59,6 +59,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
         private static readonly object m_activeSessionsLock = new object();
         private static Timer m_flushTimer;
         private static bool m_offlineQueueRuntimeAvailable = true;
+        private static bool m_presenceStoreRuntimeAvailable = true;
         private static readonly Dictionary<int, ActiveSessionContext> m_activeSessions = new Dictionary<int, ActiveSessionContext>();
         private ILog m_logger = LogManager.GetLogger("DatabaseLoggerPlugin");
 
@@ -111,6 +112,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
         public void Starting()
         {
             m_offlineQueueRuntimeAvailable = Settings.IsOfflineQueueEnabled();
+            m_presenceStoreRuntimeAvailable = Settings.GetSessionMode() && Settings.IsPresenceTrackingEnabled();
 
             if (m_offlineQueueRuntimeAvailable)
             {
@@ -130,6 +132,20 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 m_activeSessions.Clear();
             }
             SessionIdentityCache.Clear();
+
+            if (m_presenceStoreRuntimeAvailable)
+            {
+                try
+                {
+                    SessionPresenceStore.Initialize();
+                    RestorePersistedSessions();
+                }
+                catch (Exception ex)
+                {
+                    m_presenceStoreRuntimeAvailable = false;
+                    m_logger.ErrorFormat("Disabling local session persistence at runtime: {0}", ex);
+                }
+            }
 
             StartBackgroundTasks();
         }
@@ -249,6 +265,8 @@ namespace OpenCredential.Plugin.DatabaseLogger
                     {
                         m_activeSessions.Remove(changeDescription.SessionId);
                     }
+                    SessionIdentityCache.Remove(changeDescription.SessionId);
+                    RemovePersistedSessionState(changeDescription.SessionId);
                 }
                 return;
             }
@@ -268,6 +286,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
                             SessionState = "active",
                             LastHeartbeatUtc = DateTime.UtcNow
                         };
+                        PersistSessionState(changeDescription.SessionId);
                         break;
 
                     case SessionChangeReason.SessionLock:
@@ -287,6 +306,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
                                 LastHeartbeatUtc = DateTime.UtcNow
                             };
                         }
+                        PersistSessionState(changeDescription.SessionId);
                         break;
 
                     case SessionChangeReason.ConsoleDisconnect:
@@ -297,11 +317,13 @@ namespace OpenCredential.Plugin.DatabaseLogger
                             m_activeSessions[changeDescription.SessionId].SessionState = "disconnected";
                             m_activeSessions[changeDescription.SessionId].LastHeartbeatUtc = DateTime.UtcNow;
                         }
+                        PersistSessionState(changeDescription.SessionId);
                         break;
 
                     case SessionChangeReason.SessionLogoff:
                         m_activeSessions.Remove(changeDescription.SessionId);
                         SessionIdentityCache.Remove(changeDescription.SessionId);
+                        RemovePersistedSessionState(changeDescription.SessionId);
                         break;
                 }
             }
@@ -333,27 +355,212 @@ namespace OpenCredential.Plugin.DatabaseLogger
             if (dueHeartbeats.Count == 0)
                 return;
 
-            try
+            SessionLogger logger = LoggerModeFactory.GetSessionLogger();
+            foreach (ActiveSessionContext session in dueHeartbeats)
             {
-                SessionLogger logger = LoggerModeFactory.GetSessionLogger();
-                foreach (ActiveSessionContext session in dueHeartbeats)
+                try
                 {
                     logger.WriteHeartbeat(session.WindowsSessionId, session.Properties, session.SessionState, nowUtc);
-                }
-
-                lock (m_activeSessionsLock)
-                {
-                    foreach (ActiveSessionContext session in dueHeartbeats)
+                    lock (m_activeSessionsLock)
                     {
                         if (m_activeSessions.ContainsKey(session.WindowsSessionId))
+                        {
                             m_activeSessions[session.WindowsSessionId].LastHeartbeatUtc = nowUtc;
+                            PersistSessionState(session.WindowsSessionId);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    m_logger.DebugFormat("Heartbeat update skipped for session {0}: {1}", session.WindowsSessionId, ex.Message);
+
+                    if (Settings.IsOfflineQueueEnabled() && m_offlineQueueRuntimeAvailable)
+                    {
+                        TryEnqueueOfflineHeartbeat(session.WindowsSessionId, session.Properties, session.SessionState, nowUtc);
                     }
                 }
             }
+        }
+
+        private void RestorePersistedSessions()
+        {
+            if (!m_presenceStoreRuntimeAvailable)
+                return;
+
+            List<SessionPresenceState> persistedStates = SessionPresenceStore.LoadAll();
+            if (persistedStates.Count == 0)
+                return;
+
+            lock (m_activeSessionsLock)
+            {
+                foreach (SessionPresenceState persistedState in persistedStates)
+                {
+                    if (!IsPersistedSessionAlive(persistedState))
+                    {
+                        TryReconcileRecoveredSessionEnd(persistedState, DateTime.UtcNow, "unexpected_shutdown");
+                        RemovePersistedSessionState(persistedState.WindowsSessionId);
+                        continue;
+                    }
+
+                    m_activeSessions[persistedState.WindowsSessionId] = new ActiveSessionContext
+                    {
+                        WindowsSessionId = persistedState.WindowsSessionId,
+                        Properties = null,
+                        SessionState = string.IsNullOrWhiteSpace(persistedState.SessionState) ? "active" : persistedState.SessionState,
+                        LastHeartbeatUtc = persistedState.LastHeartbeatUtc
+                    };
+
+                    SessionIdentityCache.RememberUsername(persistedState.WindowsSessionId, persistedState.Username);
+                }
+            }
+        }
+
+        private bool IsPersistedSessionAlive(SessionPresenceState persistedState)
+        {
+            try
+            {
+                string liveUsername = pInvokes.GetUserName(persistedState.WindowsSessionId);
+                if (string.IsNullOrWhiteSpace(liveUsername))
+                    return false;
+
+                if (!string.IsNullOrWhiteSpace(persistedState.Username) &&
+                    !string.Equals(liveUsername, persistedState.Username, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                return true;
+            }
             catch (Exception ex)
             {
-                m_logger.DebugFormat("Heartbeat update skipped: {0}", ex.Message);
+                m_logger.DebugFormat("Discarding persisted session {0}: {1}", persistedState.WindowsSessionId, ex.Message);
+                return false;
             }
+        }
+
+        private void PersistSessionState(int windowsSessionId)
+        {
+            if (!m_presenceStoreRuntimeAvailable || !m_activeSessions.ContainsKey(windowsSessionId))
+                return;
+
+            try
+            {
+                ActiveSessionContext context = m_activeSessions[windowsSessionId];
+                SessionPresenceStore.Upsert(new SessionPresenceState
+                {
+                    WindowsSessionId = context.WindowsSessionId,
+                    Username = SessionIdentityCache.ResolveUsername(
+                        context.WindowsSessionId,
+                        context.Properties,
+                        Settings.GetUseModifiedName(),
+                        null),
+                    ClientSessionId = context.Properties == null || context.Properties.Id == Guid.Empty
+                        ? null
+                        : context.Properties.Id.ToString("D"),
+                    Machine = Environment.MachineName,
+                    IpAddress = GetCurrentIpAddress(),
+                    SessionState = context.SessionState,
+                    LastHeartbeatUtc = context.LastHeartbeatUtc
+                });
+            }
+            catch (Exception ex)
+            {
+                m_presenceStoreRuntimeAvailable = false;
+                m_logger.ErrorFormat("Disabling local session persistence after runtime failure: {0}", ex);
+            }
+        }
+
+        private void RemovePersistedSessionState(int windowsSessionId)
+        {
+            if (!m_presenceStoreRuntimeAvailable)
+                return;
+
+            try
+            {
+                SessionPresenceStore.Remove(windowsSessionId);
+            }
+            catch (Exception ex)
+            {
+                m_presenceStoreRuntimeAvailable = false;
+                m_logger.ErrorFormat("Disabling local session persistence after delete failure: {0}", ex);
+            }
+        }
+
+        private void TryEnqueueOfflineHeartbeat(int windowsSessionId, SessionProperties properties, string sessionState, DateTime heartbeatUtc)
+        {
+            if (!m_offlineQueueRuntimeAvailable)
+                return;
+
+            try
+            {
+                OfflineLogQueue.EnqueueHeartbeat(
+                    windowsSessionId,
+                    SessionIdentityCache.ResolveUsername(windowsSessionId, properties, Settings.GetUseModifiedName(), "--UNKNOWN--"),
+                    sessionState,
+                    heartbeatUtc);
+            }
+            catch (Exception ex)
+            {
+                m_offlineQueueRuntimeAvailable = false;
+                m_logger.ErrorFormat("Disabling offline SQLite queue after heartbeat enqueue failure: {0}", ex);
+                StopBackgroundTasks();
+            }
+        }
+
+        private void TryReconcileRecoveredSessionEnd(SessionPresenceState persistedState, DateTime eventUtc, string endReason)
+        {
+            try
+            {
+                SessionLogger logger = LoggerModeFactory.GetSessionLogger();
+                logger.ReconcileSessionEnd(persistedState, eventUtc, endReason);
+            }
+            catch (Exception ex)
+            {
+                m_logger.DebugFormat("Recovered session close skipped for {0}: {1}", persistedState.WindowsSessionId, ex.Message);
+
+                if (Settings.IsOfflineQueueEnabled() && m_offlineQueueRuntimeAvailable)
+                {
+                    TryEnqueueRecoveredSessionEnd(persistedState, eventUtc, endReason);
+                }
+            }
+            finally
+            {
+                LoggerModeFactory.closeConnection();
+            }
+        }
+
+        private void TryEnqueueRecoveredSessionEnd(SessionPresenceState persistedState, DateTime eventUtc, string endReason)
+        {
+            if (!m_offlineQueueRuntimeAvailable)
+                return;
+
+            try
+            {
+                OfflineLogQueue.EnqueueSessionRecovery(persistedState, eventUtc, endReason);
+            }
+            catch (Exception ex)
+            {
+                m_offlineQueueRuntimeAvailable = false;
+                m_logger.ErrorFormat("Disabling offline SQLite queue after recovery enqueue failure: {0}", ex);
+                StopBackgroundTasks();
+            }
+        }
+
+        private string GetCurrentIpAddress()
+        {
+            try
+            {
+                foreach (System.Net.IPAddress addr in System.Net.Dns.GetHostAddresses(string.Empty))
+                {
+                    if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        return addr.ToString();
+                }
+            }
+            catch
+            {
+            }
+
+            return string.Empty;
         }
 
 

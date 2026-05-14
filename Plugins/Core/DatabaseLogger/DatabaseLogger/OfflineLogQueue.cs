@@ -19,6 +19,8 @@ namespace OpenCredential.Plugin.DatabaseLogger
             public long Id;
             public int Mode;
             public string Reason;
+            public string SessionState;
+            public string SessionEndReason;
             public int SessionId;
             public string Username;
             public string Machine;
@@ -45,20 +47,8 @@ namespace OpenCredential.Plugin.DatabaseLogger
                     SQLiteConnection.CreateFile(dbPath);
 
                 using (var conn = OpenConnection())
-                using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText =
-                        "CREATE TABLE IF NOT EXISTS queued_logs (" +
-                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                        "mode INTEGER NOT NULL, " +
-                        "reason TEXT NOT NULL, " +
-                        "session_id INTEGER NOT NULL, " +
-                        "username TEXT NULL, " +
-                        "machine TEXT NOT NULL, " +
-                        "ip_address TEXT NULL, " +
-                        "message TEXT NULL, " +
-                        "event_utc TEXT NOT NULL);";
-                    cmd.ExecuteNonQuery();
+                    EnsureSchema(conn);
                 }
             }
         }
@@ -85,10 +75,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText =
-                        "INSERT INTO queued_logs (mode, reason, session_id, username, machine, ip_address, message, event_utc) " +
-                        "VALUES (@mode, @reason, @session_id, @username, @machine, @ip_address, @message, @event_utc)";
+                        "INSERT INTO queued_logs (mode, reason, session_state, session_end_reason, session_id, username, machine, ip_address, message, event_utc) " +
+                        "VALUES (@mode, @reason, @session_state, @session_end_reason, @session_id, @username, @machine, @ip_address, @message, @event_utc)";
                     cmd.Parameters.AddWithValue("@mode", (int)mode);
                     cmd.Parameters.AddWithValue("@reason", reason);
+                    cmd.Parameters.AddWithValue("@session_state", DBNull.Value);
+                    cmd.Parameters.AddWithValue("@session_end_reason", DBNull.Value);
                     cmd.Parameters.AddWithValue("@session_id", changeDescription.SessionId);
                     cmd.Parameters.AddWithValue("@username", (object)username ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@machine", Environment.MachineName);
@@ -136,7 +128,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText =
-                    "SELECT id, mode, reason, session_id, username, machine, ip_address, message, event_utc " +
+                    "SELECT id, mode, reason, session_state, session_end_reason, session_id, username, machine, ip_address, message, event_utc " +
                     "FROM queued_logs ORDER BY id ASC LIMIT @limit";
                 cmd.Parameters.AddWithValue("@limit", batchSize);
 
@@ -149,6 +141,8 @@ namespace OpenCredential.Plugin.DatabaseLogger
                             Id = Convert.ToInt64(reader["id"]),
                             Mode = Convert.ToInt32(reader["mode"]),
                             Reason = Convert.ToString(reader["reason"]),
+                            SessionState = reader["session_state"] == DBNull.Value ? null : Convert.ToString(reader["session_state"]),
+                            SessionEndReason = reader["session_end_reason"] == DBNull.Value ? null : Convert.ToString(reader["session_end_reason"]),
                             SessionId = Convert.ToInt32(reader["session_id"]),
                             Username = reader["username"] == DBNull.Value ? null : Convert.ToString(reader["username"]),
                             Machine = Convert.ToString(reader["machine"]),
@@ -200,21 +194,25 @@ namespace OpenCredential.Plugin.DatabaseLogger
         private static void ReplaySessionLog(DbConnection dbConn, QueuedLogEntry entry)
         {
             string table = Settings.Store.SessionTable;
+            bool closesSession =
+                string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(entry.Reason, "SessionRecoveryEnd", StringComparison.OrdinalIgnoreCase);
+
             string updateSql = string.Format(
-                "UPDATE {0} SET {1}=@last_heartbeat_at, {2}=@session_state{3}{4} WHERE {5} IS NULL AND {6}=@username AND {7}=@machine AND {8}=@ipaddress",
+                "UPDATE {0} SET {1}=@last_heartbeat_at, {2}=@session_state{3}{4} WHERE {5} IS NULL AND {7}=@machine AND (((@session_end_reason IS NOT NULL AND @session_end_reason <> '' AND {9} = @username) OR ({9} = @username AND {8}=@ipaddress)))",
                 Quote(table, dbConn),
                 QuoteColumn("last_heartbeat_at", dbConn),
                 QuoteColumn("session_state", dbConn),
-                string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase)
+                closesSession
                     ? string.Format(", {0}=@logoutstamp", QuoteColumn("logoutstamp", dbConn))
                     : string.Empty,
-                string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase)
+                closesSession
                     ? string.Format(", {0}=@session_end_reason", QuoteColumn("session_end_reason", dbConn))
                     : string.Empty,
                 QuoteColumn("logoutstamp", dbConn),
-                QuoteColumn("username", dbConn),
                 QuoteColumn("machine", dbConn),
-                QuoteColumn("ipaddress", dbConn));
+                QuoteColumn("ipaddress", dbConn),
+                QuoteColumn("username", dbConn));
 
             if (string.Equals(entry.Reason, "SessionLogon", StringComparison.OrdinalIgnoreCase))
             {
@@ -250,6 +248,8 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 }
             }
             else if (string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(entry.Reason, "SessionRecoveryEnd", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(entry.Reason, "Heartbeat", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(entry.Reason, "SessionLock", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(entry.Reason, "SessionUnlock", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(entry.Reason, "ConsoleConnect", StringComparison.OrdinalIgnoreCase) ||
@@ -261,23 +261,98 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 {
                     updateCmd.CommandText = updateSql;
                     AddParameter(updateCmd, "@last_heartbeat_at", entry.EventUtc);
-                    AddParameter(updateCmd, "@session_state", ResolveSessionState(entry.Reason));
+                    AddParameter(updateCmd, "@session_state", ResolveSessionState(entry));
                     AddParameter(updateCmd, "@username", entry.Username ?? "--UNKNOWN--");
                     AddParameter(updateCmd, "@machine", entry.Machine);
                     AddParameter(updateCmd, "@ipaddress", (object)entry.IpAddress ?? DBNull.Value);
-                    if (string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase))
+                    AddParameter(updateCmd, "@session_end_reason", closesSession
+                        ? (object)ResolveSessionEndReason(entry)
+                        : DBNull.Value);
+                    if (closesSession)
                     {
                         AddParameter(updateCmd, "@logoutstamp", entry.EventUtc);
-                        AddParameter(updateCmd, "@session_end_reason", "logoff");
                     }
                     updateCmd.ExecuteNonQuery();
                 }
             }
         }
 
-        private static string ResolveSessionState(string reason)
+        public static void EnqueueHeartbeat(int windowsSessionId, string username, string sessionState, DateTime heartbeatUtc)
         {
-            switch (reason)
+            if (!Settings.IsOfflineQueueEnabled())
+                return;
+
+            lock (m_syncRoot)
+            {
+                Initialize();
+
+                using (var conn = OpenConnection())
+                {
+                    using (var deleteCmd = conn.CreateCommand())
+                    {
+                        deleteCmd.CommandText =
+                            "DELETE FROM queued_logs WHERE mode = @mode AND reason = @reason AND session_id = @session_id";
+                        deleteCmd.Parameters.AddWithValue("@mode", (int)LoggerMode.SESSION);
+                        deleteCmd.Parameters.AddWithValue("@reason", "Heartbeat");
+                        deleteCmd.Parameters.AddWithValue("@session_id", windowsSessionId);
+                        deleteCmd.ExecuteNonQuery();
+                    }
+
+                    using (var insertCmd = conn.CreateCommand())
+                    {
+                        insertCmd.CommandText =
+                            "INSERT INTO queued_logs (mode, reason, session_state, session_end_reason, session_id, username, machine, ip_address, message, event_utc) " +
+                            "VALUES (@mode, @reason, @session_state, @session_end_reason, @session_id, @username, @machine, @ip_address, NULL, @event_utc)";
+                        insertCmd.Parameters.AddWithValue("@mode", (int)LoggerMode.SESSION);
+                        insertCmd.Parameters.AddWithValue("@reason", "Heartbeat");
+                        insertCmd.Parameters.AddWithValue("@session_state", string.IsNullOrWhiteSpace(sessionState) ? "active" : sessionState);
+                        insertCmd.Parameters.AddWithValue("@session_end_reason", DBNull.Value);
+                        insertCmd.Parameters.AddWithValue("@session_id", windowsSessionId);
+                        insertCmd.Parameters.AddWithValue("@username", (object)username ?? DBNull.Value);
+                        insertCmd.Parameters.AddWithValue("@machine", Environment.MachineName);
+                        insertCmd.Parameters.AddWithValue("@ip_address", (object)GetIpAddress() ?? DBNull.Value);
+                        insertCmd.Parameters.AddWithValue("@event_utc", heartbeatUtc.ToString("o", CultureInfo.InvariantCulture));
+                        insertCmd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
+        public static void EnqueueSessionRecovery(SessionPresenceState persistedState, DateTime eventUtc, string endReason)
+        {
+            if (!Settings.IsOfflineQueueEnabled() || persistedState == null)
+                return;
+
+            lock (m_syncRoot)
+            {
+                Initialize();
+
+                using (var conn = OpenConnection())
+                using (var insertCmd = conn.CreateCommand())
+                {
+                    insertCmd.CommandText =
+                        "INSERT INTO queued_logs (mode, reason, session_state, session_end_reason, session_id, username, machine, ip_address, message, event_utc) " +
+                        "VALUES (@mode, @reason, @session_state, @session_end_reason, @session_id, @username, @machine, @ip_address, NULL, @event_utc)";
+                    insertCmd.Parameters.AddWithValue("@mode", (int)LoggerMode.SESSION);
+                    insertCmd.Parameters.AddWithValue("@reason", "SessionRecoveryEnd");
+                    insertCmd.Parameters.AddWithValue("@session_state", "ended");
+                    insertCmd.Parameters.AddWithValue("@session_end_reason", endReason);
+                    insertCmd.Parameters.AddWithValue("@session_id", persistedState.WindowsSessionId);
+                    insertCmd.Parameters.AddWithValue("@username", (object)persistedState.Username ?? DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@machine", (object)persistedState.Machine ?? Environment.MachineName);
+                    insertCmd.Parameters.AddWithValue("@ip_address", (object)persistedState.IpAddress ?? DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@event_utc", eventUtc.ToString("o", CultureInfo.InvariantCulture));
+                    insertCmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private static string ResolveSessionState(QueuedLogEntry entry)
+        {
+            if (string.Equals(entry.Reason, "Heartbeat", StringComparison.OrdinalIgnoreCase))
+                return string.IsNullOrWhiteSpace(entry.SessionState) ? "active" : entry.SessionState;
+
+            switch (entry.Reason)
             {
                 case "SessionLogoff":
                     return "ended";
@@ -291,6 +366,14 @@ namespace OpenCredential.Plugin.DatabaseLogger
             }
         }
 
+        private static string ResolveSessionEndReason(QueuedLogEntry entry)
+        {
+            if (string.Equals(entry.Reason, "SessionRecoveryEnd", StringComparison.OrdinalIgnoreCase))
+                return string.IsNullOrWhiteSpace(entry.SessionEndReason) ? "unexpected_shutdown" : entry.SessionEndReason;
+
+            return "logoff";
+        }
+
         private static void DeleteEntry(long id)
         {
             using (var conn = OpenConnection())
@@ -300,6 +383,70 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 cmd.Parameters.AddWithValue("@id", id);
                 cmd.ExecuteNonQuery();
             }
+        }
+
+        private static void EnsureSchema(SQLiteConnection conn)
+        {
+            using (var cmd = conn.CreateCommand())
+            {
+                    cmd.CommandText =
+                        "CREATE TABLE IF NOT EXISTS queued_logs (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "mode INTEGER NOT NULL, " +
+                        "reason TEXT NOT NULL, " +
+                        "session_state TEXT NULL, " +
+                        "session_end_reason TEXT NULL, " +
+                        "session_id INTEGER NOT NULL, " +
+                    "username TEXT NULL, " +
+                    "machine TEXT NOT NULL, " +
+                    "ip_address TEXT NULL, " +
+                    "message TEXT NULL, " +
+                    "event_utc TEXT NOT NULL);";
+                cmd.ExecuteNonQuery();
+            }
+
+            if (HasColumn(conn, "queued_logs", "session_state"))
+            {
+                if (!HasColumn(conn, "queued_logs", "session_end_reason"))
+                {
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "ALTER TABLE queued_logs ADD COLUMN session_end_reason TEXT NULL";
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                return;
+            }
+
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "ALTER TABLE queued_logs ADD COLUMN session_state TEXT NULL";
+                cmd.ExecuteNonQuery();
+            }
+
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "ALTER TABLE queued_logs ADD COLUMN session_end_reason TEXT NULL";
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private static bool HasColumn(SQLiteConnection conn, string tableName, string columnName)
+        {
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "PRAGMA table_info(" + tableName + ")";
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (string.Equals(Convert.ToString(reader["name"]), columnName, StringComparison.OrdinalIgnoreCase))
+                            return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         public static string TestConfiguration()

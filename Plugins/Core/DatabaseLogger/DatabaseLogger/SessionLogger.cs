@@ -100,6 +100,30 @@ namespace OpenCredential.Plugin.DatabaseLogger
             UpdateSessionPresence(windowsSessionId, clientSessionId, username, machine, ipAddress, heartbeatUtc, sessionState, null, false);
         }
 
+        public void ReconcileSessionEnd(SessionPresenceState persistedState, DateTime eventUtc, string endReason)
+        {
+            if (persistedState == null)
+                return;
+
+            EnsureConnection();
+            EnsureSessionSchema();
+
+            string machine = string.IsNullOrWhiteSpace(persistedState.Machine) ? Environment.MachineName : persistedState.Machine;
+            string ipAddress = string.IsNullOrWhiteSpace(persistedState.IpAddress) ? GetIpAddress() : persistedState.IpAddress;
+            string username = string.IsNullOrWhiteSpace(persistedState.Username) ? "--UNKNOWN--" : persistedState.Username;
+
+            UpdateSessionPresence(
+                persistedState.WindowsSessionId,
+                persistedState.ClientSessionId,
+                username,
+                machine,
+                ipAddress,
+                eventUtc,
+                "ended",
+                endReason,
+                true);
+        }
+
         public string TestTable()
         {
             EnsureConnection();
