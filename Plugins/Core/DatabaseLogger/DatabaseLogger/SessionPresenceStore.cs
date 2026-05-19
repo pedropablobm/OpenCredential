@@ -144,6 +144,23 @@ namespace OpenCredential.Plugin.DatabaseLogger
             }
         }
 
+        public static string GetUsername(int windowsSessionId)
+        {
+            lock (SyncRoot)
+            {
+                Initialize();
+
+                using (var conn = OpenConnection())
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT username FROM active_sessions WHERE windows_session_id = @windows_session_id LIMIT 1";
+                    cmd.Parameters.AddWithValue("@windows_session_id", windowsSessionId);
+                    object value = cmd.ExecuteScalar();
+                    return value == null || value == DBNull.Value ? null : Convert.ToString(value);
+                }
+            }
+        }
+
         public static void Remove(int windowsSessionId)
         {
             lock (SyncRoot)
