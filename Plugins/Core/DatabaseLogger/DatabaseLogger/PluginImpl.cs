@@ -114,6 +114,14 @@ namespace OpenCredential.Plugin.DatabaseLogger
             m_offlineQueueRuntimeAvailable = Settings.IsOfflineQueueEnabled();
             m_presenceStoreRuntimeAvailable = Settings.GetSessionMode() && Settings.IsPresenceTrackingEnabled();
 
+            m_logger.InfoFormat(
+                "DatabaseLogger starting. sessionMode={0}, offlineQueue={1}, presenceTracking={2}, heartbeatSecs={3}, leaseTimeoutSecs={4}",
+                Settings.GetSessionMode(),
+                m_offlineQueueRuntimeAvailable,
+                m_presenceStoreRuntimeAvailable,
+                Settings.GetHeartbeatIntervalSeconds(),
+                Settings.GetPresenceLeaseTimeoutSeconds());
+
             if (m_offlineQueueRuntimeAvailable)
             {
                 try
@@ -152,6 +160,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
         public void Stopping()
         {
+            m_logger.Info("DatabaseLogger stopping. Clearing active session cache.");
             StopBackgroundTasks();
             lock (m_activeSessionsLock)
             {
@@ -367,6 +376,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 try
                 {
                     logger.WriteHeartbeat(session.WindowsSessionId, session.Properties, session.SessionState, nowUtc);
+                    m_logger.DebugFormat(
+                        "Heartbeat written for session {0} user={1} state={2} at {3:o}",
+                        session.WindowsSessionId,
+                        SessionIdentityCache.ResolveUsername(session.WindowsSessionId, session.Properties, Settings.GetUseModifiedName(), "--UNKNOWN--"),
+                        session.SessionState,
+                        nowUtc);
                     lock (m_activeSessionsLock)
                     {
                         if (m_activeSessions.ContainsKey(session.WindowsSessionId))
@@ -382,6 +397,11 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
                     if (Settings.IsOfflineQueueEnabled() && m_offlineQueueRuntimeAvailable)
                     {
+                        m_logger.WarnFormat(
+                            "Queueing heartbeat for session {0} because the database write failed. state={1}, reason={2}",
+                            session.WindowsSessionId,
+                            session.SessionState,
+                            ex.Message);
                         TryEnqueueOfflineHeartbeat(session.WindowsSessionId, session.Properties, session.SessionState, nowUtc);
                         lock (m_activeSessionsLock)
                         {
@@ -411,6 +431,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 {
                     if (IsLeaseExpired(persistedState.LastHeartbeatUtc, DateTime.UtcNow))
                     {
+                        m_logger.WarnFormat(
+                            "Persisted session {0} for user={1} expired locally. lastHeartbeat={2:o}, leaseTimeoutSecs={3}",
+                            persistedState.WindowsSessionId,
+                            persistedState.Username ?? "--UNKNOWN--",
+                            persistedState.LastHeartbeatUtc,
+                            Settings.GetPresenceLeaseTimeoutSeconds());
                         TryReconcileRecoveredSessionEnd(persistedState, DateTime.UtcNow, "heartbeat_timeout");
                         RemovePersistedSessionState(persistedState.WindowsSessionId);
                         continue;
@@ -418,6 +444,10 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
                     if (!IsPersistedSessionAlive(persistedState))
                     {
+                        m_logger.WarnFormat(
+                            "Persisted session {0} for user={1} no longer exists in Windows. Reconciling as unexpected shutdown.",
+                            persistedState.WindowsSessionId,
+                            persistedState.Username ?? "--UNKNOWN--");
                         TryReconcileRecoveredSessionEnd(persistedState, DateTime.UtcNow, "unexpected_shutdown");
                         RemovePersistedSessionState(persistedState.WindowsSessionId);
                         continue;
@@ -432,6 +462,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
                     };
 
                     SessionIdentityCache.RememberUsername(persistedState.WindowsSessionId, persistedState.Username);
+                    m_logger.InfoFormat(
+                        "Restored persisted session {0} for user={1} state={2} lastHeartbeat={3:o}",
+                        persistedState.WindowsSessionId,
+                        persistedState.Username ?? "--UNKNOWN--",
+                        string.IsNullOrWhiteSpace(persistedState.SessionState) ? "active" : persistedState.SessionState,
+                        persistedState.LastHeartbeatUtc);
                 }
             }
         }
@@ -499,6 +535,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
                 m_activeSessions.Remove(windowsSessionId);
             }
+
+            m_logger.WarnFormat(
+                "Expiring active session {0}. endReason={1}, eventUtc={2:o}",
+                windowsSessionId,
+                endReason,
+                eventUtc);
 
             if (persistedState != null)
                 TryReconcileRecoveredSessionEnd(persistedState, eventUtc, endReason);
@@ -605,6 +647,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
             {
                 SessionLogger logger = LoggerModeFactory.GetSessionLogger();
                 logger.ReconcileSessionEnd(persistedState, eventUtc, endReason);
+                m_logger.InfoFormat(
+                    "Reconciled persisted session end for session {0} user={1} reason={2} at {3:o}",
+                    persistedState.WindowsSessionId,
+                    persistedState.Username ?? "--UNKNOWN--",
+                    endReason,
+                    eventUtc);
             }
             catch (Exception ex)
             {
@@ -612,6 +660,11 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
                 if (Settings.IsOfflineQueueEnabled() && m_offlineQueueRuntimeAvailable)
                 {
+                    m_logger.WarnFormat(
+                        "Queueing recovered session close for session {0} reason={1} because the database write failed. {2}",
+                        persistedState.WindowsSessionId,
+                        endReason,
+                        ex.Message);
                     TryEnqueueRecoveredSessionEnd(persistedState, eventUtc, endReason);
                 }
             }

@@ -98,6 +98,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
             string clientSessionId = GetClientSessionId(properties);
 
             UpdateSessionPresence(windowsSessionId, clientSessionId, username, machine, ipAddress, heartbeatUtc, sessionState, null, false);
+            m_logger.DebugFormat(
+                "Logged heartbeat for session {0} user={1} state={2} at {3:o}",
+                windowsSessionId,
+                username,
+                string.IsNullOrWhiteSpace(sessionState) ? "active" : sessionState,
+                heartbeatUtc);
         }
 
         public void ReconcileSessionEnd(SessionPresenceState persistedState, DateTime eventUtc, string endReason)
@@ -122,6 +128,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 "ended",
                 endReason,
                 true);
+            m_logger.InfoFormat(
+                "Logged reconciled session end for session {0} user={1} reason={2} at {3:o}",
+                persistedState.WindowsSessionId,
+                username,
+                endReason,
+                eventUtc);
         }
 
         public string TestTable()
@@ -326,9 +338,10 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
         private void InsertSession(int windowsSessionId, string clientSessionId, string username, string machine, string ipAddress, DateTime eventUtc, string sessionState)
         {
+            string table = Convert.ToString(Settings.Store.SessionTable);
             string sql = string.Format(
                 "INSERT INTO {0} ({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}) VALUES (@loginstamp, NULL, @username, @machine, @ipaddress, @client_session_id, @windows_session_id, @session_state, @last_heartbeat_at, NULL)",
-                Quote(Settings.Store.SessionTable),
+                Quote(table),
                 QuoteColumn("loginstamp"),
                 QuoteColumn("logoutstamp"),
                 QuoteColumn("username"),
@@ -371,9 +384,11 @@ namespace OpenCredential.Plugin.DatabaseLogger
             string endReason,
             bool closeSession)
         {
+            string table = Convert.ToString(Settings.Store.SessionTable);
+            string normalizedClientSessionId = clientSessionId ?? string.Empty;
             string sql = string.Format(
                 "UPDATE {0} SET {1} = @last_heartbeat_at, {2} = @session_state, {3} = CASE WHEN ({4} IS NULL OR {4} = '') THEN {3} ELSE @client_session_id END, {5} = CASE WHEN {5} IS NULL THEN @windows_session_id ELSE {5} END{6}{7} WHERE {8} IS NULL AND {9} = @machine AND (((@client_session_id IS NOT NULL AND @client_session_id <> '') AND {3} = @client_session_id) OR ({5} = @windows_session_id) OR ({10} = @username AND {11} = @ipaddress))",
-                Quote(Settings.Store.SessionTable),
+                Quote(table),
                 QuoteColumn("last_heartbeat_at"),
                 QuoteColumn("session_state"),
                 QuoteColumn("client_session_id"),
@@ -391,7 +406,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 cmd.CommandText = sql;
                 AddParameter(cmd, "@last_heartbeat_at", heartbeatUtc);
                 AddParameter(cmd, "@session_state", sessionState);
-                AddParameter(cmd, "@client_session_id", NullableDbValue(clientSessionId));
+                AddParameter(cmd, "@client_session_id", normalizedClientSessionId);
                 AddParameter(cmd, "@windows_session_id", windowsSessionId);
                 AddParameter(cmd, "@machine", machine);
                 AddParameter(cmd, "@username", username);

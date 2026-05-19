@@ -170,9 +170,10 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
         private static void ReplayEventLog(DbConnection dbConn, QueuedLogEntry entry)
         {
+            string table = Convert.ToString(Settings.Store.EventTable);
             string sql = string.Format(
                 "INSERT INTO {0}({1}, {2}, {3}, {4}, {5}) VALUES (@timeStamp, @host, @ip, @machine, @message)",
-                Quote(Settings.Store.EventTable, dbConn),
+                Quote(table, dbConn),
                 QuoteColumn("TimeStamp", dbConn),
                 QuoteColumn("Host", dbConn),
                 QuoteColumn("Ip", dbConn),
@@ -193,13 +194,13 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
         private static void ReplaySessionLog(DbConnection dbConn, QueuedLogEntry entry)
         {
-            string table = Settings.Store.SessionTable;
+            string table = Convert.ToString(Settings.Store.SessionTable);
             bool closesSession =
                 string.Equals(entry.Reason, "SessionLogoff", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(entry.Reason, "SessionRecoveryEnd", StringComparison.OrdinalIgnoreCase);
 
             string updateSql = string.Format(
-                "UPDATE {0} SET {1}=@last_heartbeat_at, {2}=@session_state{3}{4} WHERE {5} IS NULL AND {7}=@machine AND (((@session_end_reason IS NOT NULL AND @session_end_reason <> '' AND {9} = @username) OR ({9} = @username AND {8}=@ipaddress)))",
+                "UPDATE {0} SET {1}=@last_heartbeat_at, {2}=@session_state{3}{4} WHERE {5} IS NULL AND {6}=@machine AND (((@session_end_reason IS NOT NULL AND @session_end_reason <> '' AND {8} = @username) OR ({8} = @username AND {7}=@ipaddress)))",
                 Quote(table, dbConn),
                 QuoteColumn("last_heartbeat_at", dbConn),
                 QuoteColumn("session_state", dbConn),
@@ -314,6 +315,13 @@ namespace OpenCredential.Plugin.DatabaseLogger
                         insertCmd.Parameters.AddWithValue("@event_utc", heartbeatUtc.ToString("o", CultureInfo.InvariantCulture));
                         insertCmd.ExecuteNonQuery();
                     }
+
+                    m_logger.DebugFormat(
+                        "Queued heartbeat for session {0} user={1} state={2} at {3:o}.",
+                        windowsSessionId,
+                        username ?? "--UNKNOWN--",
+                        string.IsNullOrWhiteSpace(sessionState) ? "active" : sessionState,
+                        heartbeatUtc);
                 }
             }
         }
@@ -344,6 +352,13 @@ namespace OpenCredential.Plugin.DatabaseLogger
                     insertCmd.Parameters.AddWithValue("@event_utc", eventUtc.ToString("o", CultureInfo.InvariantCulture));
                     insertCmd.ExecuteNonQuery();
                 }
+
+                m_logger.InfoFormat(
+                    "Queued recovered session close for session {0} user={1} reason={2} at {3:o}.",
+                    persistedState.WindowsSessionId,
+                    persistedState.Username ?? "--UNKNOWN--",
+                    endReason,
+                    eventUtc);
             }
         }
 

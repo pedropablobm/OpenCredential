@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Abstractions.WindowsApi;
 using OpenCredential.Shared.Types;
 
 namespace OpenCredential.Plugin.DatabaseLogger
@@ -42,6 +43,28 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 }
             }
 
+            string persistedUsername = TryGetPersistedUsername(windowsSessionId);
+            if (!string.IsNullOrWhiteSpace(persistedUsername))
+            {
+                lock (SyncRoot)
+                {
+                    UsernamesBySessionId[windowsSessionId] = persistedUsername;
+                }
+
+                return persistedUsername;
+            }
+
+            string liveUsername = TryGetLiveUsername(windowsSessionId);
+            if (!string.IsNullOrWhiteSpace(liveUsername))
+            {
+                lock (SyncRoot)
+                {
+                    UsernamesBySessionId[windowsSessionId] = liveUsername;
+                }
+
+                return liveUsername;
+            }
+
             return fallback;
         }
 
@@ -83,6 +106,32 @@ namespace OpenCredential.Plugin.DatabaseLogger
 
             string username = useModifiedUsername ? userInfo.Username : userInfo.OriginalUsername;
             return string.IsNullOrWhiteSpace(username) ? null : username;
+        }
+
+        private static string TryGetLiveUsername(int windowsSessionId)
+        {
+            try
+            {
+                string username = pInvokes.GetUserName(windowsSessionId);
+                return string.IsNullOrWhiteSpace(username) ? null : username;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string TryGetPersistedUsername(int windowsSessionId)
+        {
+            try
+            {
+                string username = SessionPresenceStore.GetUsername(windowsSessionId);
+                return string.IsNullOrWhiteSpace(username) ? null : username;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }
