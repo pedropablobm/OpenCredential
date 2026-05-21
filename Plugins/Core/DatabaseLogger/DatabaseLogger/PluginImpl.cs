@@ -50,7 +50,10 @@ namespace OpenCredential.Plugin.DatabaseLogger
             public int WindowsSessionId { get; set; }
             public SessionProperties Properties { get; set; }
             public string SessionState { get; set; }
+            public DateTime LoginAtUtc { get; set; }
             public DateTime LastHeartbeatUtc { get; set; }
+            public bool WasOfflineLogon { get; set; }
+            public bool SyncedToServer { get; set; }
         }
 
         public static readonly Guid PluginUuid = new Guid("B68CF064-9299-4765-AC08-ACB49F93F892");
@@ -100,9 +103,9 @@ namespace OpenCredential.Plugin.DatabaseLogger
             {
                 SessionIdentityCache.UpdateFromProperties(changeDescription.SessionId, properties, Settings.GetUseModifiedName());
                 TryFlushOfflineQueue();
-                TryLogMode(LoggerMode.SESSION, Settings.GetSessionMode(), changeDescription, properties);
+                bool sessionWriteSucceeded = TryLogMode(LoggerMode.SESSION, Settings.GetSessionMode(), changeDescription, properties);
                 TryLogMode(LoggerMode.EVENT, Settings.GetEventMode(), changeDescription, properties);
-                UpdateActiveSessions(changeDescription, properties);
+                UpdateActiveSessions(changeDescription, properties, sessionWriteSucceeded);
 
                 //Close the connection if it's still open
                 LoggerModeFactory.closeConnection();
@@ -169,15 +172,16 @@ namespace OpenCredential.Plugin.DatabaseLogger
             SessionIdentityCache.Clear();
         }
 
-        private void TryLogMode(LoggerMode loggerMode, bool enabled, System.ServiceProcess.SessionChangeDescription changeDescription, SessionProperties properties)
+        private bool TryLogMode(LoggerMode loggerMode, bool enabled, System.ServiceProcess.SessionChangeDescription changeDescription, SessionProperties properties)
         {
             if (!enabled)
-                return;
+                return false;
 
             try
             {
                 ILoggerMode mode = LoggerModeFactory.getLoggerMode(loggerMode);
                 mode.Log(changeDescription, properties);
+                return true;
             }
             catch (Exception ex)
             {
@@ -187,6 +191,8 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 {
                     TryEnqueueOffline(loggerMode, changeDescription, properties);
                 }
+
+                return false;
             }
         }
 
@@ -220,6 +226,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             lock (m_runtimeSync)
             {
                 TryFlushOfflineQueue();
+                TrySyncPendingOfflineSessions();
                 TrySendHeartbeats();
                 LoggerModeFactory.closeConnection();
             }
@@ -261,7 +268,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             }
         }
 
-        private void UpdateActiveSessions(SessionChangeDescription changeDescription, SessionProperties properties)
+        private void UpdateActiveSessions(SessionChangeDescription changeDescription, SessionProperties properties, bool sessionWriteSucceeded)
         {
             if (!Settings.GetSessionMode() || !Settings.IsPresenceTrackingEnabled())
                 return;
@@ -288,12 +295,27 @@ namespace OpenCredential.Plugin.DatabaseLogger
                     case SessionChangeReason.SessionUnlock:
                     case SessionChangeReason.ConsoleConnect:
                     case SessionChangeReason.RemoteConnect:
+                        DateTime nowUtc = DateTime.UtcNow;
+                        ActiveSessionContext existingContext = m_activeSessions.ContainsKey(changeDescription.SessionId)
+                            ? m_activeSessions[changeDescription.SessionId]
+                            : null;
                         m_activeSessions[changeDescription.SessionId] = new ActiveSessionContext
                         {
                             WindowsSessionId = changeDescription.SessionId,
                             Properties = properties,
                             SessionState = "active",
-                            LastHeartbeatUtc = DateTime.UtcNow
+                            LoginAtUtc = changeDescription.Reason == SessionChangeReason.SessionLogon
+                                ? nowUtc
+                                : (existingContext != null && existingContext.LoginAtUtc != default(DateTime)
+                                    ? existingContext.LoginAtUtc
+                                    : nowUtc),
+                            LastHeartbeatUtc = nowUtc,
+                            WasOfflineLogon = changeDescription.Reason == SessionChangeReason.SessionLogon
+                                ? !sessionWriteSucceeded
+                                : (existingContext != null && existingContext.WasOfflineLogon),
+                            SyncedToServer = changeDescription.Reason == SessionChangeReason.SessionLogon
+                                ? sessionWriteSucceeded
+                                : (existingContext != null && existingContext.SyncedToServer && sessionWriteSucceeded)
                         };
                         PersistSessionState(changeDescription.SessionId);
                         break;
@@ -304,6 +326,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
                             m_activeSessions[changeDescription.SessionId].Properties = properties;
                             m_activeSessions[changeDescription.SessionId].SessionState = "locked";
                             m_activeSessions[changeDescription.SessionId].LastHeartbeatUtc = DateTime.UtcNow;
+                            m_activeSessions[changeDescription.SessionId].SyncedToServer = m_activeSessions[changeDescription.SessionId].SyncedToServer && sessionWriteSucceeded;
                         }
                         else
                         {
@@ -312,7 +335,10 @@ namespace OpenCredential.Plugin.DatabaseLogger
                                 WindowsSessionId = changeDescription.SessionId,
                                 Properties = properties,
                                 SessionState = "locked",
-                                LastHeartbeatUtc = DateTime.UtcNow
+                                LoginAtUtc = DateTime.UtcNow,
+                                LastHeartbeatUtc = DateTime.UtcNow,
+                                WasOfflineLogon = !sessionWriteSucceeded,
+                                SyncedToServer = sessionWriteSucceeded
                             };
                         }
                         PersistSessionState(changeDescription.SessionId);
@@ -325,6 +351,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
                             m_activeSessions[changeDescription.SessionId].Properties = properties;
                             m_activeSessions[changeDescription.SessionId].SessionState = "disconnected";
                             m_activeSessions[changeDescription.SessionId].LastHeartbeatUtc = DateTime.UtcNow;
+                            m_activeSessions[changeDescription.SessionId].SyncedToServer = m_activeSessions[changeDescription.SessionId].SyncedToServer && sessionWriteSucceeded;
                         }
                         PersistSessionState(changeDescription.SessionId);
                         break;
@@ -387,6 +414,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
                         if (m_activeSessions.ContainsKey(session.WindowsSessionId))
                         {
                             m_activeSessions[session.WindowsSessionId].LastHeartbeatUtc = nowUtc;
+                            m_activeSessions[session.WindowsSessionId].SyncedToServer = true;
                             PersistSessionState(session.WindowsSessionId);
                         }
                     }
@@ -458,7 +486,10 @@ namespace OpenCredential.Plugin.DatabaseLogger
                         WindowsSessionId = persistedState.WindowsSessionId,
                         Properties = null,
                         SessionState = string.IsNullOrWhiteSpace(persistedState.SessionState) ? "active" : persistedState.SessionState,
-                        LastHeartbeatUtc = persistedState.LastHeartbeatUtc
+                        LoginAtUtc = persistedState.LoginAtUtc == default(DateTime) ? persistedState.LastHeartbeatUtc : persistedState.LoginAtUtc,
+                        LastHeartbeatUtc = persistedState.LastHeartbeatUtc,
+                        WasOfflineLogon = persistedState.WasOfflineLogon,
+                        SyncedToServer = persistedState.SyncedToServer
                     };
 
                     SessionIdentityCache.RememberUsername(persistedState.WindowsSessionId, persistedState.Username);
@@ -468,6 +499,82 @@ namespace OpenCredential.Plugin.DatabaseLogger
                         persistedState.Username ?? "--UNKNOWN--",
                         string.IsNullOrWhiteSpace(persistedState.SessionState) ? "active" : persistedState.SessionState,
                         persistedState.LastHeartbeatUtc);
+                }
+            }
+        }
+
+        private void TrySyncPendingOfflineSessions()
+        {
+            if (!Settings.GetSessionMode() || !Settings.IsPresenceTrackingEnabled())
+                return;
+
+            List<SessionPresenceState> pendingSessions;
+            lock (m_activeSessionsLock)
+            {
+                pendingSessions = m_activeSessions.Values
+                    .Where(ctx => !ctx.SyncedToServer)
+                    .Select(ctx => new SessionPresenceState
+                    {
+                        WindowsSessionId = ctx.WindowsSessionId,
+                        Username = SessionIdentityCache.ResolveUsername(
+                            ctx.WindowsSessionId,
+                            ctx.Properties,
+                            Settings.GetUseModifiedName(),
+                            "--UNKNOWN--"),
+                        ClientSessionId = ctx.Properties == null || ctx.Properties.Id == Guid.Empty
+                            ? null
+                            : ctx.Properties.Id.ToString("D"),
+                        Machine = Environment.MachineName,
+                        IpAddress = GetCurrentIpAddress(),
+                        SessionState = ctx.SessionState,
+                        LoginAtUtc = ctx.LoginAtUtc == default(DateTime) ? ctx.LastHeartbeatUtc : ctx.LoginAtUtc,
+                        LastHeartbeatUtc = ctx.LastHeartbeatUtc,
+                        WasOfflineLogon = ctx.WasOfflineLogon,
+                        SyncedToServer = ctx.SyncedToServer
+                    })
+                    .ToList();
+            }
+
+            if (pendingSessions.Count == 0)
+                return;
+
+            SessionLogger logger = LoggerModeFactory.GetSessionLogger();
+            DateTime nowUtc = DateTime.UtcNow;
+
+            foreach (SessionPresenceState pendingSession in pendingSessions)
+            {
+                if (!IsPersistedSessionAlive(pendingSession))
+                {
+                    ExpireActiveSession(pendingSession.WindowsSessionId, "unexpected_shutdown", nowUtc);
+                    continue;
+                }
+
+                try
+                {
+                    logger.EnsureActiveSessionRecorded(pendingSession, nowUtc);
+                    m_logger.InfoFormat(
+                        "Synchronized offline session {0} for user={1} loginAt={2:o} state={3}.",
+                        pendingSession.WindowsSessionId,
+                        pendingSession.Username ?? "--UNKNOWN--",
+                        pendingSession.LoginAtUtc,
+                        pendingSession.SessionState ?? "active");
+
+                    lock (m_activeSessionsLock)
+                    {
+                        if (m_activeSessions.ContainsKey(pendingSession.WindowsSessionId))
+                        {
+                            m_activeSessions[pendingSession.WindowsSessionId].SyncedToServer = true;
+                            m_activeSessions[pendingSession.WindowsSessionId].LastHeartbeatUtc = nowUtc;
+                            PersistSessionState(pendingSession.WindowsSessionId);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    m_logger.DebugFormat(
+                        "Offline session synchronization skipped for session {0}: {1}",
+                        pendingSession.WindowsSessionId,
+                        ex.Message);
                 }
             }
         }
@@ -529,7 +636,10 @@ namespace OpenCredential.Plugin.DatabaseLogger
                         Machine = Environment.MachineName,
                         IpAddress = GetCurrentIpAddress(),
                         SessionState = context.SessionState,
-                        LastHeartbeatUtc = context.LastHeartbeatUtc
+                        LoginAtUtc = context.LoginAtUtc == default(DateTime) ? context.LastHeartbeatUtc : context.LoginAtUtc,
+                        LastHeartbeatUtc = context.LastHeartbeatUtc,
+                        WasOfflineLogon = context.WasOfflineLogon,
+                        SyncedToServer = context.SyncedToServer
                     };
                 }
 
@@ -594,7 +704,10 @@ namespace OpenCredential.Plugin.DatabaseLogger
                     Machine = Environment.MachineName,
                     IpAddress = GetCurrentIpAddress(),
                     SessionState = context.SessionState,
-                    LastHeartbeatUtc = context.LastHeartbeatUtc
+                    LoginAtUtc = context.LoginAtUtc == default(DateTime) ? context.LastHeartbeatUtc : context.LoginAtUtc,
+                    LastHeartbeatUtc = context.LastHeartbeatUtc,
+                    WasOfflineLogon = context.WasOfflineLogon,
+                    SyncedToServer = context.SyncedToServer
                 });
             }
             catch (Exception ex)
