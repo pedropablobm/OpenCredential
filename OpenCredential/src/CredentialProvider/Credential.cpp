@@ -531,19 +531,10 @@ namespace OpenCredential
 				m_fields->fields[m_fields->statusFieldIdx].fieldStatePair.fieldState = CPFS_HIDDEN;
 			}
 
-			// If the service is not available, we initially hide username/password
-			if (!OpenCredential::Transactions::Service::Ping()) 
-			{
-				m_fields->fields[m_fields->usernameFieldIdx].fieldStatePair.fieldState = CPFS_HIDDEN;
-				m_fields->fields[m_fields->passwordFieldIdx].fieldStatePair.fieldState = CPFS_HIDDEN;
-				
-				// In change password scenario, also hide new password and repeat new password fields
-				if (CPUS_CHANGE_PASSWORD == m_usageScenario) {
-					m_fields->fields[CredProv::CPUIFI_NEW_PASSWORD].fieldStatePair.fieldState = CPFS_HIDDEN;
-					m_fields->fields[CredProv::CPUIFI_CONFIRM_NEW_PASSWORD].fieldStatePair.fieldState = CPFS_HIDDEN;
-				}
-			}
-			else // If the service is available, we don't show the status message.
+			// If the service is available, we don't show the status message.
+			// If it is not yet available, we keep the tile usable and only show
+			// a status hint while the service finishes starting in the background.
+			if (OpenCredential::Transactions::Service::Ping())
 			{
 				m_fields->fields[m_fields->statusFieldIdx].fieldStatePair.fieldState = CPFS_HIDDEN;
 			}
@@ -703,21 +694,50 @@ namespace OpenCredential
 				}
 				else 
 				{
-					m_fields->fields[m_fields->statusFieldIdx].fieldStatePair.fieldState = CPFS_DISPLAY_IN_BOTH;
-					m_fields->fields[m_fields->usernameFieldIdx].fieldStatePair.fieldState = CPFS_HIDDEN;
-					m_fields->fields[m_fields->passwordFieldIdx].fieldStatePair.fieldState = CPFS_HIDDEN;
-					if (m_logonUiCallback) {
-						m_logonUiCallback->SetFieldState(this, m_fields->statusFieldIdx, CPFS_DISPLAY_IN_BOTH);
-						m_logonUiCallback->SetFieldState(this, m_fields->usernameFieldIdx, CPFS_HIDDEN);
-						m_logonUiCallback->SetFieldState(this, m_fields->passwordFieldIdx, CPFS_HIDDEN);
+					bool hideUsername = OpenCredential::Registry::GetBool(L"HideUsernameField", false);
+					bool hidePassword = OpenCredential::Registry::GetBool(L"HidePasswordField", false);
+
+					if (OpenCredential::Registry::GetBool(L"ShowServiceStatusInLogonUi", true))
+					{
+						m_fields->fields[m_fields->statusFieldIdx].fieldStatePair.fieldState = CPFS_DISPLAY_IN_BOTH;
 					}
-					// In change password scenario, also hide new password and repeat new password fields
+
+					if (!hideUsername)
+					{
+						m_fields->fields[m_fields->usernameFieldIdx].fieldStatePair.fieldState = CPFS_DISPLAY_IN_SELECTED_TILE;
+					}
+
+					if (!hidePassword)
+					{
+						m_fields->fields[m_fields->passwordFieldIdx].fieldStatePair.fieldState = CPFS_DISPLAY_IN_SELECTED_TILE;
+					}
+
+					if (m_logonUiCallback) {
+						if (OpenCredential::Registry::GetBool(L"ShowServiceStatusInLogonUi", true))
+							m_logonUiCallback->SetFieldState(this, m_fields->statusFieldIdx, CPFS_DISPLAY_IN_BOTH);
+
+						if (!hideUsername)
+							m_logonUiCallback->SetFieldState(this, m_fields->usernameFieldIdx, CPFS_DISPLAY_IN_SELECTED_TILE);
+
+						if (!hidePassword)
+							m_logonUiCallback->SetFieldState(this, m_fields->passwordFieldIdx, CPFS_DISPLAY_IN_SELECTED_TILE);
+					}
+
+					// In change password scenario, keep the fields visible too.  The status
+					// hint is enough to tell the user the service is still coming up.
 					if (CPUS_CHANGE_PASSWORD == m_usageScenario) {
-						m_fields->fields[CredProv::CPUIFI_NEW_PASSWORD].fieldStatePair.fieldState = CPFS_HIDDEN;
-						m_fields->fields[CredProv::CPUIFI_CONFIRM_NEW_PASSWORD].fieldStatePair.fieldState = CPFS_HIDDEN;
+						if (!hidePassword)
+						{
+							m_fields->fields[CredProv::CPUIFI_NEW_PASSWORD].fieldStatePair.fieldState = CPFS_DISPLAY_IN_SELECTED_TILE;
+							m_fields->fields[CredProv::CPUIFI_CONFIRM_NEW_PASSWORD].fieldStatePair.fieldState = CPFS_DISPLAY_IN_SELECTED_TILE;
+						}
+
 						if (m_logonUiCallback) {
-							m_logonUiCallback->SetFieldState(this, CredProv::CPUIFI_NEW_PASSWORD, CPFS_HIDDEN);
-							m_logonUiCallback->SetFieldState(this, CredProv::CPUIFI_CONFIRM_NEW_PASSWORD, CPFS_HIDDEN);
+							if (!hidePassword)
+							{
+								m_logonUiCallback->SetFieldState(this, CredProv::CPUIFI_NEW_PASSWORD, CPFS_DISPLAY_IN_SELECTED_TILE);
+								m_logonUiCallback->SetFieldState(this, CredProv::CPUIFI_CONFIRM_NEW_PASSWORD, CPFS_DISPLAY_IN_SELECTED_TILE);
+							}
 						}
 					}
 				}

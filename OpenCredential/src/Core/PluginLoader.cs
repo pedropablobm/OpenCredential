@@ -189,6 +189,13 @@ namespace OpenCredential.Core
             string[] files = Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories);                        
             foreach (string file in files)
             {
+                string normalizedPath = file.ToLowerInvariant();
+                if (normalizedPath.Contains(@"\runtimes\") && normalizedPath.Contains(@"\native\"))
+                {
+                    m_logger.DebugFormat("Skipping native runtime library: {0}", file);
+                    continue;
+                }
+
                 try
                 {
                     // Load the assembly up

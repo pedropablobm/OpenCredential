@@ -58,15 +58,21 @@ namespace Service
                 m_serviceThread = new Thread(new ThreadStart(m_serviceThreadObj.Start));
                 m_serviceThread.Start();
 
-                // Wait for the background initializer to either finish successfully
-                // or capture a startup error. This avoids reporting the Windows
-                // service as started while the credential provider is still waiting
-                // for a pipe that will never come up.
-                if (!m_serviceThreadObj.WaitForInitialization(15000))
-                    throw new System.TimeoutException("Timed out while initializing OpenCredential service.");
-
+                // Wait briefly for a clean startup, but do not fail the Windows
+                // service if initialization is merely slow. Some environments need
+                // more time to load plugins, bring networking up, or complete the
+                // first database health checks.
+                bool initialized = m_serviceThreadObj.WaitForInitialization(15000);
                 if (m_serviceThreadObj.StartupException != null)
                     throw new InvalidOperationException("OpenCredential service failed to initialize.", m_serviceThreadObj.StartupException);
+
+                if (!initialized)
+                {
+                    EventLog.WriteEntry(
+                        "OpenCredential",
+                        "OpenCredential service initialization is taking longer than expected. Continuing startup in the background.",
+                        EventLogEntryType.Warning);
+                }
             }
             catch (Exception e)
             {

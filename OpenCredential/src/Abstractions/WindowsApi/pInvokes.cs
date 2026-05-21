@@ -517,51 +517,77 @@ namespace Abstractions.WindowsApi
             int retVal = SafeNativeMethods.WTSEnumerateSessions(SafeNativeMethods.WTS_CURRENT_SERVER_HANDLE, 0, 1, ref sessionInfoList, ref sessionCount);
 
             if(retVal != 0)
-            {                
+            {
                 int dataSize = Marshal.SizeOf(typeof(SafeNativeMethods.WTS_SESSION_INFO));
-                int currentSession = (int) sessionInfoList;                
+                IntPtr currentSession = sessionInfoList;
 
-                for(int x = 0; x < sessionCount; x++)
+                try
                 {
-                    SafeNativeMethods.WTS_SESSION_INFO sessionInfo = 
-                        (SafeNativeMethods.WTS_SESSION_INFO)Marshal.PtrToStructure((IntPtr)currentSession, typeof(SafeNativeMethods.WTS_SESSION_INFO));
-                    currentSession += dataSize;
+                    for (int x = 0; x < sessionCount; x++)
+                    {
+                        SafeNativeMethods.WTS_SESSION_INFO sessionInfo =
+                            (SafeNativeMethods.WTS_SESSION_INFO)Marshal.PtrToStructure(currentSession, typeof(SafeNativeMethods.WTS_SESSION_INFO));
+                        currentSession = IntPtr.Add(currentSession, dataSize);
 
-                    uint bytes = 0;
-                    IntPtr userInfo = IntPtr.Zero;
-                    IntPtr domainInfo = IntPtr.Zero;
-                    bool sResult = SafeNativeMethods.WTSQuerySessionInformation(SafeNativeMethods.WTS_CURRENT_SERVER_HANDLE, sessionInfo.SessionID, SafeNativeMethods.WTS_INFO_CLASS.WTSUserName, out userInfo, out bytes);
-                    if (!sResult)
-                    {
-                        int Win32ErrorResult = Marshal.GetLastWin32Error();
-                        SafeNativeMethods.WTSFreeMemory(sessionInfoList);
-                        throw new Win32Exception(Win32ErrorResult, "WTSQuerySessionInformation");
-                    }
-                    string user = Marshal.PtrToStringAnsi(userInfo);
-                    SafeNativeMethods.WTSFreeMemory(userInfo);
+                        uint bytes = 0;
+                        IntPtr userInfo = IntPtr.Zero;
+                        IntPtr domainInfo = IntPtr.Zero;
 
-                    sResult = SafeNativeMethods.WTSQuerySessionInformation(SafeNativeMethods.WTS_CURRENT_SERVER_HANDLE, sessionInfo.SessionID, SafeNativeMethods.WTS_INFO_CLASS.WTSDomainName, out domainInfo, out bytes);
-                    if (!sResult)
-                    {
-                        int Win32ErrorResult = Marshal.GetLastWin32Error();
-                        SafeNativeMethods.WTSFreeMemory(sessionInfoList);
-                        throw new Win32Exception(Win32ErrorResult, "WTSQuerySessionInformation");
-                    }
+                        try
+                        {
+                            bool sResult = SafeNativeMethods.WTSQuerySessionInformation(
+                                SafeNativeMethods.WTS_CURRENT_SERVER_HANDLE,
+                                sessionInfo.SessionID,
+                                SafeNativeMethods.WTS_INFO_CLASS.WTSUserName,
+                                out userInfo,
+                                out bytes);
 
-                    string domain = Marshal.PtrToStringAnsi(domainInfo);
-                    SafeNativeMethods.WTSFreeMemory(domainInfo);
-                    
-                    if (!string.IsNullOrEmpty(domain))
-                    {
-                        result.Add(string.Format("{0}\\{1}", domain, user));
-                    }
-                    else if (!string.IsNullOrEmpty(user))
-                    {
-                        result.Add(user);
+                            if (!sResult)
+                            {
+                                int Win32ErrorResult = Marshal.GetLastWin32Error();
+                                throw new Win32Exception(Win32ErrorResult, "WTSQuerySessionInformation");
+                            }
+
+                            string user = Marshal.PtrToStringAnsi(userInfo);
+
+                            sResult = SafeNativeMethods.WTSQuerySessionInformation(
+                                SafeNativeMethods.WTS_CURRENT_SERVER_HANDLE,
+                                sessionInfo.SessionID,
+                                SafeNativeMethods.WTS_INFO_CLASS.WTSDomainName,
+                                out domainInfo,
+                                out bytes);
+
+                            if (!sResult)
+                            {
+                                int Win32ErrorResult = Marshal.GetLastWin32Error();
+                                throw new Win32Exception(Win32ErrorResult, "WTSQuerySessionInformation");
+                            }
+
+                            string domain = Marshal.PtrToStringAnsi(domainInfo);
+
+                            if (!string.IsNullOrEmpty(domain))
+                            {
+                                result.Add(string.Format("{0}\\{1}", domain, user));
+                            }
+                            else if (!string.IsNullOrEmpty(user))
+                            {
+                                result.Add(user);
+                            }
+                        }
+                        finally
+                        {
+                            if (userInfo != IntPtr.Zero)
+                                SafeNativeMethods.WTSFreeMemory(userInfo);
+
+                            if (domainInfo != IntPtr.Zero)
+                                SafeNativeMethods.WTSFreeMemory(domainInfo);
+                        }
                     }
                 }
-
-                SafeNativeMethods.WTSFreeMemory(sessionInfoList);
+                finally
+                {
+                    SafeNativeMethods.WTSFreeMemory(sessionInfoList);
+                }
             }
 
             return result;            
