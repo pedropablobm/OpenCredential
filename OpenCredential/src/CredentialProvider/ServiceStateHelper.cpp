@@ -54,11 +54,11 @@ namespace OpenCredential
 		{
 			if(s_serviceStateThread.IsServiceRunning())
 			{
-				return L"Service Status: Connected";
+				return L"OpenCredential service connected.";
 			}
 			else
 			{
-            return L"Waiting for OpenCredential service...";
+				return L"OpenCredential service is starting or temporarily unavailable. You can continue signing in, and offline sign-in will work when cached credentials are available.";
 			}
 		}			
 
