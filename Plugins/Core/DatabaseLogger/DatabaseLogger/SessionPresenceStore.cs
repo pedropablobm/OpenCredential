@@ -14,7 +14,10 @@ namespace OpenCredential.Plugin.DatabaseLogger
         public string Machine { get; set; }
         public string IpAddress { get; set; }
         public string SessionState { get; set; }
+        public DateTime LoginAtUtc { get; set; }
         public DateTime LastHeartbeatUtc { get; set; }
+        public bool WasOfflineLogon { get; set; }
+        public bool SyncedToServer { get; set; }
     }
 
     internal static class SessionPresenceStore
@@ -46,13 +49,19 @@ namespace OpenCredential.Plugin.DatabaseLogger
                         "machine TEXT NULL, " +
                         "ip_address TEXT NULL, " +
                         "session_state TEXT NOT NULL, " +
-                        "last_heartbeat_utc TEXT NOT NULL);";
+                        "login_at_utc TEXT NULL, " +
+                        "last_heartbeat_utc TEXT NOT NULL, " +
+                        "was_offline_logon INTEGER NOT NULL DEFAULT 0, " +
+                        "synced_to_server INTEGER NOT NULL DEFAULT 1);";
                     cmd.ExecuteNonQuery();
                 }
 
                 EnsureColumn("active_sessions", "client_session_id", "TEXT NULL");
                 EnsureColumn("active_sessions", "machine", "TEXT NULL");
                 EnsureColumn("active_sessions", "ip_address", "TEXT NULL");
+                EnsureColumn("active_sessions", "login_at_utc", "TEXT NULL");
+                EnsureColumn("active_sessions", "was_offline_logon", "INTEGER NOT NULL DEFAULT 0");
+                EnsureColumn("active_sessions", "synced_to_server", "INTEGER NOT NULL DEFAULT 1");
             }
         }
 
@@ -69,22 +78,30 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText =
-                        "INSERT INTO active_sessions (windows_session_id, username, client_session_id, machine, ip_address, session_state, last_heartbeat_utc) " +
-                        "VALUES (@windows_session_id, @username, @client_session_id, @machine, @ip_address, @session_state, @last_heartbeat_utc) " +
+                        "INSERT INTO active_sessions (windows_session_id, username, client_session_id, machine, ip_address, session_state, login_at_utc, last_heartbeat_utc, was_offline_logon, synced_to_server) " +
+                        "VALUES (@windows_session_id, @username, @client_session_id, @machine, @ip_address, @session_state, @login_at_utc, @last_heartbeat_utc, @was_offline_logon, @synced_to_server) " +
                         "ON CONFLICT(windows_session_id) DO UPDATE SET " +
                         "username = excluded.username, " +
                         "client_session_id = excluded.client_session_id, " +
                         "machine = excluded.machine, " +
                         "ip_address = excluded.ip_address, " +
                         "session_state = excluded.session_state, " +
-                        "last_heartbeat_utc = excluded.last_heartbeat_utc;";
+                        "login_at_utc = excluded.login_at_utc, " +
+                        "last_heartbeat_utc = excluded.last_heartbeat_utc, " +
+                        "was_offline_logon = excluded.was_offline_logon, " +
+                        "synced_to_server = excluded.synced_to_server;";
                     cmd.Parameters.AddWithValue("@windows_session_id", state.WindowsSessionId);
                     cmd.Parameters.AddWithValue("@username", (object)state.Username ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@client_session_id", (object)state.ClientSessionId ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@machine", (object)state.Machine ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@ip_address", (object)state.IpAddress ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@session_state", string.IsNullOrWhiteSpace(state.SessionState) ? "active" : state.SessionState);
+                    cmd.Parameters.AddWithValue("@login_at_utc", state.LoginAtUtc == default(DateTime)
+                        ? DBNull.Value
+                        : (object)state.LoginAtUtc.ToString("o", CultureInfo.InvariantCulture));
                     cmd.Parameters.AddWithValue("@last_heartbeat_utc", state.LastHeartbeatUtc.ToString("o", CultureInfo.InvariantCulture));
+                    cmd.Parameters.AddWithValue("@was_offline_logon", state.WasOfflineLogon ? 1 : 0);
+                    cmd.Parameters.AddWithValue("@synced_to_server", state.SyncedToServer ? 1 : 0);
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -101,7 +118,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText =
-                        "SELECT windows_session_id, username, client_session_id, machine, ip_address, session_state, last_heartbeat_utc " +
+                        "SELECT windows_session_id, username, client_session_id, machine, ip_address, session_state, login_at_utc, last_heartbeat_utc, was_offline_logon, synced_to_server " +
                         "FROM active_sessions";
 
                     using (var reader = cmd.ExecuteReader())
@@ -116,10 +133,18 @@ namespace OpenCredential.Plugin.DatabaseLogger
                                 Machine = reader["machine"] == DBNull.Value ? null : Convert.ToString(reader["machine"]),
                                 IpAddress = reader["ip_address"] == DBNull.Value ? null : Convert.ToString(reader["ip_address"]),
                                 SessionState = Convert.ToString(reader["session_state"]),
+                                LoginAtUtc = reader["login_at_utc"] == DBNull.Value
+                                    ? DateTime.MinValue
+                                    : DateTime.Parse(
+                                        Convert.ToString(reader["login_at_utc"]),
+                                        CultureInfo.InvariantCulture,
+                                        DateTimeStyles.RoundtripKind),
                                 LastHeartbeatUtc = DateTime.Parse(
                                     Convert.ToString(reader["last_heartbeat_utc"]),
                                     CultureInfo.InvariantCulture,
-                                    DateTimeStyles.RoundtripKind)
+                                    DateTimeStyles.RoundtripKind),
+                                WasOfflineLogon = reader["was_offline_logon"] != DBNull.Value && Convert.ToInt32(reader["was_offline_logon"]) != 0,
+                                SyncedToServer = reader["synced_to_server"] == DBNull.Value || Convert.ToInt32(reader["synced_to_server"]) != 0
                             });
                         }
                     }

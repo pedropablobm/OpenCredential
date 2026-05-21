@@ -38,7 +38,8 @@ namespace OpenCredential.Plugin.DatabaseLogger
             "windows_session_id",
             "session_state",
             "last_heartbeat_at",
-            "session_end_reason"
+            "session_end_reason",
+            "session_origin"
         };
 
         private readonly ILog m_logger = LogManager.GetLogger("DatabaseLoggerPlugin");
@@ -59,28 +60,28 @@ namespace OpenCredential.Plugin.DatabaseLogger
             {
                 case SessionChangeReason.SessionLogon:
                     CloseCompetingSessions(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc);
-                    InsertSession(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "active");
+                    InsertSession(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "active", "online");
                     m_logger.DebugFormat("Logged SessionLogon for {0} ({1})", username, clientSessionId);
                     break;
 
                 case SessionChangeReason.SessionLogoff:
-                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "ended", "logoff", true);
+                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "ended", "logoff", true, "online");
                     m_logger.DebugFormat("Logged SessionLogoff for {0} ({1})", username, clientSessionId);
                     break;
 
                 case SessionChangeReason.SessionLock:
-                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "locked", null, false);
+                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "locked", null, false, "online");
                     break;
 
                 case SessionChangeReason.SessionUnlock:
                 case SessionChangeReason.ConsoleConnect:
                 case SessionChangeReason.RemoteConnect:
-                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "active", null, false);
+                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "active", null, false, "online");
                     break;
 
                 case SessionChangeReason.ConsoleDisconnect:
                 case SessionChangeReason.RemoteDisconnect:
-                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "disconnected", null, false);
+                    UpdateSessionPresence(changeDescription.SessionId, clientSessionId, username, machine, ipAddress, eventUtc, "disconnected", null, false, "online");
                     break;
             }
 
@@ -97,7 +98,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             string ipAddress = GetIpAddress();
             string clientSessionId = GetClientSessionId(properties);
 
-            UpdateSessionPresence(windowsSessionId, clientSessionId, username, machine, ipAddress, heartbeatUtc, sessionState, null, false);
+            UpdateSessionPresence(windowsSessionId, clientSessionId, username, machine, ipAddress, heartbeatUtc, sessionState, null, false, "online");
             m_logger.DebugFormat(
                 "Logged heartbeat for session {0} user={1} state={2} at {3:o}",
                 windowsSessionId,
@@ -127,13 +128,69 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 eventUtc,
                 "ended",
                 endReason,
-                true);
+                true,
+                persistedState.WasOfflineLogon ? "offline_cache" : "online");
             m_logger.InfoFormat(
                 "Logged reconciled session end for session {0} user={1} reason={2} at {3:o}",
                 persistedState.WindowsSessionId,
                 username,
                 endReason,
                 eventUtc);
+        }
+
+        public void EnsureActiveSessionRecorded(SessionPresenceState persistedState, DateTime heartbeatUtc)
+        {
+            if (persistedState == null)
+                return;
+
+            EnsureConnection();
+            EnsureSessionSchema();
+
+            string username = string.IsNullOrWhiteSpace(persistedState.Username) ? "--UNKNOWN--" : persistedState.Username;
+            string machine = string.IsNullOrWhiteSpace(persistedState.Machine) ? Environment.MachineName : persistedState.Machine;
+            string ipAddress = string.IsNullOrWhiteSpace(persistedState.IpAddress) ? GetIpAddress() : persistedState.IpAddress;
+            string sessionState = string.IsNullOrWhiteSpace(persistedState.SessionState) ? "active" : persistedState.SessionState;
+            DateTime loginAtUtc = persistedState.LoginAtUtc == default(DateTime) ? heartbeatUtc : persistedState.LoginAtUtc;
+
+            int updatedRows = UpdateSessionPresence(
+                persistedState.WindowsSessionId,
+                persistedState.ClientSessionId,
+                username,
+                machine,
+                ipAddress,
+                heartbeatUtc,
+                sessionState,
+                null,
+                false,
+                persistedState.WasOfflineLogon ? "offline_cache" : "online");
+
+            if (updatedRows > 0)
+                return;
+
+            InsertSession(
+                persistedState.WindowsSessionId,
+                persistedState.ClientSessionId,
+                username,
+                machine,
+                ipAddress,
+                loginAtUtc,
+                sessionState,
+                persistedState.WasOfflineLogon ? "offline_cache" : "online");
+
+            if (heartbeatUtc > loginAtUtc)
+            {
+                UpdateSessionPresence(
+                    persistedState.WindowsSessionId,
+                    persistedState.ClientSessionId,
+                    username,
+                    machine,
+                    ipAddress,
+                    heartbeatUtc,
+                    sessionState,
+                    null,
+                    false,
+                    persistedState.WasOfflineLogon ? "offline_cache" : "online");
+            }
         }
 
         public string TestTable()
@@ -215,6 +272,7 @@ namespace OpenCredential.Plugin.DatabaseLogger
             EnsureColumn(table, existingColumns, "session_state", IsPostgreSql ? "VARCHAR(32) NOT NULL DEFAULT 'active'" : "VARCHAR(32) NOT NULL DEFAULT 'active'");
             EnsureColumn(table, existingColumns, "last_heartbeat_at", IsPostgreSql ? "TIMESTAMP NULL" : "DATETIME NULL");
             EnsureColumn(table, existingColumns, "session_end_reason", IsPostgreSql ? "VARCHAR(64) NULL" : "VARCHAR(64) NULL");
+            EnsureColumn(table, existingColumns, "session_origin", IsPostgreSql ? "VARCHAR(32) NOT NULL DEFAULT 'online'" : "VARCHAR(32) NOT NULL DEFAULT 'online'");
             EnsureSessionIndexes(table);
         }
 
@@ -322,10 +380,10 @@ namespace OpenCredential.Plugin.DatabaseLogger
         {
             string sql = IsPostgreSql
                 ? string.Format(
-                    "CREATE TABLE {0} (\"dbid\" BIGSERIAL PRIMARY KEY, \"loginstamp\" TIMESTAMP NOT NULL, \"logoutstamp\" TIMESTAMP NULL, \"username\" VARCHAR(128) NOT NULL, \"machine\" VARCHAR(128) NOT NULL, \"ipaddress\" VARCHAR(45) NOT NULL, \"client_session_id\" VARCHAR(64) NULL, \"windows_session_id\" INT NULL, \"session_state\" VARCHAR(32) NOT NULL DEFAULT 'active', \"last_heartbeat_at\" TIMESTAMP NULL, \"session_end_reason\" VARCHAR(64) NULL)",
+                    "CREATE TABLE {0} (\"dbid\" BIGSERIAL PRIMARY KEY, \"loginstamp\" TIMESTAMP NOT NULL, \"logoutstamp\" TIMESTAMP NULL, \"username\" VARCHAR(128) NOT NULL, \"machine\" VARCHAR(128) NOT NULL, \"ipaddress\" VARCHAR(45) NOT NULL, \"client_session_id\" VARCHAR(64) NULL, \"windows_session_id\" INT NULL, \"session_state\" VARCHAR(32) NOT NULL DEFAULT 'active', \"last_heartbeat_at\" TIMESTAMP NULL, \"session_end_reason\" VARCHAR(64) NULL, \"session_origin\" VARCHAR(32) NOT NULL DEFAULT 'online')",
                     Quote(table))
                 : string.Format(
-                    "CREATE TABLE {0} (dbid BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, loginstamp DATETIME NOT NULL, logoutstamp DATETIME NULL, username VARCHAR(128) NOT NULL, machine VARCHAR(128) NOT NULL, ipaddress VARCHAR(45) NOT NULL, client_session_id VARCHAR(64) NULL, windows_session_id INT NULL, session_state VARCHAR(32) NOT NULL DEFAULT 'active', last_heartbeat_at DATETIME NULL, session_end_reason VARCHAR(64) NULL, INDEX idx_{1}_active (logoutstamp, machine, ipaddress), INDEX idx_{1}_user (username, machine, ipaddress)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+                    "CREATE TABLE {0} (dbid BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, loginstamp DATETIME NOT NULL, logoutstamp DATETIME NULL, username VARCHAR(128) NOT NULL, machine VARCHAR(128) NOT NULL, ipaddress VARCHAR(45) NOT NULL, client_session_id VARCHAR(64) NULL, windows_session_id INT NULL, session_state VARCHAR(32) NOT NULL DEFAULT 'active', last_heartbeat_at DATETIME NULL, session_end_reason VARCHAR(64) NULL, session_origin VARCHAR(32) NOT NULL DEFAULT 'online', INDEX idx_{1}_active (logoutstamp, machine, ipaddress), INDEX idx_{1}_user (username, machine, ipaddress)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
                     Quote(table),
                     table);
 
@@ -336,11 +394,11 @@ namespace OpenCredential.Plugin.DatabaseLogger
             }
         }
 
-        private void InsertSession(int windowsSessionId, string clientSessionId, string username, string machine, string ipAddress, DateTime eventUtc, string sessionState)
+        private void InsertSession(int windowsSessionId, string clientSessionId, string username, string machine, string ipAddress, DateTime eventUtc, string sessionState, string sessionOrigin)
         {
             string table = Convert.ToString(Settings.Store.SessionTable);
             string sql = string.Format(
-                "INSERT INTO {0} ({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}) VALUES (@loginstamp, NULL, @username, @machine, @ipaddress, @client_session_id, @windows_session_id, @session_state, @last_heartbeat_at, NULL)",
+                "INSERT INTO {0} ({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}) VALUES (@loginstamp, NULL, @username, @machine, @ipaddress, @client_session_id, @windows_session_id, @session_state, @last_heartbeat_at, NULL, @session_origin)",
                 Quote(table),
                 QuoteColumn("loginstamp"),
                 QuoteColumn("logoutstamp"),
@@ -351,7 +409,8 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 QuoteColumn("windows_session_id"),
                 QuoteColumn("session_state"),
                 QuoteColumn("last_heartbeat_at"),
-                QuoteColumn("session_end_reason"));
+                QuoteColumn("session_end_reason"),
+                QuoteColumn("session_origin"));
 
             using (var cmd = m_conn.CreateCommand())
             {
@@ -364,16 +423,17 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 AddParameter(cmd, "@windows_session_id", windowsSessionId);
                 AddParameter(cmd, "@session_state", sessionState);
                 AddParameter(cmd, "@last_heartbeat_at", eventUtc);
+                AddParameter(cmd, "@session_origin", string.IsNullOrWhiteSpace(sessionOrigin) ? "online" : sessionOrigin);
                 cmd.ExecuteNonQuery();
             }
         }
 
         private void CloseCompetingSessions(int windowsSessionId, string clientSessionId, string username, string machine, string ipAddress, DateTime eventUtc)
         {
-            UpdateSessionPresence(windowsSessionId, clientSessionId, username, machine, ipAddress, eventUtc, "ended", "superseded_by_logon", true);
+            UpdateSessionPresence(windowsSessionId, clientSessionId, username, machine, ipAddress, eventUtc, "ended", "superseded_by_logon", true, "online");
         }
 
-        private void UpdateSessionPresence(
+        private int UpdateSessionPresence(
             int windowsSessionId,
             string clientSessionId,
             string username,
@@ -382,18 +442,20 @@ namespace OpenCredential.Plugin.DatabaseLogger
             DateTime heartbeatUtc,
             string sessionState,
             string endReason,
-            bool closeSession)
+            bool closeSession,
+            string sessionOrigin)
         {
             string table = Convert.ToString(Settings.Store.SessionTable);
             string normalizedClientSessionId = clientSessionId ?? string.Empty;
             string sql = string.Format(
-                "UPDATE {0} SET {1} = @last_heartbeat_at, {2} = @session_state, {3} = CASE WHEN ({4} IS NULL OR {4} = '') THEN {3} ELSE @client_session_id END, {5} = CASE WHEN {5} IS NULL THEN @windows_session_id ELSE {5} END{6}{7} WHERE {8} IS NULL AND {9} = @machine AND (((@client_session_id IS NOT NULL AND @client_session_id <> '') AND {3} = @client_session_id) OR ({5} = @windows_session_id) OR ({10} = @username AND {11} = @ipaddress))",
+                "UPDATE {0} SET {1} = @last_heartbeat_at, {2} = @session_state, {3} = CASE WHEN ({4} IS NULL OR {4} = '') THEN {3} ELSE @client_session_id END, {5} = CASE WHEN {5} IS NULL THEN @windows_session_id ELSE {5} END, {6} = CASE WHEN ({6} IS NULL OR {6} = '') THEN @session_origin ELSE {6} END{7}{8} WHERE {9} IS NULL AND {10} = @machine AND (((@client_session_id IS NOT NULL AND @client_session_id <> '') AND {3} = @client_session_id) OR ({5} = @windows_session_id) OR ({11} = @username AND {12} = @ipaddress))",
                 Quote(table),
                 QuoteColumn("last_heartbeat_at"),
                 QuoteColumn("session_state"),
                 QuoteColumn("client_session_id"),
                 QuoteColumn("client_session_id"),
                 QuoteColumn("windows_session_id"),
+                QuoteColumn("session_origin"),
                 closeSession ? string.Format(", {0} = @logoutstamp", QuoteColumn("logoutstamp")) : string.Empty,
                 closeSession ? string.Format(", {0} = @session_end_reason", QuoteColumn("session_end_reason")) : string.Empty,
                 QuoteColumn("logoutstamp"),
@@ -411,12 +473,13 @@ namespace OpenCredential.Plugin.DatabaseLogger
                 AddParameter(cmd, "@machine", machine);
                 AddParameter(cmd, "@username", username);
                 AddParameter(cmd, "@ipaddress", ipAddress);
+                AddParameter(cmd, "@session_origin", string.IsNullOrWhiteSpace(sessionOrigin) ? "online" : sessionOrigin);
                 if (closeSession)
                 {
                     AddParameter(cmd, "@logoutstamp", heartbeatUtc);
                     AddParameter(cmd, "@session_end_reason", NullableDbValue(endReason));
                 }
-                cmd.ExecuteNonQuery();
+                return cmd.ExecuteNonQuery();
             }
         }
 
