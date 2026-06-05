@@ -44,8 +44,18 @@ packages/
 *.nupkg
 .dotnet-home/
 
+# OpenCredential runtime secrets / local state
+admin_cookies.txt
+OpenCredential.AdminWeb/App_Data/*
+!OpenCredential.AdminWeb/App_Data/adminweb-runtime.example.json
+OpenCredential.AdminWeb/.dotnet-home/
+OpenCredential.AdminWeb/artifacts/
+OpenCredential.AdminWeb/*.log
+Installer/PreprocessedOpenCredential*.iss
+Installer/Output/
+Plugins/SDK/
+artifacts/
+
 # Keep installer payloads under source control
 !Installer/bin/
 !Installer/bin/**
-!Installer/Output/
-!Installer/Output/**

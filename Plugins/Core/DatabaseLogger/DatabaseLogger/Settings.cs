@@ -54,12 +54,12 @@ namespace OpenCredential.Plugin.DatabaseLogger
             // Set defaults
             //m_settings.SetDefault("LoggerMode", LoggerMode.EVENT);
             m_settings.SetDefault("EventMode", true);
-            m_settings.SetDefault("SessionMode", false);
+            m_settings.SetDefault("SessionMode", true);
             m_settings.SetDefault("Host", "localhost");
             m_settings.SetDefault("Port", 3306);
             m_settings.SetDefault("DatabaseProvider", (int)DatabaseProvider.MySql);
             m_settings.SetDefault("User", "pGina");
-            m_settings.SetDefaultEncryptedSetting("Password", "secret", null);
+            m_settings.SetDefaultEncryptedSetting("Password", string.Empty, null);
             m_settings.SetDefault("Database", "pgina_access_control");
             m_settings.SetDefault("SessionTable", "login_sessions");
             m_settings.SetDefault("EventTable", "login_events");

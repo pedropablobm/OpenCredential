@@ -72,7 +72,7 @@ namespace OpenCredential.Plugin.DatabaseAuth
             m_settings.SetDefault("UseSsl", false);
             m_settings.SetDefault("SslMode", MySqlConnector.MySqlSslMode.None.ToString());
             m_settings.SetDefault("User", "pgina_user");
-            m_settings.SetDefaultEncryptedSetting("Password", "secret");
+            m_settings.SetDefaultEncryptedSetting("Password", string.Empty);
             m_settings.SetDefault("Database", "pgina_access_control");
 
             // Connection timeout settings (for MySQL 8/MariaDB)
