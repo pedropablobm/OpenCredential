@@ -46,11 +46,7 @@ packages/
 
 # OpenCredential runtime secrets / local state
 admin_cookies.txt
-OpenCredential.AdminWeb/App_Data/*
-!OpenCredential.AdminWeb/App_Data/adminweb-runtime.example.json
-OpenCredential.AdminWeb/.dotnet-home/
-OpenCredential.AdminWeb/artifacts/
-OpenCredential.AdminWeb/*.log
+OpenCredential.AdminWeb/
 Installer/PreprocessedOpenCredential*.iss
 Installer/Output/
 Plugins/SDK/

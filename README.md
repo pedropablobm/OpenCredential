@@ -66,6 +66,16 @@ Note:
 
 - In current local builds, the installer filename is `OpenCredentialInstaller-1.0.0.0.exe`.
 
+## Production Security Notes
+
+Before promoting a build to production or broad internal rollout:
+
+- store database credentials outside the repository, preferably in environment variables or a secrets manager
+- do not version local runtime files such as `OpenCredential.AdminWeb/App_Data/`, `keys/`, cookies, logs, installer outputs, or copied SDK binaries
+- rotate any credential that was ever stored in a local runtime JSON, test compose file, or shared screenshot
+- use dedicated least-privilege database accounts for `Database Auth`, `Database Logger`, and any admin web integration
+- enable HTTPS or a reverse proxy with TLS for any admin web exposure
+
 ## Database Provider Configuration
 
 The database plugins are now presented in OpenCredential as:
