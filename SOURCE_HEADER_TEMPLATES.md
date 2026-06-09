@@ -11,7 +11,7 @@ Use this when the file is newly created for OpenCredential:
 // OpenCredential - Source code
 // https://github.com/pedropablobm/OpenCredential
 //
-// Copyright (c) 2024, Pedro Bermudez
+// Copyright (c) 2026, Pedro Pablo Bermudez Medina, Yuri Mercedes Bermudez Mazuera
 // All rights reserved.
 //
 // This file is part of OpenCredential, an unofficial fork of pGina.
@@ -31,7 +31,7 @@ Use this when a file comes from pGina and has been substantially modified:
 // https://github.com/pedropablobm/OpenCredential
 //
 // Based on original pGina source code.
-// Further modifications Copyright (c) 2024, Pedro Bermudez.
+// Further modifications Copyright (c) 2026, Pedro Pablo Bermudez Medina, Yuri Mercedes Bermudez Mazuera.
 //
 // This file is part of OpenCredential, an unofficial fork of pGina.
 // It remains subject to the BSD-3-Clause license terms of the original
