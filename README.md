@@ -444,4 +444,3 @@ This repository is an unofficial fork of pGina.
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/pedropablobm/OpenCredential/issues)
-- **Original Project**: https://github.com/pgina/pgina
